@@ -868,11 +868,11 @@ namespace jtk
   // bool4
   /////////////////////////////////////////////////////////////////////////
 
-  bool4::bool4() {}
-  bool4::bool4(const __m128 in) : m128(in) {}
-  bool4::bool4(const __m128i in) : m128(_mm_castsi128_ps(in)) {}
-  bool4::bool4(bool b) : m128(lookup_mask[b ? 15 : 0]) {}
-  bool4::bool4(bool b0, bool b1, bool b2, bool b3) : m128(lookup_mask[(uint8_t(b3) << 3) | (uint8_t(b2) << 2) | (uint8_t(b1) << 1) | (uint8_t(b0))]) {}
+  inline bool4::bool4() {}
+  inline bool4::bool4(const __m128 in) : m128(in) {}
+  inline bool4::bool4(const __m128i in) : m128(_mm_castsi128_ps(in)) {}
+  inline bool4::bool4(bool b) : m128(lookup_mask[b ? 15 : 0]) {}
+  inline bool4::bool4(bool b0, bool b1, bool b2, bool b3) : m128(lookup_mask[(uint8_t(b3) << 3) | (uint8_t(b2) << 2) | (uint8_t(b1) << 1) | (uint8_t(b0))]) {}
 
   template <typename T>
   inline int32_t& bool4::operator [](T index) { return i[index]; }
@@ -977,11 +977,11 @@ namespace jtk
     return i[ind];
     }
 
-  int4::int4() {}
-  int4::int4(const __m128i& in) : m128i(in) {}
-  int4::int4(int32_t in) : m128i(_mm_set1_epi32(in)) {}
-  int4::int4(int32_t i0, int32_t i1, int32_t i2, int32_t i3) : m128i(_mm_set_epi32(i3, i2, i1, i0)) {}
-  int4::int4(const bool4& in) : m128i(_mm_castps_si128(in.m128)) {}
+  inline int4::int4() {}
+  inline int4::int4(const __m128i& in) : m128i(in) {}
+  inline int4::int4(int32_t in) : m128i(_mm_set1_epi32(in)) {}
+  inline int4::int4(int32_t i0, int32_t i1, int32_t i2, int32_t i3) : m128i(_mm_set_epi32(i3, i2, i1, i0)) {}
+  inline int4::int4(const bool4& in) : m128i(_mm_castps_si128(in.m128)) {}
 
   inline int4 operator + (const int4& a)
     {
@@ -1105,11 +1105,11 @@ namespace jtk
     return f[i];
     }
 
-  float4::float4() {}
-  float4::float4(const __m128 in) : m128(in) {}
-  float4::float4(float f) : m128(_mm_set1_ps(f)) {}
-  float4::float4(float _x, float _y, float _z) : m128(_mm_set_ps(1.f, _z, _y, _x)) {}
-  float4::float4(float _x, float _y, float _z, float _w) : m128(_mm_set_ps(_w, _z, _y, _x)) {}
+  inline float4::float4() {}
+  inline float4::float4(const __m128 in) : m128(in) {}
+  inline float4::float4(float f) : m128(_mm_set1_ps(f)) {}
+  inline float4::float4(float _x, float _y, float _z) : m128(_mm_set_ps(1.f, _z, _y, _x)) {}
+  inline float4::float4(float _x, float _y, float _z, float _w) : m128(_mm_set_ps(_w, _z, _y, _x)) {}
 
 
   inline float4 operator + (const float4& a)
