@@ -23,7 +23,20 @@ namespace jtk
   bool read_obj(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename);
   bool read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const char* filename);
   bool read_texture_filename_from_mtl(std::string& texture_file, const char* filename);
+  bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename);
+  bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename);
 
+  template <class T>
+  void write_ply(const char* filename, const std::vector<vec3<T>>& pts);
+  template <class T>
+  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals);
+  template <class T>
+  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<uint32_t>& clrs);
+  template <class T>
+  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals, const std::vector<uint32_t>& clrs);
+  void write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles);
+  void write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles);
+    
   class adjacency_list
     {
     public:
@@ -156,6 +169,8 @@ namespace jtk
 
   template <class Ear>
   void fill_hole_ear(std::vector<vec3<uint32_t>>& triangles, const vec3<float>* vertices, mutable_adjacency_list& mal, const std::vector<uint32_t>& hole);
+  template <class Ear>
+  void fill_holes(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, uint32_t max_holes_size);
 
   void smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
   void local_smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& vertex_indices, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
@@ -339,6 +354,97 @@ namespace jtk
         memcpy((void*)&buffer[48], attr_it, sizeof(unsigned short));
         }
       fwrite(buffer, 1, 50, outputfile);
+      }
+    fclose(outputfile);
+    return true;
+    }
+
+  inline bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+    {
+    uint32_t nr_of_vertices = 0;
+    uint32_t nr_of_triangles = 0;
+    vertices.clear();
+    triangles.clear();
+    FILE* inputfile = fopen(filename, "r");
+    if (!inputfile)
+      return false;
+    char str[80];
+    fscanf(inputfile, "%s\n", str);
+    if (std::string(str) != "OFF" && std::string(str) != "COFF")
+      {
+      fclose(inputfile);
+      return false;
+      }
+    bool color = std::string(str) == "COFF";
+    uint32_t numedges = 0;
+    fscanf(inputfile, "%d %d %d\n", &nr_of_vertices, &nr_of_triangles, &numedges);
+    vertices.resize(nr_of_vertices);
+    triangles.resize(nr_of_triangles);
+    for (auto& v : vertices)
+      {
+      float x = 0.0;
+      float y = 0.0;
+      float z = 0.0;
+      int r = 0;
+      int g = 0;
+      int b = 0;
+      int a = 0;
+      if (color)
+        fscanf(inputfile, "%f %f %f %d %d %d %d\n", &x, &y, &z, &r, &g, &b, &a);
+      else
+        fscanf(inputfile, "%f %f %f\n", &x, &y, &z);
+      v[0] = x;
+      v[1] = y;
+      v[2] = z;
+      }
+    for (auto& tria : triangles)
+      {
+      uint32_t polysize = 0;
+      uint32_t t0, t1, t2;
+      fscanf(inputfile, "%d %d %d %d\n", &polysize, &t0, &t1, &t2);
+      if (polysize != 3)
+        {
+        vertices.clear();
+        triangles.clear();
+        nr_of_vertices = 0;
+        nr_of_triangles = 0;
+        fclose(inputfile);
+        return false;
+        }
+      tria[0] = t0;
+      tria[1] = t1;
+      tria[2] = t2;
+      }
+    fclose(inputfile);
+    return true;
+    }
+
+  inline bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename)
+    {
+    FILE* outputfile = fopen(filename, "w");
+    if (!outputfile)
+      return false;
+    fprintf(outputfile, "OFF\n");
+    fprintf(outputfile, "%d %d 0\n", nr_of_vertices, nr_of_triangles);
+    // vertex data
+    const vec3<float>* p_vert = vertices;
+    for (uint32_t i = 0; i < nr_of_vertices; ++i)
+      {
+      float x = (*p_vert)[0];
+      float y = (*p_vert)[1];
+      float z = (*p_vert)[2];
+      ++p_vert;
+      fprintf(outputfile, "%f %f %f\n", x, y, z);
+      }
+    // face data
+    const vec3<uint32_t>* p_tria = triangles;
+    for (uint32_t i = 0; i < nr_of_triangles; ++i)
+      {
+      uint32_t t0 = (*p_tria)[0];
+      uint32_t t1 = (*p_tria)[1];
+      uint32_t t2 = (*p_tria)[2];
+      ++p_tria;
+      fprintf(outputfile, "3 %d %d %d\n", t0, t1, t2);
       }
     fclose(outputfile);
     return true;
@@ -534,6 +640,177 @@ namespace jtk
     return true;
     }
 
+  template <class T>
+  void write_ply(const char* filename, const std::vector<vec3<T>>& pts)
+    {
+    FILE* fp;
+    fopen_s(&fp, filename, "wt");
+    fprintf(fp, "ply\n");
+    fprintf(fp, "format ascii 1.0\n");
+    fprintf(fp, "element vertex %d\n", (int)pts.size());
+    fprintf(fp, "property float x\n");
+    fprintf(fp, "property float y\n");
+    fprintf(fp, "property float z\n");
+    fprintf(fp, "end_header\n");
+    for (int i = 0; i < pts.size(); ++i)
+      {
+      auto point = pts[i];
+      fprintf(fp, "%f %f %f\n", (float)point[0], (float)point[1], (float)point[2]);
+      }
+    fclose(fp);
+    }
+
+  template <class T>
+  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals)
+    {
+    if (normals.empty())
+      {
+      write_ply(filename, pts);
+      return;
+      }
+    FILE* fp;
+    fopen_s(&fp, filename, "wt");
+    fprintf(fp, "ply\n");
+    fprintf(fp, "format ascii 1.0\n");
+    fprintf(fp, "element vertex %d\n", (int)pts.size());
+    fprintf(fp, "property float x\n");
+    fprintf(fp, "property float y\n");
+    fprintf(fp, "property float z\n");
+    fprintf(fp, "property float nx\n");
+    fprintf(fp, "property float ny\n");
+    fprintf(fp, "property float nz\n");
+    fprintf(fp, "end_header\n");
+    for (int i = 0; i < pts.size(); ++i)
+      {
+      auto point = pts[i];
+      auto norm = normals[i];
+      fprintf(fp, "%f %f %f %f %f %f\n", (float)point[0], (float)point[1], (float)point[2], (float)norm[0], (float)norm[1], (float)norm[2]);
+      }
+    fclose(fp);
+    }  
+
+  template <class T>
+  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<uint32_t>& clrs)
+    {
+    if (clrs.empty())
+      {
+      write_ply(filename, pts);
+      return;
+      }
+    FILE* fp;
+    fopen_s(&fp, filename, "wt");
+    fprintf(fp, "ply\n");
+    fprintf(fp, "format ascii 1.0\n");
+    fprintf(fp, "element vertex %d\n", (int)pts.size());
+    fprintf(fp, "property float x\n");
+    fprintf(fp, "property float y\n");
+    fprintf(fp, "property float z\n");
+    fprintf(fp, "property uchar red\n");
+    fprintf(fp, "property uchar green\n");
+    fprintf(fp, "property uchar blue\n");
+    fprintf(fp, "end_header\n");
+    for (int i = 0; i < pts.size(); ++i)
+      {
+      auto point = pts[i];
+      auto clr = clrs[i];
+      fprintf(fp, "%f %f %f %d %d %d\n", (float)point[0], (float)point[1], (float)point[2], clr & 0xff, (clr & 0xff00) >> 8, (clr & 0xff0000) >> 16);
+      }
+    fclose(fp);
+    }
+
+  template <class T>
+  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals, const std::vector<uint32_t>& clrs)
+    {
+    if (normals.empty())
+      {
+      write_ply(filename, pts, clrs);
+      return;
+      }
+    if (clrs.empty())
+      {
+      write_ply(filename, pts, normals);
+      return;
+      }
+    FILE* fp;
+    fopen_s(&fp, filename, "wt");
+    fprintf(fp, "ply\n");
+    fprintf(fp, "format ascii 1.0\n");
+    fprintf(fp, "element vertex %d\n", (int)pts.size());
+    fprintf(fp, "property float x\n");
+    fprintf(fp, "property float y\n");
+    fprintf(fp, "property float z\n");
+    fprintf(fp, "property float nx\n");
+    fprintf(fp, "property float ny\n");
+    fprintf(fp, "property float nz\n");
+    fprintf(fp, "property uchar red\n");
+    fprintf(fp, "property uchar green\n");
+    fprintf(fp, "property uchar blue\n");
+    fprintf(fp, "end_header\n");
+    for (int i = 0; i < pts.size(); ++i)
+      {
+      auto point = pts[i];
+      auto norm = normals[i];
+      auto clr = clrs[i];
+      fprintf(fp, "%f %f %f %f %f %f %d %d %d\n", (float)point[0], (float)point[1], (float)point[2], (float)norm[0], (float)norm[1], (float)norm[2], clr & 0xff, (clr & 0xff00) >> 8, (clr & 0xff0000) >> 16);
+      }
+    fclose(fp);
+    }
+
+  inline void write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles)
+    {
+    FILE* fp;
+    fopen_s(&fp, filename, "wb");
+    fprintf(fp, "ply\n");
+    fprintf(fp, "format binary_little_endian 1.0\n");
+    fprintf(fp, "element vertex %d\n", (int)pts.size());
+    fprintf(fp, "property float x\n");
+    fprintf(fp, "property float y\n");
+    fprintf(fp, "property float z\n");
+    fprintf(fp, "element face %d\n", (int)triangles.size());
+    fprintf(fp, "property list uchar int vertex_indices\n");
+    fprintf(fp, "end_header\n");
+    fwrite(pts.data(), sizeof(vec3<float>), pts.size(), fp);
+    unsigned char tria_size = 3;
+    for (int i = 0; i < triangles.size(); ++i)
+      {
+      fwrite(&tria_size, 1, 1, fp);
+      fwrite(triangles.data() + i, sizeof(vec3<uint32_t>), 1, fp);
+      }
+    fclose(fp);
+    }
+
+
+  inline void write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles)
+    {
+    FILE* fp;
+    fopen_s(&fp, filename, "wb");
+    fprintf(fp, "ply\n");
+    fprintf(fp, "format binary_little_endian 1.0\n");
+    fprintf(fp, "element vertex %d\n", (int)pts.size());
+    fprintf(fp, "property float x\n");
+    fprintf(fp, "property float y\n");
+    fprintf(fp, "property float z\n");
+    fprintf(fp, "property uchar red\n");
+    fprintf(fp, "property uchar green\n");
+    fprintf(fp, "property uchar blue\n");
+    fprintf(fp, "element face %d\n", (int)triangles.size());
+    fprintf(fp, "property list uchar int vertex_indices\n");
+    fprintf(fp, "end_header\n");
+    for (int i = 0; i < pts.size(); ++i)
+      {
+      fwrite(pts.data() + i, sizeof(vec3<float>), 1, fp);
+      uint32_t clr = pts_colors[i];
+      unsigned char* rgb = reinterpret_cast<unsigned char*>(&clr);
+      fwrite(rgb, 1, 3, fp);
+      }
+    unsigned char tria_size = 3;
+    for (int i = 0; i < triangles.size(); ++i)
+      {
+      fwrite(&tria_size, 1, 1, fp);
+      fwrite(triangles.data() + i, sizeof(vec3<uint32_t>), 1, fp);
+      }
+    fclose(fp);
+    }
 
   inline adjacency_list::adjacency_list() : _nr_of_vertices(0)
     {
@@ -1361,6 +1638,90 @@ namespace jtk
             std::push_heap(ear_heap.begin(), ear_heap.end());
             }
           }
+        }
+      }
+    }
+
+  template <class Ear>
+  void fill_holes(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, uint32_t max_holes_size)
+    {
+    mutable_adjacency_list adj_list((uint32_t)vertices.size(), triangles.data(), (uint32_t)triangles.size());
+    std::vector<bool> vertex_treated(vertices.size(), false);
+    std::vector<std::vector<uint32_t>> holes;
+    for (uint32_t v = 0; v < (uint32_t)vertex_treated.size(); ++v)
+      {
+      if (!vertex_treated[v])
+        {
+        vertex_treated[v] = true;
+        if (is_boundary_vertex(v, adj_list, triangles.data()))
+          {
+          std::vector<uint32_t> hole;
+          hole.push_back(v);
+          std::queue<uint32_t> qu;
+          auto neighbouring_vertices = one_ring_vertices_from_vertex(v, adj_list, triangles.data());
+          for (auto v2 : neighbouring_vertices)
+            {
+            if (!vertex_treated[v2] && is_boundary_edge(v, v2, adj_list))
+              {
+              qu.push(v2);
+              break;
+              }
+            }
+          while (!qu.empty())
+            {
+            uint32_t current_vertex = qu.front();
+            assert(!vertex_treated[current_vertex]);
+            hole.push_back(current_vertex);
+            vertex_treated[current_vertex] = true;
+            qu.pop();
+            neighbouring_vertices = one_ring_vertices_from_vertex(current_vertex, adj_list, triangles.data());
+            for (auto v2 : neighbouring_vertices)
+              {
+              if (!vertex_treated[v2] && is_boundary_edge(current_vertex, v2, adj_list))
+                {
+                qu.push(v2);
+                break;
+                }
+              }
+            }
+          bool valid_hole = hole.size() > 2;
+          if (valid_hole)
+            {
+            neighbouring_vertices = one_ring_vertices_from_vertex(v, adj_list, triangles.data());
+            bool found_last = false;
+            for (auto v2 : neighbouring_vertices)
+              {
+              if (v2 == hole.back())
+                {
+                found_last = true;
+                break;
+                }
+              }
+            valid_hole = found_last;
+            }
+          if (valid_hole)
+            holes.push_back(hole);
+          }
+        }
+      }
+
+    for (auto& hole : holes)
+      {
+      if (hole.size() < max_holes_size)
+        {
+        uint32_t v0 = hole[0];
+        uint32_t v1 = hole[1];
+        auto tri = triangle_indices_from_edge(v0, v1, adj_list);
+        bool flip = false;
+        auto tria = triangles[tri[0]]; // since these are boundary edges there will be exactly one triangle
+        for (int j = 0; j < 3; ++j)
+          {
+          if (tria[j] == v0 && tria[(j + 1) % 3] == v1)
+            flip = true;
+          }
+        if (flip)
+          std::reverse(hole.begin(), hole.end());
+        fill_hole_ear<Ear>(triangles, vertices.data(), adj_list, hole);
         }
       }
     }

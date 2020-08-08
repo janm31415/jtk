@@ -1439,7 +1439,7 @@ namespace jtk
       }
     }
 
-  bool csv_write(const std::vector<std::vector<std::string>>& data, const char* filename, const char* separator)
+  inline bool csv_write(const std::vector<std::vector<std::string>>& data, const char* filename, const char* separator)
     {
     FILE *f = fopen(filename, "w");
     if (f == nullptr)
