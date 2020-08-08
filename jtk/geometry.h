@@ -1565,8 +1565,8 @@ namespace jtk
       if (b == v2 || b == v1)
         b = tria_b[2];
       }
-    double dihedral_a = dihedral_angle(vertices[v0], vertices[v1], vertices[v2], vertices[a]);
-    double dihedral_b = dihedral_angle(vertices[v1], vertices[v2], vertices[v0], vertices[b]);
+    float dihedral_a = dihedral_angle(vertices[v0], vertices[v1], vertices[v2], vertices[a]);
+    float dihedral_b = dihedral_angle(vertices[v1], vertices[v2], vertices[v0], vertices[b]);
     dihedral_rad = std::max(dihedral_a, dihedral_b);
     }
 
@@ -1813,8 +1813,8 @@ namespace jtk
 
   inline void dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
     {
-    const uint32_t nr_of_vertices = vertices.size();
-    const uint32_t nr_of_triangles = triangles.size();
+    const uint32_t nr_of_vertices = (uint32_t)vertices.size();
+    const uint32_t nr_of_triangles = (uint32_t)triangles.size();
     vertices.reserve(nr_of_vertices * 2 + nr_of_triangles + 10);
 
     std::unordered_map<uint64_t, uint32_t> treated(nr_of_vertices);
