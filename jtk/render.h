@@ -6,7 +6,8 @@
 
 #include <vector>
 
-// uses AVX2
+//#define _AVX2
+
 // software rendering of point clouds
 
 /*
@@ -83,7 +84,11 @@ namespace jtk
     float object_system[16];
     float projection_matrix[16];
     float projection_times_camera_times_object[16];
+#ifdef _AVX2
     __m256 projection_times_camera_times_object_avx[16];
+#else
+    __m128 projection_times_camera_times_object_sse[16];
+#endif
     std::vector<float> vertices_x;
     std::vector<float> vertices_y;
     std::vector<float> vertices_z;
@@ -265,7 +270,11 @@ namespace jtk
     matrix_multiply(temp, camera_position, object_system);
     matrix_multiply(rd.projection_times_camera_times_object, projection_matrix, temp);
     for (size_t i = 0; i < 16; ++i)
+#ifdef AVX2
       rd.projection_times_camera_times_object_avx[i] = _mm256_set1_ps(rd.projection_times_camera_times_object[i]);
+#else
+      rd.projection_times_camera_times_object_sse[i] = _mm_set1_ps(rd.projection_times_camera_times_object[i]);
+#endif
 
     }
 
@@ -293,7 +302,11 @@ namespace jtk
     rd.vertices_z.clear();
     rd.vertex_clip_info.clear();
     const float* p_vert = rd.obs[rd.ob_id].vertices;
+#ifdef _AVX2
     uint32_t sz = rd.obs[rd.ob_id].number_of_vertices - (rd.obs[rd.ob_id].number_of_vertices & 7);
+#else
+    uint32_t sz = rd.obs[rd.ob_id].number_of_vertices - (rd.obs[rd.ob_id].number_of_vertices & 3);
+#endif
     rd.vertices_x.resize(rd.obs[rd.ob_id].number_of_vertices);
     rd.vertices_y.resize(rd.obs[rd.ob_id].number_of_vertices);
     rd.vertices_z.resize(rd.obs[rd.ob_id].number_of_vertices);
@@ -304,6 +317,7 @@ namespace jtk
 
     parallel_for((unsigned int)0, number_of_threads, [&](unsigned int i)
       {
+#ifdef AVX2
       const uint32_t s = (uint32_t)((uint64_t)i * (uint64_t)(sz / 8) / (uint64_t)number_of_threads);
       const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(sz / 8) / (uint64_t)number_of_threads);
       for (uint32_t t = s; t < e; ++t)
@@ -358,29 +372,6 @@ namespace jtk
         VX = _mm256_mul_ps(_mm256_add_ps(VX, _mm256_set1_ps(1.f)), _mm256_set1_ps(rd.fb.w * 0.5f));
         VY = _mm256_mul_ps(_mm256_add_ps(VY, _mm256_set1_ps(1.f)), _mm256_set1_ps(rd.fb.h * 0.5f));
 
-        /*
-        //https://software.intel.com/content/www/us/en/develop/articles/3d-vector-normalization-using-256-bit-intel-advanced-vector-extensions-intel-avx.html
-        //Struct Of Arrays to Array of Structs
-
-        float* p2 = (float*)(rd.vertices.data() + t * 8);
-        __m128* m2 = (__m128*) p2;
-
-        __m256 rxy = _mm256_shuffle_ps(VX, VY, _MM_SHUFFLE(2, 0, 2, 0));
-        __m256 ryz = _mm256_shuffle_ps(VY, VW, _MM_SHUFFLE(3, 1, 3, 1));
-        __m256 rzx = _mm256_shuffle_ps(VW, VX, _MM_SHUFFLE(3, 1, 2, 0));
-
-        __m256 r03 = _mm256_shuffle_ps(rxy, rzx, _MM_SHUFFLE(2, 0, 2, 0));
-        __m256 r14 = _mm256_shuffle_ps(ryz, rxy, _MM_SHUFFLE(3, 1, 2, 0));
-        __m256 r25 = _mm256_shuffle_ps(rzx, ryz, _MM_SHUFFLE(3, 1, 3, 1));
-
-        m2[0] = _mm256_castps256_ps128(r03);
-        m2[1] = _mm256_castps256_ps128(r14);
-        m2[2] = _mm256_castps256_ps128(r25);
-        m2[3] = _mm256_extractf128_ps(r03, 1);
-        m2[4] = _mm256_extractf128_ps(r14, 1);
-        m2[5] = _mm256_extractf128_ps(r25, 1);
-        */
-
         const float* vx = rd.vertices_x.data() + t * 8;
         __m256* m2 = (__m256*)vx;
         m2[0] = VX;
@@ -395,6 +386,79 @@ namespace jtk
         __m256i* mm = (__m256i*)c;
         mm[0] = clip;
         }
+#else
+      const uint32_t s = (uint32_t)((uint64_t)i * (uint64_t)(sz / 4) / (uint64_t)number_of_threads);
+      const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(sz / 4) / (uint64_t)number_of_threads);
+      for (uint32_t t = s; t < e; ++t)
+        {
+        //https://software.intel.com/content/www/us/en/develop/articles/3d-vector-normalization-using-256-bit-intel-advanced-vector-extensions-intel-avx.html
+        //Array of Structs to Struct Of Arrays
+
+
+        /*
+        float *p;  // address of first vector
+ __m128 x0y0z0x1 = _mm_load_ps(p+0);
+ __m128 y1z1x2y2 = _mm_load_ps(p+4);
+ __m128 z2x3y3z3 = _mm_load_ps(p+8);
+ __m128 x2y2x3y3 = _mm_shuffle_ps(y1z1x2y2,z2x3y3z3,_MM_SHUFFLE( 2,1,3,2));
+ __m128 y0z0y1z1 = _mm_shuffle_ps(x0y0z0x1,y1z1x2y2,_MM_SHUFFLE( 1,0,2,1));
+ __m128 x        = _mm_shuffle_ps(x0y0z0x1,x2y2x3y3,_MM_SHUFFLE( 2,0,3,0)); // x0x1x2x3
+ __m128 y        = _mm_shuffle_ps(y0z0y1z1,x2y2x3y3,_MM_SHUFFLE( 3,1,2,0)); // y0y1y2y3
+ __m128 z        = _mm_shuffle_ps(y0z0y1z1,z2x3y3z3,_MM_SHUFFLE( 3,0,3,1)); // z0z1z2z3
+        */
+
+        const float* p = p_vert + t * 4 * 3;
+        __m128 x0y0z0x1 = _mm_load_ps(p + 0);
+        __m128 y1z1x2y2 = _mm_load_ps(p + 4);
+        __m128 z2x3y3z3 = _mm_load_ps(p + 8);
+        __m128 x2y2x3y3 = _mm_shuffle_ps(y1z1x2y2, z2x3y3z3, _MM_SHUFFLE(2, 1, 3, 2));
+        __m128 y0z0y1z1 = _mm_shuffle_ps(x0y0z0x1, y1z1x2y2, _MM_SHUFFLE(1, 0, 2, 1));
+        __m128 X = _mm_shuffle_ps(x0y0z0x1, x2y2x3y3, _MM_SHUFFLE(2, 0, 3, 0)); // x0x1x2x3
+        __m128 Y = _mm_shuffle_ps(y0z0y1z1, x2y2x3y3, _MM_SHUFFLE(3, 1, 2, 0)); // y0y1y2y3
+        __m128 Z = _mm_shuffle_ps(y0z0y1z1, z2x3y3z3, _MM_SHUFFLE(3, 0, 3, 1)); // z0z1z2z3
+        __m128 W = _mm_set1_ps(1.f);
+
+
+        __m128 VX = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(rd.projection_times_camera_times_object_sse[0], X), _mm_mul_ps(rd.projection_times_camera_times_object_sse[4], Y)), _mm_mul_ps(rd.projection_times_camera_times_object_sse[8], Z)), _mm_mul_ps(rd.projection_times_camera_times_object_sse[12], W));
+        __m128 VY = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(rd.projection_times_camera_times_object_sse[1], X), _mm_mul_ps(rd.projection_times_camera_times_object_sse[5], Y)), _mm_mul_ps(rd.projection_times_camera_times_object_sse[9], Z)), _mm_mul_ps(rd.projection_times_camera_times_object_sse[13], W));
+        __m128 VZ = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(rd.projection_times_camera_times_object_sse[2], X), _mm_mul_ps(rd.projection_times_camera_times_object_sse[6], Y)), _mm_mul_ps(rd.projection_times_camera_times_object_sse[10], Z)), _mm_mul_ps(rd.projection_times_camera_times_object_sse[14], W));
+        __m128 VW = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(rd.projection_times_camera_times_object_sse[3], X), _mm_mul_ps(rd.projection_times_camera_times_object_sse[7], Y)), _mm_mul_ps(rd.projection_times_camera_times_object_sse[11], Z)), _mm_mul_ps(rd.projection_times_camera_times_object_sse[15], W));
+        __m128i clip = _mm_set1_epi32(0);
+        VX = _mm_div_ps(VX, VW);
+        VY = _mm_div_ps(VY, VW);
+        VZ = _mm_div_ps(VZ, VW);
+        __m128i mxlt = _mm_castps_si128(_mm_cmp_ps(VX, _mm_set1_ps(-1.f), 1));
+        __m128i mxgt = _mm_castps_si128(_mm_cmp_ps(VX, _mm_set1_ps(1.f), 14));
+        __m128i mylt = _mm_castps_si128(_mm_cmp_ps(VY, _mm_set1_ps(-1.f), 1));
+        __m128i mygt = _mm_castps_si128(_mm_cmp_ps(VY, _mm_set1_ps(1.f), 14));
+        __m128i mzlt = _mm_castps_si128(_mm_cmp_ps(VZ, _mm_set1_ps(-1.f), 1));
+        __m128i mzgt = _mm_castps_si128(_mm_cmp_ps(VZ, _mm_set1_ps(1.f), 14));
+
+        clip = _mm_or_si128(clip, _mm_and_si128(mxlt, _mm_set1_epi32(1)));
+        clip = _mm_or_si128(clip, _mm_and_si128(mxgt, _mm_set1_epi32(2)));
+        clip = _mm_or_si128(clip, _mm_and_si128(mylt, _mm_set1_epi32(4)));
+        clip = _mm_or_si128(clip, _mm_and_si128(mygt, _mm_set1_epi32(8)));
+        clip = _mm_or_si128(clip, _mm_and_si128(mzlt, _mm_set1_epi32(16)));
+        clip = _mm_or_si128(clip, _mm_and_si128(mzgt, _mm_set1_epi32(32)));
+
+        VX = _mm_mul_ps(_mm_add_ps(VX, _mm_set1_ps(1.f)), _mm_set1_ps(rd.fb.w * 0.5f));
+        VY = _mm_mul_ps(_mm_add_ps(VY, _mm_set1_ps(1.f)), _mm_set1_ps(rd.fb.h * 0.5f));
+
+        const float* vx = rd.vertices_x.data() + t * 4;
+        __m128* m2 = (__m128*)vx;
+        m2[0] = VX;
+        const float* vy = rd.vertices_y.data() + t * 4;
+        m2 = (__m128*)vy;
+        m2[0] = VY;
+        const float* vz = rd.vertices_z.data() + t * 4;
+        m2 = (__m128*)vz;
+        m2[0] = VW;
+
+        uint32_t* c = rd.vertex_clip_info.data() + t * 4;
+        __m128i* mm = (__m128i*)c;
+        mm[0] = clip;
+        }
+#endif
       });
 
     for (uint32_t i = sz; i < rd.obs[rd.ob_id].number_of_vertices; ++i)
@@ -449,24 +513,37 @@ namespace jtk
     float tmp[4] = { rd.light_direction[0], rd.light_direction[1], rd.light_direction[2], 0.f };
     invert_orthonormal(inv, rd.camera_position);
     mat_vec_multiply(light, inv, tmp);
-
+#ifdef _AVX2
     __m256 light_avx[3] = { _mm256_set1_ps(light[0]), _mm256_set1_ps(light[1]), _mm256_set1_ps(light[2]) };
+#else
+    __m128 light_sse[3] = { _mm_set1_ps(light[0]), _mm_set1_ps(light[1]), _mm_set1_ps(light[2]) };
+#endif
 
     float light_color[3];
     light_color[0] = (rd.light_color & 0xff) / 255.f;
     light_color[1] = ((rd.light_color >> 8) & 0xff) / 255.f;
     light_color[2] = ((rd.light_color >> 16) & 0xff) / 255.f;
 
+#ifdef _AVX2
     __m256 light_color_avx[3];
     light_color_avx[0] = _mm256_set1_ps(light_color[0]);
     light_color_avx[1] = _mm256_set1_ps(light_color[1]);
     light_color_avx[2] = _mm256_set1_ps(light_color[2]);
-
     uint32_t sz = rd.obs[rd.ob_id].number_of_vertices - (rd.obs[rd.ob_id].number_of_vertices & 7);
+#else
+    __m128 light_color_sse[3];
+    light_color_sse[0] = _mm_set1_ps(light_color[0]);
+    light_color_sse[1] = _mm_set1_ps(light_color[1]);
+    light_color_sse[2] = _mm_set1_ps(light_color[2]);
+    uint32_t sz = rd.obs[rd.ob_id].number_of_vertices - (rd.obs[rd.ob_id].number_of_vertices & 3);
+#endif
+
 
     const float* p_vert_x = (const float*)rd.vertices_x.data();
     const float* p_vert_y = (const float*)rd.vertices_y.data();
     const float* p_vert_z = (const float*)rd.vertices_z.data();
+
+#ifdef _AVX2
     __m256i colors = _mm256_set1_epi32(color);
 
     const __m256i zero = _mm256_set1_epi32(0);
@@ -485,29 +562,6 @@ namespace jtk
     const __m256i ff3 = _mm256_set1_epi32(0xff000000);
     for (uint32_t i = 0; i < sz; i += 8)
       {
-      /*
-      //https://software.intel.com/content/www/us/en/develop/articles/3d-vector-normalization-using-256-bit-intel-advanced-vector-extensions-intel-avx.html
-      //Array of Structs to Struct Of Arrays
-
-      const float* p = p_vert + i * 3;
-      const __m128 *m = (const __m128*) p;
-      __m256 m03;
-      __m256 m14;
-      __m256 m25;
-      m03 = _mm256_castps128_ps256(m[0]); // load lower halves
-      m14 = _mm256_castps128_ps256(m[1]);
-      m25 = _mm256_castps128_ps256(m[2]);
-      m03 = _mm256_insertf128_ps(m03, m[3], 1);  // load upper halves
-      m14 = _mm256_insertf128_ps(m14, m[4], 1);
-      m25 = _mm256_insertf128_ps(m25, m[5], 1);
-
-      __m256 xy = _mm256_shuffle_ps(m14, m25, _MM_SHUFFLE(2, 1, 3, 2)); // upper x's and y's
-      __m256 yz = _mm256_shuffle_ps(m03, m14, _MM_SHUFFLE(1, 0, 2, 1)); // lower y's and z's
-      __m256 x = _mm256_shuffle_ps(m03, xy, _MM_SHUFFLE(2, 0, 3, 0));
-      __m256 y = _mm256_shuffle_ps(yz, xy, _MM_SHUFFLE(3, 1, 2, 0));
-      __m256 z = _mm256_shuffle_ps(yz, m25, _MM_SHUFFLE(3, 0, 3, 1));
-      */
-
       const float* px = p_vert_x + i;
       const __m256 *m = (const __m256*)px;
       __m256 x = m[0];
@@ -624,6 +678,121 @@ namespace jtk
 
         }
       }
+#else
+    __m128i colors = _mm_set1_epi32(color);
+
+    const __m128i zero = _mm_set1_epi32(0);
+    const __m128i wh = _mm_set1_epi32(rd.fb.w*rd.fb.h);
+    const __m128i w_epi32 = _mm_set1_epi32(rd.fb.w);
+    const __m128 halff = _mm_set1_ps(0.5f);
+    const __m128 zerof = _mm_set1_ps(0.f);
+    const __m128 onef = _mm_set1_ps(1.f);
+    const __m128i borderi = _mm_set1_epi32(border);
+    const __m128i w_minus_borderi = _mm_set1_epi32(rd.fb.w - 1 - border);
+    const __m128i h_minus_borderi = _mm_set1_epi32(rd.fb.h - 1 - border);
+
+    const __m128i ff0 = _mm_set1_epi32(0x000000ff);
+    const __m128i ff1 = _mm_set1_epi32(0x0000ff00);
+    const __m128i ff2 = _mm_set1_epi32(0x00ff0000);
+    const __m128i ff3 = _mm_set1_epi32(0xff000000);
+    for (uint32_t i = 0; i < sz; i += 4)
+      {
+      const float* px = p_vert_x + i;
+      const __m128 *m = (const __m128*)px;
+      __m128 x = m[0];
+      const float* py = p_vert_y + i;
+      m = (const __m128*)py;
+      __m128 y = m[0];
+      const float* pz = p_vert_z + i;
+      m = (const __m128*)pz;
+      __m128 z = m[0];
+
+      __m128i X = _mm_cvtps_epi32(x);
+      __m128i Y = _mm_cvtps_epi32(y);
+
+      __m128i mask = _mm_cmpgt_epi32(borderi, X);
+      mask = _mm_or_si128(mask, _mm_cmpgt_epi32(borderi, Y));
+      mask = _mm_or_si128(mask, _mm_cmpgt_epi32(X, w_minus_borderi));
+      mask = _mm_or_si128(mask, _mm_cmpgt_epi32(Y, h_minus_borderi));
+
+      if (_mm_test_all_ones(mask))
+        continue;
+
+      if (rd.obs[rd.ob_id].colors)
+        {
+        const uint32_t* p = rd.obs[rd.ob_id].colors + i;
+        const __m128i* tmp = (const __m128i*) p;
+        colors = tmp[0];
+        }
+
+      if (rd.obs[rd.ob_id].normals)
+        {
+        const float* p = rd.obs[rd.ob_id].normals + i * 3;
+        __m128 x0y0z0x1 = _mm_load_ps(p + 0);
+        __m128 y1z1x2y2 = _mm_load_ps(p + 4);
+        __m128 z2x3y3z3 = _mm_load_ps(p + 8);
+        __m128 x2y2x3y3 = _mm_shuffle_ps(y1z1x2y2, z2x3y3z3, _MM_SHUFFLE(2, 1, 3, 2));
+        __m128 y0z0y1z1 = _mm_shuffle_ps(x0y0z0x1, y1z1x2y2, _MM_SHUFFLE(1, 0, 2, 1));
+        __m128 nx = _mm_shuffle_ps(x0y0z0x1, x2y2x3y3, _MM_SHUFFLE(2, 0, 3, 0)); // x0x1x2x3
+        __m128 ny = _mm_shuffle_ps(y0z0y1z1, x2y2x3y3, _MM_SHUFFLE(3, 1, 2, 0)); // y0y1y2y3
+        __m128 nz = _mm_shuffle_ps(y0z0y1z1, z2x3y3z3, _MM_SHUFFLE(3, 0, 3, 1)); // z0z1z2z3        
+
+        __m128 diffuse = _mm_add_ps(halff, _mm_add_ps(_mm_add_ps(_mm_mul_ps(nx, light_sse[0]), _mm_mul_ps(ny, light_sse[1])), _mm_mul_ps(nz, light_sse[2])));
+        const __m128 mask1 = _mm_cmp_ps(diffuse, zerof, 1);
+        const __m128 mask2 = _mm_cmp_ps(onef, diffuse, 1);
+        diffuse = _mm_blendv_ps(diffuse, zerof, mask1);
+        diffuse = _mm_blendv_ps(diffuse, onef, mask2);
+        const __m128 int_r = _mm_mul_ps(diffuse, light_color_sse[0]);
+        const __m128 int_g = _mm_mul_ps(diffuse, light_color_sse[1]);
+        const __m128 int_b = _mm_mul_ps(diffuse, light_color_sse[2]);
+
+        const __m128 red = _mm_cvtepi32_ps(_mm_and_si128(colors, ff0));
+        const __m128 green = _mm_cvtepi32_ps(_mm_srai_epi32(_mm_and_si128(colors, ff1), 8));
+        const __m128 blue = _mm_cvtepi32_ps(_mm_srai_epi32(_mm_and_si128(colors, ff2), 16));
+        const __m128i red2 = _mm_min_epi32(_mm_set1_epi32(255), _mm_cvtps_epi32(_mm_mul_ps(int_r, red)));
+        const __m128i green2 = _mm_min_epi32(_mm_set1_epi32(255), _mm_cvtps_epi32(_mm_mul_ps(int_g, green)));
+        const __m128i blue2 = _mm_min_epi32(_mm_set1_epi32(255), _mm_cvtps_epi32(_mm_mul_ps(int_b, blue)));
+        colors = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(ff3, _mm_slli_epi32(blue2, 16)), _mm_slli_epi32(green2, 8)), red2);
+        }
+
+      __m128 depth = _mm_div_ps(onef, z);
+      for (int xx = -border; xx <= border; ++xx)
+        {
+        for (int yy = -border; yy <= border; ++yy)
+          {
+          __m128i index = _mm_add_epi32(_mm_add_epi32(X, _mm_set1_epi32(xx)), _mm_mullo_epi32(w_epi32, _mm_add_epi32(Y, _mm_set1_epi32(yy))));
+          index = _mm_max_epi32(zero, index);
+          index = _mm_min_epi32(wh, index);
+
+          __m128 previous_depth = _mm_i32gather_ps(rd.fb.zbuffer, index, 4);
+          __m128i previous_colors = _mm_i32gather_epi32((const int*)rd.fb.pixels, index, 4);
+
+          __m128 depth_mask = _mm_cmp_ps(depth, previous_depth, 13);
+          __m128i final_mask = _mm_andnot_si128(mask, _mm_castps_si128(depth_mask));
+
+          __m128 current_depth = _mm_blendv_ps(previous_depth, depth, _mm_castsi128_ps(final_mask));
+          __m128i current_colors = _mm_castps_si128(_mm_blendv_ps(_mm_castsi128_ps(previous_colors), _mm_castsi128_ps(colors), _mm_castsi128_ps(final_mask)));
+
+
+          const uint32_t i0 = _mm_extract_epi32(index, 0);
+          const uint32_t i1 = _mm_extract_epi32(index, 1);
+          const uint32_t i2 = _mm_extract_epi32(index, 2);
+          const uint32_t i3 = _mm_extract_epi32(index, 3);
+
+          rd.fb.pixels[i0] = _mm_extract_epi32(current_colors, 0);
+          rd.fb.pixels[i1] = _mm_extract_epi32(current_colors, 1);
+          rd.fb.pixels[i2] = _mm_extract_epi32(current_colors, 2);
+          rd.fb.pixels[i3] = _mm_extract_epi32(current_colors, 3);
+         
+          rd.fb.zbuffer[i0] = _mm_cvtss_f32(current_depth);
+          rd.fb.zbuffer[i1] = _mm_cvtss_f32(_mm_shuffle_ps(current_depth, current_depth, 1));
+          rd.fb.zbuffer[i2] = _mm_cvtss_f32(_mm_movehl_ps(current_depth, current_depth));
+          rd.fb.zbuffer[i3] = _mm_cvtss_f32(_mm_shuffle_ps(current_depth, current_depth, 3));         
+          }
+
+        }
+      }
+#endif
 
     for (uint32_t i = sz; i < rd.obs[rd.ob_id].number_of_vertices; ++i)
       {
