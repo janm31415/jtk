@@ -3,7 +3,9 @@ set(HDRS
 concurrency.h
 file_utils.h
 geometry.h
+image.h
 qbvh.h
+render.h
 timer.h
 utf8.h
 vec.h
