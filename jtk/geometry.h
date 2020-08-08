@@ -602,22 +602,22 @@ namespace jtk
     return _nr_of_vertices == 0;
     }
 
-  mutable_adjacency_list::mutable_adjacency_list()
+  inline mutable_adjacency_list::mutable_adjacency_list()
     {
 
     }
 
-  mutable_adjacency_list::mutable_adjacency_list(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+  inline mutable_adjacency_list::mutable_adjacency_list(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
     {
     build(nr_of_vertices, triangles, nr_of_triangles);
     }
 
-  mutable_adjacency_list::~mutable_adjacency_list()
+  inline mutable_adjacency_list::~mutable_adjacency_list()
     {
 
     }
 
-  void mutable_adjacency_list::build(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+  inline void mutable_adjacency_list::build(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
     {
     triangles_per_vertex_list.resize(nr_of_vertices);
     for (uint32_t v = 0; v < nr_of_vertices; ++v)
@@ -632,7 +632,7 @@ namespace jtk
       }
     }
 
-  void mutable_adjacency_list::add_triangle_to_vertex(uint32_t vertex_id, uint32_t triangle_id)
+  inline void mutable_adjacency_list::add_triangle_to_vertex(uint32_t vertex_id, uint32_t triangle_id)
     {
     auto first = triangles_per_vertex_list[vertex_id].begin();
     auto last = triangles_per_vertex_list[vertex_id].end();
@@ -640,7 +640,7 @@ namespace jtk
     triangles_per_vertex_list[vertex_id].insert(it, triangle_id);
     }
 
-  void mutable_adjacency_list::remove_triangle_from_vertex(uint32_t vertex_id, uint32_t triangle_id)
+  inline void mutable_adjacency_list::remove_triangle_from_vertex(uint32_t vertex_id, uint32_t triangle_id)
     {
     auto first = triangles_per_vertex_list[vertex_id].begin();
     auto last = triangles_per_vertex_list[vertex_id].end();
@@ -652,7 +652,7 @@ namespace jtk
     }
 
 
-  void mutable_adjacency_list::add_triangles_to_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
+  inline void mutable_adjacency_list::add_triangles_to_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
     {
     auto sz = size(vertex_index);
     triangles_per_vertex_list[vertex_index].resize(sz + triangle_indices.size());
@@ -681,7 +681,7 @@ namespace jtk
       }
     }
 
-  void mutable_adjacency_list::remove_triangles_from_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
+  inline void mutable_adjacency_list::remove_triangles_from_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
     {
     auto first = triangles_per_vertex_list[vertex_index].begin();
     auto last = triangles_per_vertex_list[vertex_index].end();
@@ -707,27 +707,27 @@ namespace jtk
     triangles_per_vertex_list[vertex_index].resize(triangles_per_vertex_list[vertex_index].size() - offset);
     }
 
-  mutable_adjacency_list::const_iterator mutable_adjacency_list::begin(uint32_t vertex_index) const
+  inline mutable_adjacency_list::const_iterator mutable_adjacency_list::begin(uint32_t vertex_index) const
     {
     return triangles_per_vertex_list[vertex_index].begin();
     }
 
-  mutable_adjacency_list::const_iterator mutable_adjacency_list::end(uint32_t vertex_index) const
+  inline mutable_adjacency_list::const_iterator mutable_adjacency_list::end(uint32_t vertex_index) const
     {
     return triangles_per_vertex_list[vertex_index].end();
     }
 
-  uint32_t mutable_adjacency_list::size(uint32_t vertex_index) const
+  inline uint32_t mutable_adjacency_list::size(uint32_t vertex_index) const
     {
     return (uint32_t)triangles_per_vertex_list[vertex_index].size();
     }
 
-  uint32_t mutable_adjacency_list::size() const
+  inline uint32_t mutable_adjacency_list::size() const
     {
     return (uint32_t)triangles_per_vertex_list.size();
     }
 
-  bool mutable_adjacency_list::empty() const
+  inline bool mutable_adjacency_list::empty() const
     {
     return triangles_per_vertex_list.empty();
     }
@@ -1368,7 +1368,7 @@ namespace jtk
   namespace details
     {
 
-    void _CreateFilter(std::vector<std::vector<uint32_t>>& io_filter, const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles)
+    inline void _CreateFilter(std::vector<std::vector<uint32_t>>& io_filter, const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles)
       {
       std::vector<std::vector<uint32_t>> filter(vertices.size());
       for (size_t i = 0; i < triangles.size(); ++i)
@@ -1383,7 +1383,7 @@ namespace jtk
       io_filter.swap(filter);
       }
 
-    void _ApplyFilter(std::vector<vec3<float>>& o_vertices, std::vector<vec3<float>>& i_vertices, const std::vector<std::vector<uint32_t>>& i_filter, float filter_value)
+    inline void _ApplyFilter(std::vector<vec3<float>>& o_vertices, std::vector<vec3<float>>& i_vertices, const std::vector<std::vector<uint32_t>>& i_filter, float filter_value)
       {
       if (!filter_value)
         {
@@ -1402,7 +1402,7 @@ namespace jtk
         });
       }
 
-    void _ApplyLocalFilter(std::vector<vec3<float>>& o_vertices, std::vector<vec3<float>>& i_vertices, const std::vector<uint32_t>& vertex_indices, const std::vector<std::vector<uint32_t>>& i_filter, float filter_value)
+    inline void _ApplyLocalFilter(std::vector<vec3<float>>& o_vertices, std::vector<vec3<float>>& i_vertices, const std::vector<uint32_t>& vertex_indices, const std::vector<std::vector<uint32_t>>& i_filter, float filter_value)
       {
       if (!filter_value)
         {
@@ -1424,7 +1424,7 @@ namespace jtk
       }
     }
 
-  void smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, uint32_t iterations, float lambda, float mu)
+  inline void smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, uint32_t iterations, float lambda, float mu)
     {
     using namespace details;
     std::vector<std::vector<uint32_t>> filter;
@@ -1437,7 +1437,7 @@ namespace jtk
       }
     }
 
-  void local_smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& vertex_indices, uint32_t iterations, float lambda, float mu)
+  inline void local_smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& vertex_indices, uint32_t iterations, float lambda, float mu)
     {
     using namespace details;
     std::vector<std::vector<uint32_t>> filter;
@@ -1450,7 +1450,7 @@ namespace jtk
       }
     }
 
-  void dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
+  inline void dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
     {
     const uint32_t nr_of_vertices = vertices.size();
     const uint32_t nr_of_triangles = triangles.size();

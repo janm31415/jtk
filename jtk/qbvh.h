@@ -1320,9 +1320,9 @@ namespace jtk
     return f[i];
     }
 
-  float4x4::float4x4() {}
-  float4x4::float4x4(const float4& col0, const float4& col1, const float4& col2, const float4& col3) : col{ col0, col1, col2, col3 } {}
-  float4x4::float4x4(float* m)
+  inline float4x4::float4x4() {}
+  inline float4x4::float4x4(const float4& col0, const float4& col1, const float4& col2, const float4& col3) : col{ col0, col1, col2, col3 } {}
+  inline float4x4::float4x4(float* m)
     {
     for (int i = 0; i < 16; ++i)
       f[i] = m[i];
