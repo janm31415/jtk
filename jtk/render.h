@@ -79,7 +79,7 @@ namespace jtk
   struct render_data
     {
     frame_buffer fb;
-    std::vector<object_buffer> obs;
+    object_buffer obj;
     float camera_position[16];
     float object_system[16];
     float projection_matrix[16];
@@ -246,15 +246,9 @@ namespace jtk
     rd.fb = fb;
     }
 
-  inline void generate_object_buffer(uint32_t& id, render_data& rd)
+  inline void bind(render_data& rd, const object_buffer& ob)
     {
-    id = uint32_t(rd.obs.size());
-    rd.obs.emplace_back();
-    }
-
-  inline void bind(uint32_t id, render_data& rd, const object_buffer& ob)
-    {
-    rd.obs[id] = ob;
+    rd.obj = ob;
     rd.vertices_x.reserve(ob.number_of_vertices);
     rd.vertices_y.reserve(ob.number_of_vertices);
     rd.vertices_z.reserve(ob.number_of_vertices);
@@ -301,16 +295,16 @@ namespace jtk
     rd.vertices_y.clear();
     rd.vertices_z.clear();
     rd.vertex_clip_info.clear();
-    const float* p_vert = rd.obs[rd.ob_id].vertices;
+    const float* p_vert = rd.obj.vertices;
 #ifdef _AVX2
-    uint32_t sz = rd.obs[rd.ob_id].number_of_vertices - (rd.obs[rd.ob_id].number_of_vertices & 7);
+    uint32_t sz = rd.obj.number_of_vertices - (rd.obj.number_of_vertices & 7);
 #else
-    uint32_t sz = rd.obs[rd.ob_id].number_of_vertices - (rd.obs[rd.ob_id].number_of_vertices & 3);
+    uint32_t sz = rd.obj.number_of_vertices - (rd.obj.number_of_vertices & 3);
 #endif
-    rd.vertices_x.resize(rd.obs[rd.ob_id].number_of_vertices);
-    rd.vertices_y.resize(rd.obs[rd.ob_id].number_of_vertices);
-    rd.vertices_z.resize(rd.obs[rd.ob_id].number_of_vertices);
-    rd.vertex_clip_info.resize(rd.obs[rd.ob_id].number_of_vertices);
+    rd.vertices_x.resize(rd.obj.number_of_vertices);
+    rd.vertices_y.resize(rd.obj.number_of_vertices);
+    rd.vertices_z.resize(rd.obj.number_of_vertices);
+    rd.vertex_clip_info.resize(rd.obj.number_of_vertices);
     //for (uint32_t i = 0; i < sz; i += 8)
 
     const unsigned int number_of_threads = hardware_concurrency() * 4;
@@ -461,7 +455,7 @@ namespace jtk
 #endif
       });
 
-    for (uint32_t i = sz; i < rd.obs[rd.ob_id].number_of_vertices; ++i)
+    for (uint32_t i = sz; i < rd.obj.number_of_vertices; ++i)
       {
 
       float X = *p_vert++;
@@ -529,13 +523,13 @@ namespace jtk
     light_color_avx[0] = _mm256_set1_ps(light_color[0]);
     light_color_avx[1] = _mm256_set1_ps(light_color[1]);
     light_color_avx[2] = _mm256_set1_ps(light_color[2]);
-    uint32_t sz = rd.obs[rd.ob_id].number_of_vertices - (rd.obs[rd.ob_id].number_of_vertices & 7);
+    uint32_t sz = rd.obj.number_of_vertices - (rd.obj.number_of_vertices & 7);
 #else
     __m128 light_color_sse[3];
     light_color_sse[0] = _mm_set1_ps(light_color[0]);
     light_color_sse[1] = _mm_set1_ps(light_color[1]);
     light_color_sse[2] = _mm_set1_ps(light_color[2]);
-    uint32_t sz = rd.obs[rd.ob_id].number_of_vertices - (rd.obs[rd.ob_id].number_of_vertices & 3);
+    uint32_t sz = rd.obj.number_of_vertices - (rd.obj.number_of_vertices & 3);
 #endif
 
 
@@ -584,16 +578,16 @@ namespace jtk
       if (_mm256_test_all_ones(mask))
         continue;
 
-      if (rd.obs[rd.ob_id].colors)
+      if (rd.obj.colors)
         {
-        const uint32_t* p = rd.obs[rd.ob_id].colors + i;
+        const uint32_t* p = rd.obj.colors + i;
         const __m256i* tmp = (const __m256i*) p;
         colors = tmp[0];
         }
 
-      if (rd.obs[rd.ob_id].normals)
+      if (rd.obj.normals)
         {
-        const float* p = rd.obs[rd.ob_id].normals + i * 3;
+        const float* p = rd.obj.normals + i * 3;
         const __m128* m = (const __m128*) p;
         __m256 m03 = _mm256_castps128_ps256(m[0]); // load lower halves
         __m256 m14 = _mm256_castps128_ps256(m[1]);
@@ -718,16 +712,16 @@ namespace jtk
       if (_mm_test_all_ones(mask))
         continue;
 
-      if (rd.obs[rd.ob_id].colors)
+      if (rd.obj.colors)
         {
-        const uint32_t* p = rd.obs[rd.ob_id].colors + i;
+        const uint32_t* p = rd.obj.colors + i;
         const __m128i* tmp = (const __m128i*) p;
         colors = tmp[0];
         }
 
-      if (rd.obs[rd.ob_id].normals)
+      if (rd.obj.normals)
         {
-        const float* p = rd.obs[rd.ob_id].normals + i * 3;
+        const float* p = rd.obj.normals + i * 3;
         __m128 x0y0z0x1 = _mm_load_ps(p + 0);
         __m128 y1z1x2y2 = _mm_load_ps(p + 4);
         __m128 z2x3y3z3 = _mm_load_ps(p + 8);
@@ -794,7 +788,7 @@ namespace jtk
       }
 #endif
 
-    for (uint32_t i = sz; i < rd.obs[rd.ob_id].number_of_vertices; ++i)
+    for (uint32_t i = sz; i < rd.obj.number_of_vertices; ++i)
       {
       if (rd.vertex_clip_info[i])
         continue;
@@ -803,15 +797,15 @@ namespace jtk
       if (X < border || Y < border || X > rd.fb.w - 1 - border || Y > rd.fb.h - 1 - border)
         continue;
 
-      if (rd.obs[rd.ob_id].colors)
+      if (rd.obj.colors)
         {
-        rgb.color = rd.obs[rd.ob_id].colors[i];
+        rgb.color = rd.obj.colors[i];
         }
-      if (rd.obs[rd.ob_id].normals)
+      if (rd.obj.normals)
         {
-        float nx = rd.obs[rd.ob_id].normals[i * 3];
-        float ny = rd.obs[rd.ob_id].normals[i * 3 + 1];
-        float nz = rd.obs[rd.ob_id].normals[i * 3 + 2];
+        float nx = rd.obj.normals[i * 3];
+        float ny = rd.obj.normals[i * 3 + 1];
+        float nz = rd.obj.normals[i * 3 + 2];
 
         float diffuse = 0.5f + nx * light[0] + ny * light[1] + nz * light[2];
         diffuse = diffuse < 0.f ? 0.f : (1.f < diffuse) ? 1.f : diffuse; // clamp
