@@ -76,27 +76,31 @@ namespace jtk
     uint32_t number_of_vertices;
     };
 
+#ifdef _WIN32
+  __declspec(align(32))
+#endif
   struct render_data
     {
-    frame_buffer fb;
-    object_buffer obj;
-    float camera_position[16];
-    float object_system[16];
-    float projection_matrix[16];
-    float projection_times_camera_times_object[16];
 #ifdef _AVX2
     __m256 projection_times_camera_times_object_avx[16];
 #else
     __m128 projection_times_camera_times_object_sse[16];
 #endif
+    frame_buffer fb;
+    object_buffer obj;
     std::vector<float> vertices_x;
     std::vector<float> vertices_y;
     std::vector<float> vertices_z;
     std::vector<uint32_t> vertex_clip_info;
+    float camera_position[16];
+    float object_system[16];
+    float projection_matrix[16];
+    float projection_times_camera_times_object[16];
     uint32_t ob_id;
     float light_direction[3];
     uint32_t light_color;
     int point_size;
+    uint16_t pad1;
     render_data()
       {
       point_size = 0;
@@ -106,7 +110,11 @@ namespace jtk
       light_direction[2] = 1.f;
       light_color = 0xffffffff;
       }
-    };
+    }
+#ifndef _WIN32 // linux alignment in gcc
+  __attribute__((aligned(32)))
+#endif
+    ;
 
   inline float get_depth(const render_data& rd, uint32_t x, uint32_t y)
     {
@@ -495,7 +503,8 @@ namespace jtk
       }
     }
 
-  inline void present(render_data& rd, uint32_t color)
+  template <class TCallBack>
+  inline void present(render_data& rd, uint32_t color, TCallBack callback)
     {
     rgb_value rgb;
     rgb.color = color;
@@ -668,6 +677,8 @@ namespace jtk
           rd.fb.zbuffer[i5] = _mm_cvtss_f32(_mm_shuffle_ps(lane1, lane1, 1));
           rd.fb.zbuffer[i6] = _mm_cvtss_f32(_mm_movehl_ps(lane1, lane1));
           rd.fb.zbuffer[i7] = _mm_cvtss_f32(_mm_shuffle_ps(lane1, lane1, 3));
+
+          callback(i, index, final_mask);
           }
 
         }
@@ -765,8 +776,7 @@ namespace jtk
           __m128i final_mask = _mm_andnot_si128(mask, _mm_castps_si128(depth_mask));
 
           __m128 current_depth = _mm_blendv_ps(previous_depth, depth, _mm_castsi128_ps(final_mask));
-          __m128i current_colors = _mm_castps_si128(_mm_blendv_ps(_mm_castsi128_ps(previous_colors), _mm_castsi128_ps(colors), _mm_castsi128_ps(final_mask)));
-
+          __m128i current_colors = _mm_castps_si128(_mm_blendv_ps(_mm_castsi128_ps(previous_colors), _mm_castsi128_ps(colors), _mm_castsi128_ps(final_mask)));          
 
           const uint32_t i0 = _mm_extract_epi32(index, 0);
           const uint32_t i1 = _mm_extract_epi32(index, 1);
@@ -782,6 +792,8 @@ namespace jtk
           rd.fb.zbuffer[i1] = _mm_cvtss_f32(_mm_shuffle_ps(current_depth, current_depth, 1));
           rd.fb.zbuffer[i2] = _mm_cvtss_f32(_mm_movehl_ps(current_depth, current_depth));
           rd.fb.zbuffer[i3] = _mm_cvtss_f32(_mm_shuffle_ps(current_depth, current_depth, 3));         
+
+          callback(i, index, final_mask);
           }
 
         }
@@ -836,5 +848,14 @@ namespace jtk
       }
     }
 
+
+  inline void present(render_data& rd, uint32_t color)
+    {
+#ifdef _AVX2
+    present(rd, color, [](uint32_t, const __m256i&, const __m256i&) {});
+#else
+    present(rd, color, [](uint32_t, const __m128i&, const __m128i&) {});
+#endif
+    }
 
   } // namespace jtk

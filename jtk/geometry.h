@@ -453,9 +453,7 @@ namespace jtk
   inline bool read_obj(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
     {
     FILE* f = nullptr;
-    auto ferr = fopen_s(&f, filename, "r");
-    if (ferr != 0)
-      return false;
+    f = fopen(filename, "r");
     if (!f)
       return false;
 
@@ -510,9 +508,7 @@ namespace jtk
   inline bool read_texture_filename_from_mtl(std::string& texture_file, const char* filename)
     {
     FILE* f = nullptr;
-    auto err = fopen_s(&f, filename, "r");
-    if (err != 0)
-      return false;
+    f = fopen(filename, "r");
     if (!f)
       return false;
     char buffer[256];
@@ -539,9 +535,7 @@ namespace jtk
     std::vector<vec3<uint32_t>>().swap(triangles);
     std::vector<vec3<vec2<float>>>().swap(uv);
     FILE* f = nullptr;
-    auto ferr = fopen_s(&f, filename, "r");
-    if (ferr != 0)
-      return false;
+    f = fopen(filename, "r");
     if (!f)
       return false;
 
