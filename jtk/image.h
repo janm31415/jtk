@@ -41,9 +41,9 @@ namespace jtk
       typedef const T* const_iterator;
       typedef T value_type;
 
-      image() : _data(nullptr), _access(nullptr), _w(0), _h(0) {}
+      image() : _w(0), _h(0), _stride(0), _data(nullptr), _access(nullptr) {}
 
-      image(uint32_t w, uint32_t h, bool init_to_zero = true) : _data(nullptr), _access(nullptr), _w(w), _h(h), _stride(w)
+      image(uint32_t w, uint32_t h, bool init_to_zero = true) : _w(w), _h(h), _stride(w), _data(nullptr), _access(nullptr)
         {
         if ((_w * sizeof(T)) & 15)
           {
@@ -81,7 +81,7 @@ namespace jtk
           memset(_data, 0, _stride * _h * sizeof(T));        
         }
 
-      image(image&& other) : _data(nullptr), _access(nullptr), _w(0), _h(0), _stride(0)
+      image(image&& other) : _w(0), _h(0), _stride(0), _data(nullptr), _access(nullptr)
         {
         _data = other._data;
         _access = other._access;
@@ -105,7 +105,7 @@ namespace jtk
         return *this;
         }
 
-      image(const image& other) : _data(nullptr), _access(nullptr), _w(other._w), _h(other._h), _stride(other._stride)
+      image(const image& other) : _w(other._w), _h(other._h), _stride(other._stride), _data(nullptr), _access(nullptr)
         {
         _data = (T*)(_mm_malloc(_stride*_h * sizeof(T), 16));
         _access = (T**)(malloc(_h * sizeof(T*)));

@@ -22,7 +22,7 @@
 #include <vector>
 #include <cassert>
 #include <exception>
-#endif;
+#endif
 
 namespace jtk
   {
@@ -35,7 +35,7 @@ namespace jtk
       return std::thread::hardware_concurrency();
 #else
     return 1;
-#endif;
+#endif
     }
 
 
