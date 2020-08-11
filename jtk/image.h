@@ -1,7 +1,11 @@
 #pragma once
 
+#ifdef __ANDROID__
+#include "sse2neon.h"
+#else
 #include <immintrin.h>
 #include <emmintrin.h>
+#endif
 
 #include <cassert>
 #include <fstream>
@@ -78,7 +82,7 @@ namespace jtk
         for (uint32_t i = 0; i < h; ++i)
           _access[i] = _data + (i * _stride);
         if (init_to_zero)
-          memset(_data, 0, _stride * _h * sizeof(T));        
+          memset(_data, 0, _stride * _h * sizeof(T));
         }
 
       image(image&& other) : _w(0), _h(0), _stride(0), _data(nullptr), _access(nullptr)
@@ -87,7 +91,7 @@ namespace jtk
         _access = other._access;
         _w = other._w;
         _h = other._h;
-        _stride = other._stride;        
+        _stride = other._stride;
         other._data = nullptr;
         other._access = nullptr;
         other._w = 0;
@@ -101,7 +105,7 @@ namespace jtk
         std::swap(_access, other._access);
         std::swap(_w, other._w);
         std::swap(_h, other._h);
-        std::swap(_stride, other._stride);        
+        std::swap(_stride, other._stride);
         return *this;
         }
 
@@ -120,7 +124,7 @@ namespace jtk
         std::swap(_h, other._h);
         std::swap(_stride, other._stride);
         std::swap(_data, other._data);
-        std::swap(_access, other._access);        
+        std::swap(_access, other._access);
         }
 
       image& operator = (const image& other)

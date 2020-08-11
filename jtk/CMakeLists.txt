@@ -6,6 +6,7 @@ geometry.h
 image.h
 qbvh.h
 render.h
+sse2neon.h
 timer.h
 utf8.h
 vec.h

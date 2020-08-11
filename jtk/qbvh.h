@@ -3,8 +3,12 @@
 #include "concurrency.h"
 #include "vec.h"
 
+#ifdef __ANDROID__
+#include "sse2neon.h"
+#else
 #include <immintrin.h>
 #include <emmintrin.h>
+#endif
 
 #include <array>
 #include <stdint.h>
@@ -184,8 +188,10 @@ namespace jtk
   inline int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values);
   inline int4 operator & (const int4& left, const int4& right);
   inline int4 operator | (const int4& left, const int4& right);
+#ifndef __ANDROID__
   inline int4 operator >> (const int4& a, int n);
   inline int4 operator << (const int4& a, int n);
+#endif
   inline int any(const int4& a);
 
 #ifdef _WIN32
@@ -397,7 +403,6 @@ namespace jtk
     void operator delete[](void* ptr); // for aligned allocation
     };
 
-  inline qbvh_voxel get_bbox(const vec3<float>* vertices, const vec3<uint32_t>& tria);
   inline qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles);
   struct qbvh_node
     {
@@ -1073,6 +1078,7 @@ namespace jtk
     return _mm_and_si128(left.m128i, right.m128i);
     }
 
+#ifndef __ANDROID__
   inline int4 operator >> (const int4& a, int n)
     {
     return _mm_srai_epi32(a.m128i, n);
@@ -1082,6 +1088,7 @@ namespace jtk
     {
     return _mm_slli_epi32(a.m128i, n);
     }
+#endif
 
   inline int any(const int4& a)
     {
@@ -2050,7 +2057,7 @@ I'm following the same algorithm steps, but do everything in place.
 #endif
       ;
 
-    parallel_for(unsigned int(0), K, [&](unsigned int k)
+    parallel_for((unsigned int)0, K, [&](unsigned int k)
       {
       const auto s = (uint64_t)k * N / (uint64_t)K;
       const auto e = (uint64_t)(k + 1) * N / (uint64_t)K;
@@ -2137,7 +2144,7 @@ I'm following the same algorithm steps, but do everything in place.
     if (numMisplacedItemsLeft == 0)
       return mid;
 
-    parallel_for(unsigned int(0), K, [&](unsigned int k)
+    parallel_for((unsigned int)0, K, [&](unsigned int k)
       {
       const auto s = (uint64_t)k * numMisplacedItemsLeft / (uint64_t)K;
       const auto e = (uint64_t)(k + 1) * numMisplacedItemsLeft / (uint64_t)K;
@@ -2177,7 +2184,7 @@ I'm following the same algorithm steps, but do everything in place.
         while (items)
           {
           --items;
-          const iterator::value_type tmp = *l;
+          const typename iterator::value_type tmp = *l;
           *l++ = *r;
           *r++ = tmp;
           }
@@ -2196,15 +2203,8 @@ I'm following the same algorithm steps, but do everything in place.
   inline void* qbvh_voxel::operator new[](size_t size) { return aligned_malloc(size, 16); }
   inline void qbvh_voxel::operator delete[](void* ptr) { aligned_free(ptr); }
 
-  inline qbvh_voxel get_bbox(const vec3<float>* vertices, const vec3<uint32_t>& tria)
-    {
-    _mm_prefetch((char *)(vertices + tria[0]), _MM_HINT_T0);
-    _mm_prefetch((char *)(vertices + tria[1]), _MM_HINT_T0);
-    _mm_prefetch((char *)(vertices + tria[2]), _MM_HINT_T0);
-    }
 
-
-  inline qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+    inline qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
     {
     qbvh_voxel* lst = new qbvh_voxel[nr_of_triangles];
     total_bb.bbox_min = std::numeric_limits<float>::max();
@@ -2651,8 +2651,8 @@ I'm following the same algorithm steps, but do everything in place.
 
 
   static const uint32_t sign_bit = 0x80000000;
-  inline static const int4 sign_mask = int4(0x80000000, 0x80000000, 0x80000000, 0x80000000);
-  inline static const int4 bit_mask = int4(0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF);
+  static const int4 sign_mask = int4(0x80000000, 0x80000000, 0x80000000, 0x80000000);
+  static const int4 bit_mask = int4(0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF);
 
 
 
@@ -3283,6 +3283,7 @@ I'm following the same algorithm steps, but do everything in place.
       }
 
     const auto id2 = construct_tree_prep(stack, sz, stack_index, node_index, voxels, total_bb, centroid_bb, first, last, 0, false);
+    (void)id2; // avoid unused variable warning in release build
     assert(id == id2);
 
     return id;
