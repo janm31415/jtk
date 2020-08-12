@@ -7,11 +7,6 @@
 
 namespace jtk
   {
-
-  /////////////////////////////////////////////////////////////////////////
-  // struct vec2
-  /////////////////////////////////////////////////////////////////////////
-
   template <typename T>
   struct vec2
     {
@@ -19,19 +14,124 @@ namespace jtk
 
     typedef T value_type;
 
-    vec2() {}
+    vec2();
 
-    vec2(const T& t) : x(t), y(t) {}
+    vec2(const T& t);
 
-    vec2(const T& _x, const T& _y) : x(_x), y(_y) {}
-
-    template <typename T2>
-    T& operator [] (T2 i) { return (&x)[i]; }
+    vec2(const T& _x, const T& _y);
 
     template <typename T2>
-    const T& operator [] (T2 i) const { return (&x)[i]; }
+    T& operator [] (T2 i);
+
+    template <typename T2>
+    const T& operator [] (T2 i) const;
 
     };
+
+  template <typename T>
+  struct vec3
+    {
+    T x, y, z;
+
+    typedef T value_type;
+
+    vec3();
+    vec3(const T& t);
+
+    vec3(const T& _x, const T& _y, const T& _z);
+
+    template <typename T2>
+    T& operator [] (T2 i);
+
+    template <typename T2>
+    const T& operator [] (T2 i) const;
+
+    };
+
+
+  template <typename T>
+  struct vec4
+    {
+    T x, y, z, w;
+
+    typedef T value_type;
+
+    vec4();
+
+    vec4(const T& t);
+
+    vec4(const T& _x, const T& _y, const T& _z, const T& _w);
+
+    template <typename T2>
+    T& operator [] (T2 i);
+
+    template <typename T2>
+    const T& operator [] (T2 i) const;
+
+    };
+
+  template <class T>
+  struct boundingbox3d
+    {
+    vec3<T> min, max;
+    };
+
+  template <class T, class Iter>
+  boundingbox3d<T> bounding_volume_3d(Iter first, Iter last);
+
+  template <class T>
+  inline bool inside(const boundingbox3d<T>& bb, const vec3<T>& pt);
+
+  template <class T>
+  inline void add_point(boundingbox3d<T>& bb, const vec3<T>& pt);
+
+  template <class T>
+  inline vec3<T> center(const boundingbox3d<T>& bb);
+
+  template <class T>
+  inline boundingbox3d<T> unite(const boundingbox3d<T>& left, const boundingbox3d<T>& right);
+
+  template <class T>
+  struct boundingbox2d
+    {
+    vec2<T> min, max;
+    };
+
+  template <class T, class Iter>
+  boundingbox2d<T> bounding_volume_2d(Iter first, Iter last);
+
+  template <class T>
+  inline bool inside(const boundingbox2d<T>& bb, const vec2<T>& pt);
+
+  template <class T>
+  inline void add_point(boundingbox2d<T>& bb, const vec2<T>& pt);
+
+  template <class T>
+  inline vec2<T> center(const boundingbox2d<T>& bb);
+
+  template <class T>
+  inline boundingbox2d<T> unite(const boundingbox2d<T>& left, const boundingbox2d<T>& right);
+
+  /////////////////////////////////////////////////////////////////////////
+  // struct vec2
+  /////////////////////////////////////////////////////////////////////////
+
+  template <typename T>
+  vec2<T>::vec2() {}
+
+  template <typename T>
+  vec2<T>::vec2(const T& t) : x(t), y(t) {}
+
+  template <typename T>
+  vec2<T>::vec2(const T& _x, const T& _y) : x(_x), y(_y) {}
+
+  template <typename T>
+  template <typename T2>
+  T& vec2<T>::operator [] (T2 i) { return (&x)[i]; }
+
+  template <typename T>
+  template <typename T2>
+  const T& vec2<T>::operator [] (T2 i) const { return (&x)[i]; }
 
   template <typename T>
   inline vec2<T> operator + (const vec2<T>& a)
@@ -219,25 +319,21 @@ namespace jtk
   /////////////////////////////////////////////////////////////////////////
 
   template <typename T>
-  struct vec3
-    {
-    T x, y, z;
+  vec3<T>::vec3() {}
 
-    typedef T value_type;
+  template <typename T>
+  vec3<T>::vec3(const T& t) : x(t), y(t), z(t) {}
 
-    vec3() {}
+  template <typename T>
+  vec3<T>::vec3(const T& _x, const T& _y, const T& _z) : x(_x), y(_y), z(_z) {}
 
-    vec3(const T& t) : x(t), y(t), z(t) {}
+  template <typename T>
+  template <typename T2>
+  T& vec3<T>::operator [] (T2 i) { return (&x)[i]; }
 
-    vec3(const T& _x, const T& _y, const T& _z) : x(_x), y(_y), z(_z) {}
-
-    template <typename T2>
-    T& operator [] (T2 i) { return (&x)[i]; }
-
-    template <typename T2>
-    const T& operator [] (T2 i) const { return (&x)[i]; }
-
-    };
+  template <typename T>
+  template <typename T2>
+  const T& vec3<T>::operator [] (T2 i) const { return (&x)[i]; }
 
   template <typename T>
   inline vec3<T> operator + (const vec3<T>& a)
@@ -474,25 +570,21 @@ namespace jtk
   /////////////////////////////////////////////////////////////////////////
 
   template <typename T>
-  struct vec4
-    {
-    T x, y, z, w;
+  vec4<T>::vec4() {}
 
-    typedef T value_type;
+  template <typename T>
+  vec4<T>::vec4(const T& t) : x(t), y(t), z(t), w(t) {}
 
-    vec4() {}
+  template <typename T>
+  vec4<T>::vec4(const T& _x, const T& _y, const T& _z, const T& _w) : x(_x), y(_y), z(_z), w(_w) {}
 
-    vec4(const T& t) : x(t), y(t), z(t), w(t) {}
+  template <typename T>
+  template <typename T2>
+  T& vec4<T>::operator [] (T2 i) { return (&x)[i]; }
 
-    vec4(const T& _x, const T& _y, const T& _z, const T& _w) : x(_x), y(_y), z(_z), w(_w) {}
-
-    template <typename T2>
-    T& operator [] (T2 i) { return (&x)[i]; }
-
-    template <typename T2>
-    const T& operator [] (T2 i) const { return (&x)[i]; }
-
-    };
+  template <typename T>
+  template <typename T2>
+  const T& vec4<T>::operator [] (T2 i) const { return (&x)[i]; }
 
   template <typename T>
   inline vec4<T> operator + (const vec4<T>& a)
@@ -636,6 +728,172 @@ namespace jtk
   inline bool operator != (const vec4<T>& left, const vec4<T>& right)
     {
     return !(left == right);
+    }
+
+  /////////////////////////////////////////////////////////////////////////
+  // bounding 
+  /////////////////////////////////////////////////////////////////////////
+
+  template <class T, class Iter>
+  boundingbox3d<T> bounding_volume_3d(Iter first, Iter last)
+    {
+    boundingbox3d<T> result;
+    if (first == last)
+      {
+      result.min[0] = (T)1;
+      result.min[1] = (T)1;
+      result.min[2] = (T)1;
+      result.max[0] = (T)0;
+      result.max[1] = (T)0;
+      result.max[2] = (T)0;
+      return result;
+      }
+    result.min[0] = (T)((*first)[0]);
+    result.min[1] = (T)((*first)[1]);
+    result.min[2] = (T)((*first)[2]);
+    result.max[0] = (T)((*first)[0]);
+    result.max[1] = (T)((*first)[1]);
+    result.max[2] = (T)((*first)[2]);
+    ++first;
+    for (; first != last; ++first)
+      {
+      const auto& pt = *first;
+      for (int i = 0; i < 3; ++i)
+        {
+        if (result.min[i] > (T)(pt[i]))
+          result.min[i] = (T)(pt[i]);
+        if (result.max[i] < (T)(pt[i]))
+          result.max[i] = (T)(pt[i]);
+        }
+      }
+    return result;
+    }
+
+  template <class T>
+  inline bool inside(const boundingbox3d<T>& bb, const vec3<T>& pt)
+    {
+    for (size_t i = 0; i < 3; ++i)
+      {
+      if (pt[i] < bb.min[i])
+        return false;
+      if (pt[i] > bb.max[i])
+        return false;
+      }
+    return true;
+    }
+
+  template <class T>
+  inline void add_point(boundingbox3d<T>& bb, const vec3<T>& pt)
+    {
+    for (size_t i = 0; i < 3; ++i)
+      {
+      if (bb.min[i] > pt[i])
+        bb.min[i] = pt[i];
+      if (bb.max[i] < pt[i])
+        bb.max[i] = pt[i];
+      }
+    }
+
+  template <class T>
+  inline vec3<T> center(const boundingbox3d<T>& bb)
+    {
+    vec3<T> c;
+    c[0] = (bb.min[0] + bb.max[0]) / 2;
+    c[1] = (bb.min[1] + bb.max[1]) / 2;
+    c[2] = (bb.min[2] + bb.max[2]) / 2;
+    return c;
+    }
+
+  template <class T>
+  inline boundingbox3d<T> unite(const boundingbox3d<T>& left, const boundingbox3d<T>& right)
+    {
+    boundingbox3d<T> bb(left);
+    if (right.min[0] <= right.max[0] &&
+      right.min[1] <= right.max[1] &&
+      right.min[2] <= right.max[2])
+      {
+      add_point(bb, right.min);
+      add_point(bb, right.max);
+      }
+    return bb;
+    }
+
+  template <class T, class Iter>
+  boundingbox2d<T> bounding_volume_2d(Iter first, Iter last)
+    {
+    boundingbox2d<T> result;
+    if (first == last)
+      {
+      result.min[0] = (T)1;
+      result.min[1] = (T)1;
+      result.max[0] = (T)0;
+      result.max[1] = (T)0;
+      return result;
+      }
+    result.min[0] = (T)((*first)[0]);
+    result.min[1] = (T)((*first)[1]);
+    result.max[0] = (T)((*first)[0]);
+    result.max[1] = (T)((*first)[1]);
+    ++first;
+    for (; first != last; ++first)
+      {
+      const auto& pt = *first;
+      for (int i = 0; i < 2; ++i)
+        {
+        if (result.min[i] > (T)(pt[i]))
+          result.min[i] = (T)(pt[i]);
+        if (result.max[i] < (T)(pt[i]))
+          result.max[i] = (T)(pt[i]);
+        }
+      }
+    return result;
+    }
+
+  template <class T>
+  inline bool inside(const boundingbox2d<T>& bb, const vec2<T>& pt)
+    {
+    for (size_t i = 0; i < 2; ++i)
+      {
+      if (pt[i] < bb.min[i])
+        return false;
+      if (pt[i] > bb.max[i])
+        return false;
+      }
+    return true;
+    }
+
+  template <class T>
+  inline void add_point(boundingbox2d<T>& bb, const vec2<T>& pt)
+    {
+    for (size_t i = 0; i < 2; ++i)
+      {
+      if (bb.min[i] > pt[i])
+        bb.min[i] = pt[i];
+      if (bb.max[i] < pt[i])
+        bb.max[i] = pt[i];
+      }
+    }
+
+  template <class T>
+  inline vec2<T> center(const boundingbox2d<T>& bb)
+    {
+    vec2<T> c;
+    c[0] = (bb.min[0] + bb.max[0]) / 2;
+    c[1] = (bb.min[1] + bb.max[1]) / 2;
+    return c;
+    }
+
+  template <class T>
+  inline boundingbox2d<T> unite(const boundingbox2d<T>& left, const boundingbox2d<T>& right)
+    {
+    boundingbox2d<T> bb(left);
+    if (right.min[0] <= right.max[0] &&
+      right.min[1] <= right.max[1])
+      {
+      add_point(bb, right.min);
+      add_point(bb, right.max);
+      }
+    return bb;
     }
 
   } // namespace jtk
