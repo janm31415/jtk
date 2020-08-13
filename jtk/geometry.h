@@ -2249,8 +2249,8 @@ namespace jtk
 
     std::vector<std::vector<vec3<float>>> pts(depth - 1);
 
-    //parallel_for(int(0), int(depth - 1), [&](int z)
-    for (int z = 0; z < int(depth - 1); ++z)
+    parallel_for(int(0), int(depth - 1), [&](int z)
+    //for (int z = 0; z < int(depth - 1); ++z)
       {
       for (int y = 0; y<int(height - 1); ++y)
         {
@@ -2338,7 +2338,7 @@ namespace jtk
             }
           }
         }
-      }//);
+      });
 
     std::unordered_map<vec3<float>, uint32_t, vec3floathash> point_map;
 
