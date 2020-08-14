@@ -1065,7 +1065,7 @@ namespace jtk
 
   inline int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values)
     {
-    return _mm_or_ps(_mm_and_ps(mask.m128, _mm_castsi128_ps(updated_values.m128i)), _mm_andnot_ps(mask.m128, _mm_castsi128_ps(original.m128i)));
+    return _mm_castps_si128(_mm_or_ps(_mm_and_ps(mask.m128, _mm_castsi128_ps(updated_values.m128i)), _mm_andnot_ps(mask.m128, _mm_castsi128_ps(original.m128i))));
     }
 
   inline int4 operator & (const int4& left, const int4& right)
