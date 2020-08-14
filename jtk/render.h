@@ -743,8 +743,8 @@ namespace jtk
         __m128 nz = _mm_shuffle_ps(y0z0y1z1, z2x3y3z3, _MM_SHUFFLE(3, 0, 3, 1)); // z0z1z2z3        
 
         __m128 diffuse = _mm_add_ps(halff, _mm_add_ps(_mm_add_ps(_mm_mul_ps(nx, light_sse[0]), _mm_mul_ps(ny, light_sse[1])), _mm_mul_ps(nz, light_sse[2])));
-        const __m128 mask1 = _mm_cmp_ps(diffuse, zerof, 1);
-        const __m128 mask2 = _mm_cmp_ps(onef, diffuse, 1);
+        const __m128 mask1 = _mm_cmplt_ps(diffuse, zerof);
+        const __m128 mask2 = _mm_cmplt_ps(onef, diffuse);
         diffuse = _mm_blendv_ps(diffuse, zerof, mask1);
         diffuse = _mm_blendv_ps(diffuse, onef, mask2);
         const __m128 int_r = _mm_mul_ps(diffuse, light_color_sse[0]);
@@ -772,7 +772,7 @@ namespace jtk
           __m128 previous_depth = _mm_i32gather_ps(rd.fb.zbuffer, index, 4);
           __m128i previous_colors = _mm_i32gather_epi32((const int*)rd.fb.pixels, index, 4);
 
-          __m128 depth_mask = _mm_cmp_ps(depth, previous_depth, 13);
+          __m128 depth_mask = _mm_cmplt_ps(previous_depth, depth); //ge
           __m128i final_mask = _mm_andnot_si128(mask, _mm_castps_si128(depth_mask));
 
           __m128 current_depth = _mm_blendv_ps(previous_depth, depth, _mm_castsi128_ps(final_mask));
