@@ -647,8 +647,7 @@ namespace jtk
   template <class T>
   void write_ply(const char* filename, const std::vector<vec3<T>>& pts)
     {
-    FILE* fp;
-    fopen_s(&fp, filename, "wt");
+    FILE* fp = fopen(filename, "wt");
     fprintf(fp, "ply\n");
     fprintf(fp, "format ascii 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
@@ -672,8 +671,7 @@ namespace jtk
       write_ply(filename, pts);
       return;
       }
-    FILE* fp;
-    fopen_s(&fp, filename, "wt");
+    FILE* fp = fopen(filename, "wt");
     fprintf(fp, "ply\n");
     fprintf(fp, "format ascii 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
@@ -701,8 +699,7 @@ namespace jtk
       write_ply(filename, pts);
       return;
       }
-    FILE* fp;
-    fopen_s(&fp, filename, "wt");
+    FILE* fp = fopen(filename, "wt");
     fprintf(fp, "ply\n");
     fprintf(fp, "format ascii 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
@@ -735,8 +732,7 @@ namespace jtk
       write_ply(filename, pts, normals);
       return;
       }
-    FILE* fp;
-    fopen_s(&fp, filename, "wt");
+    FILE* fp = fopen(filename, "wt");
     fprintf(fp, "ply\n");
     fprintf(fp, "format ascii 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
@@ -762,8 +758,7 @@ namespace jtk
 
   inline void write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles)
     {
-    FILE* fp;
-    fopen_s(&fp, filename, "wb");
+    FILE* fp = fopen(filename, "wb");
     fprintf(fp, "ply\n");
     fprintf(fp, "format binary_little_endian 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
@@ -786,8 +781,7 @@ namespace jtk
 
   inline void write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles)
     {
-    FILE* fp;
-    fopen_s(&fp, filename, "wb");
+    FILE* fp = fopen(filename, "wb");
     fprintf(fp, "ply\n");
     fprintf(fp, "format binary_little_endian 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
