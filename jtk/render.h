@@ -769,19 +769,19 @@ namespace jtk
           index = _mm_max_epi32(zero, index);
           index = _mm_min_epi32(wh, index);
 
-          __m128 previous_depth = _mm_i32gather_ps(rd.fb.zbuffer, index, 4);
-          __m128i previous_colors = _mm_i32gather_epi32((const int*)rd.fb.pixels, index, 4);
+          const uint32_t i0 = _mm_extract_epi32(index, 0);
+          const uint32_t i1 = _mm_extract_epi32(index, 1);
+          const uint32_t i2 = _mm_extract_epi32(index, 2);
+          const uint32_t i3 = _mm_extract_epi32(index, 3);
+
+          __m128 previous_depth = _mm_set_ps(rd.fb.zbuffer[i3], rd.fb.zbuffer[i2], rd.fb.zbuffer[i1], rd.fb.zbuffer[i0]);
+          __m128i previous_colors = _mm_set_epi32(rd.fb.pixels[i3], rd.fb.pixels[i2], rd.fb.pixels[i1], rd.fb.pixels[i0]);
 
           __m128 depth_mask = _mm_cmplt_ps(previous_depth, depth); //ge
           __m128i final_mask = _mm_andnot_si128(mask, _mm_castps_si128(depth_mask));
 
           __m128 current_depth = _mm_blendv_ps(previous_depth, depth, _mm_castsi128_ps(final_mask));
           __m128i current_colors = _mm_castps_si128(_mm_blendv_ps(_mm_castsi128_ps(previous_colors), _mm_castsi128_ps(colors), _mm_castsi128_ps(final_mask)));          
-
-          const uint32_t i0 = _mm_extract_epi32(index, 0);
-          const uint32_t i1 = _mm_extract_epi32(index, 1);
-          const uint32_t i2 = _mm_extract_epi32(index, 2);
-          const uint32_t i3 = _mm_extract_epi32(index, 3);
 
           rd.fb.pixels[i0] = _mm_extract_epi32(current_colors, 0);
           rd.fb.pixels[i1] = _mm_extract_epi32(current_colors, 1);
