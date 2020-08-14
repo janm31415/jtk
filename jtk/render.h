@@ -429,12 +429,12 @@ namespace jtk
         VX = _mm_div_ps(VX, VW);
         VY = _mm_div_ps(VY, VW);
         VZ = _mm_div_ps(VZ, VW);
-        __m128i mxlt = _mm_castps_si128(_mm_cmp_ps(VX, _mm_set1_ps(-1.f), 1));
-        __m128i mxgt = _mm_castps_si128(_mm_cmp_ps(VX, _mm_set1_ps(1.f), 14));
-        __m128i mylt = _mm_castps_si128(_mm_cmp_ps(VY, _mm_set1_ps(-1.f), 1));
-        __m128i mygt = _mm_castps_si128(_mm_cmp_ps(VY, _mm_set1_ps(1.f), 14));
-        __m128i mzlt = _mm_castps_si128(_mm_cmp_ps(VZ, _mm_set1_ps(-1.f), 1));
-        __m128i mzgt = _mm_castps_si128(_mm_cmp_ps(VZ, _mm_set1_ps(1.f), 14));
+        __m128i mxlt = _mm_castps_si128(_mm_cmplt_ps(VX, _mm_set1_ps(-1.f)));
+        __m128i mxgt = _mm_castps_si128(_mm_cmpgt_ps(VX, _mm_set1_ps(1.f)));
+        __m128i mylt = _mm_castps_si128(_mm_cmplt_ps(VY, _mm_set1_ps(-1.f)));
+        __m128i mygt = _mm_castps_si128(_mm_cmpgt_ps(VY, _mm_set1_ps(1.f)));
+        __m128i mzlt = _mm_castps_si128(_mm_cmplt_ps(VZ, _mm_set1_ps(-1.f)));
+        __m128i mzgt = _mm_castps_si128(_mm_cmpgt_ps(VZ, _mm_set1_ps(1.f)));
 
         clip = _mm_or_si128(clip, _mm_and_si128(mxlt, _mm_set1_epi32(1)));
         clip = _mm_or_si128(clip, _mm_and_si128(mxgt, _mm_set1_epi32(2)));
