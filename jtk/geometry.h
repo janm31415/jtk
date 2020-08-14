@@ -2269,7 +2269,7 @@ namespace jtk
             int new_y = y + dy;
             int new_z = z + dz;
 
-            afCubeValue[v] = fun(new_x*delta_x + bb.min[0], new_y*delta_x + bb.min[1], new_z*delta_z + bb.min[2]);
+            afCubeValue[v] = (float)fun(new_x*delta_x + bb.min[0], new_y*delta_x + bb.min[1], new_z*delta_z + bb.min[2]);
             }
           //Find which vertices are inside of the surface and which are outside
           iFlagIndex = 0;
@@ -2299,9 +2299,9 @@ namespace jtk
             //if there is an intersection on this edge
             if (iEdgeFlags & (1 << iEdge))
               {
-              vec3<float> corner_pt(x, y, z);
-              vec3<float> pt0(x + int(a2fVertexOffset[a2iEdgeConnection[iEdge][0]][0]), y + int(a2fVertexOffset[a2iEdgeConnection[iEdge][0]][1]), z + int(a2fVertexOffset[a2iEdgeConnection[iEdge][0]][2]));
-              vec3<float> pt1(x + int(a2fVertexOffset[a2iEdgeConnection[iEdge][1]][0]), y + int(a2fVertexOffset[a2iEdgeConnection[iEdge][1]][1]), z + int(a2fVertexOffset[a2iEdgeConnection[iEdge][1]][2]));
+              vec3<float> corner_pt((float)x, (float)y, (float)z);
+              vec3<float> pt0((float)x + (a2fVertexOffset[a2iEdgeConnection[iEdge][0]][0]), (float)y + (a2fVertexOffset[a2iEdgeConnection[iEdge][0]][1]), (float)z + (a2fVertexOffset[a2iEdgeConnection[iEdge][0]][2]));
+              vec3<float> pt1((float)x + (a2fVertexOffset[a2iEdgeConnection[iEdge][1]][0]), (float)y + (a2fVertexOffset[a2iEdgeConnection[iEdge][1]][1]), (float)z + (a2fVertexOffset[a2iEdgeConnection[iEdge][1]][2]));
               float val0 = (float)afCubeValue[a2iEdgeConnection[iEdge][0]];
               float val1 = (float)afCubeValue[a2iEdgeConnection[iEdge][1]];
               if (less_fie(pt1, pt0))
@@ -2354,7 +2354,7 @@ namespace jtk
         auto it = point_map.find(v0);
         if (it == point_map.end())
           {
-          V0 = vertices.size();
+          V0 = (uint32_t)vertices.size();
           vertices.push_back(v0);
           point_map[v0] = V0;
           }
@@ -2364,7 +2364,7 @@ namespace jtk
         it = point_map.find(v1);
         if (it == point_map.end())
           {
-          V1 = vertices.size();
+          V1 = (uint32_t)vertices.size();
           vertices.push_back(v1);
           point_map[v1] = V1;
           }
@@ -2374,7 +2374,7 @@ namespace jtk
         it = point_map.find(v2);
         if (it == point_map.end())
           {
-          V2 = vertices.size();
+          V2 = (uint32_t)vertices.size();
           vertices.push_back(v2);
           point_map[v2] = V2;
           }
