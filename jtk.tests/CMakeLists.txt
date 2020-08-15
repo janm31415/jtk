@@ -10,6 +10,7 @@ endif (UNIX)
 
 set(HDRS
 file_utils_tests.h
+mat_tests.h
 qbvh_tests.h
 test_assert.h
 vec_tests.h
@@ -17,6 +18,7 @@ vec_tests.h
 	
 set(SRCS
 file_utils_tests.cpp
+mat_tests.cpp
 qbvh_tests.cpp
 test_assert.cpp
 test.cpp

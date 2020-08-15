@@ -4,6 +4,7 @@ concurrency.h
 file_utils.h
 geometry.h
 image.h
+mat.h
 qbvh.h
 render.h
 sse2neon.h
