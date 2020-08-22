@@ -27,15 +27,15 @@ namespace jtk
   bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename);
 
   template <class T>
-  void write_ply(const char* filename, const std::vector<vec3<T>>& pts);
+  bool write_ply(const char* filename, const std::vector<vec3<T>>& pts);
   template <class T>
-  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals);
+  bool write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals);
   template <class T>
-  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<uint32_t>& clrs);
+  bool write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<uint32_t>& clrs);
   template <class T>
-  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals, const std::vector<uint32_t>& clrs);
-  void write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles);
-  void write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles);
+  bool write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals, const std::vector<uint32_t>& clrs);
+  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles);
+  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles);
 
   class adjacency_list
     {
@@ -645,9 +645,11 @@ namespace jtk
     }
 
   template <class T>
-  void write_ply(const char* filename, const std::vector<vec3<T>>& pts)
+  bool write_ply(const char* filename, const std::vector<vec3<T>>& pts)
     {
     FILE* fp = fopen(filename, "wt");
+    if (!fp)
+      return false;
     fprintf(fp, "ply\n");
     fprintf(fp, "format ascii 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
@@ -661,17 +663,19 @@ namespace jtk
       fprintf(fp, "%f %f %f\n", (float)point[0], (float)point[1], (float)point[2]);
       }
     fclose(fp);
+    return true;
     }
 
   template <class T>
-  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals)
+  bool write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals)
     {
     if (normals.empty())
       {
-      write_ply(filename, pts);
-      return;
+      return write_ply(filename, pts);
       }
     FILE* fp = fopen(filename, "wt");
+    if (!fp)
+      return false;
     fprintf(fp, "ply\n");
     fprintf(fp, "format ascii 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
@@ -689,17 +693,19 @@ namespace jtk
       fprintf(fp, "%f %f %f %f %f %f\n", (float)point[0], (float)point[1], (float)point[2], (float)norm[0], (float)norm[1], (float)norm[2]);
       }
     fclose(fp);
+    return true;
     }
 
   template <class T>
-  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<uint32_t>& clrs)
+  bool write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<uint32_t>& clrs)
     {
     if (clrs.empty())
       {
-      write_ply(filename, pts);
-      return;
+      return write_ply(filename, pts);      
       }
     FILE* fp = fopen(filename, "wt");
+    if (!fp)
+      return false;
     fprintf(fp, "ply\n");
     fprintf(fp, "format ascii 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
@@ -717,22 +723,23 @@ namespace jtk
       fprintf(fp, "%f %f %f %d %d %d\n", (float)point[0], (float)point[1], (float)point[2], clr & 0xff, (clr & 0xff00) >> 8, (clr & 0xff0000) >> 16);
       }
     fclose(fp);
+    return true;
     }
 
   template <class T>
-  void write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals, const std::vector<uint32_t>& clrs)
+  bool write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals, const std::vector<uint32_t>& clrs)
     {
     if (normals.empty())
       {
-      write_ply(filename, pts, clrs);
-      return;
+      return write_ply(filename, pts, clrs);      
       }
     if (clrs.empty())
       {
-      write_ply(filename, pts, normals);
-      return;
+      return write_ply(filename, pts, normals);      
       }
     FILE* fp = fopen(filename, "wt");
+    if (!fp)
+      return false;
     fprintf(fp, "ply\n");
     fprintf(fp, "format ascii 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
@@ -754,11 +761,14 @@ namespace jtk
       fprintf(fp, "%f %f %f %f %f %f %d %d %d\n", (float)point[0], (float)point[1], (float)point[2], (float)norm[0], (float)norm[1], (float)norm[2], clr & 0xff, (clr & 0xff00) >> 8, (clr & 0xff0000) >> 16);
       }
     fclose(fp);
+    return true;
     }
 
-  inline void write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles)
+  inline bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles)
     {
     FILE* fp = fopen(filename, "wb");
+    if (!fp)
+      return false;
     fprintf(fp, "ply\n");
     fprintf(fp, "format binary_little_endian 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
@@ -776,12 +786,15 @@ namespace jtk
       fwrite(triangles.data() + i, sizeof(vec3<uint32_t>), 1, fp);
       }
     fclose(fp);
+    return true;
     }
 
 
-  inline void write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles)
+  inline bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles)
     {
     FILE* fp = fopen(filename, "wb");
+    if (!fp)
+      return false;
     fprintf(fp, "ply\n");
     fprintf(fp, "format binary_little_endian 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
@@ -808,6 +821,7 @@ namespace jtk
       fwrite(triangles.data() + i, sizeof(vec3<uint32_t>), 1, fp);
       }
     fclose(fp);
+    return true;
     }
 
   inline adjacency_list::adjacency_list() : _nr_of_vertices(0)
