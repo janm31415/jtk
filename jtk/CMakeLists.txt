@@ -2,6 +2,7 @@
 set(HDRS
 concurrency.h
 file_utils.h
+fitting.h
 geometry.h
 image.h
 mat.h
