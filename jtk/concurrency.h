@@ -304,7 +304,7 @@ namespace jtk
       /**/
       _Ty& local()
         {
-        unsigned long _Key = ::Concurrency::details::platform::GetCurrentThreadId();
+        unsigned long _Key = _get_thread_id();
         size_t _Index;
         _Node* _ExistingNode = _FindLocalItem(_Key, &_Index);
         if (_ExistingNode == nullptr)
@@ -312,7 +312,7 @@ namespace jtk
           _ExistingNode = _AddLocalItem(_Key, _Index);
           }
 
-        _CONCRT_ASSERT(_ExistingNode != nullptr);
+        assert(_ExistingNode != nullptr);
         return _ExistingNode->_M_value;
         }
 
