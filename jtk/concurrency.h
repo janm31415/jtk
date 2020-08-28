@@ -24,6 +24,8 @@
 #include <cassert>
 #include <exception>
 #include <vector>
+#include <functional>
+#include <cstring>
 #else
 #include <vector>
 #include <cassert>
@@ -151,6 +153,14 @@ namespace jtk
   template<typename T>
   using combinable = Concurrency::combinable<T>;
 #elif defined(_ENABLE_THREADS)
+
+#ifndef _WIN32
+static inline void* _InterlockedCompareExchangePointer(void* volatile *Destination, void* Exchange, void* Comperand)
+  {
+  //return gcc_sync_val_compare_and_swap(Destination, Exchange, Comperand);
+  return __sync_val_compare_and_swap(Destination, Exchange, Comperand);
+  }
+#endif
 
   /*
   Taken from ppl.h, adapted to our custom parallel_for loop
