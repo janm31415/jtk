@@ -26,6 +26,7 @@
 #include <vector>
 #include <functional>
 #include <cstring>
+#include <atomic>
 #else
 #include <vector>
 #include <cassert>
@@ -474,7 +475,7 @@ static inline void* _InterlockedCompareExchangePointer(void* volatile *Destinati
       void _InitNew()
         {
         _M_size = hardware_concurrency();
-        _M_buckets = new _Node*[_M_size] {};
+        _M_buckets = new std::atomic<_Node*>[_M_size] {};
         }
 
       struct _InitCopyOp
@@ -561,9 +562,9 @@ static inline void* _InterlockedCompareExchangePointer(void* volatile *Destinati
           {
           _TopNode = _M_buckets[_Index];
           _NewNode->_M_chain = _TopNode;
-          } while (_InterlockedCompareExchangePointer(reinterpret_cast<void * volatile *>(&_M_buckets[_Index]), _NewNode, _TopNode) != _TopNode);
-
-          return _NewNode;
+          } //while (_InterlockedCompareExchangePointer(reinterpret_cast<void * volatile *>(&_M_buckets[_Index]), _NewNode, _TopNode) != _TopNode);
+        while (!_M_buckets[_Index].compare_exchange_strong(_TopNode, _NewNode));
+        return _NewNode;
         }
 
       unsigned long _get_thread_id() const
@@ -576,7 +577,7 @@ static inline void* _InterlockedCompareExchangePointer(void* volatile *Destinati
         }
 
     private:
-      _Node *volatile * _M_buckets;
+      std::atomic<_Node*> volatile * _M_buckets;
       size_t _M_size;
       std::function<_Ty()> _M_fnInitialize;
     };
