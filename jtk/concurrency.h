@@ -155,24 +155,6 @@ namespace jtk
   using combinable = Concurrency::combinable<T>;
 #elif defined(_ENABLE_THREADS)
 
-#ifndef _WIN32
-
-#define WRAP_ATOMIC_INTRINSIC(INTRIN) \
-  ({ \
-    __sync_synchronize(); \
-    __typeof__ (INTRIN) atomic_ret__ = (INTRIN); \
-    __sync_synchronize(); \
-    atomic_ret__; \
-  }) 
-
-#define gcc_sync_val_compare_and_swap(a, b, c) WRAP_ATOMIC_INTRINSIC (__sync_val_compare_and_swap (a, b, c))
-
-static inline void* _InterlockedCompareExchangePointer(void* volatile *Destination, void* Exchange, void* Comperand)
-  {
-  return gcc_sync_val_compare_and_swap(Destination, Exchange, Comperand);
-  }
-#endif
-
   /*
   Taken from ppl.h, adapted to our custom parallel_for loop
   */
