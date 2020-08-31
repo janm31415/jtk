@@ -770,7 +770,11 @@ namespace jtk
     if (!fp)
       return false;
     fprintf(fp, "ply\n");
-    fprintf(fp, "format binary_little_endian 1.0\n");
+    int n = 1;
+    if (*(char *)&n == 1)
+      fprintf(fp, "format binary_little_endian 1.0\n");
+    else
+      fprintf(fp, "format binary_big_endian 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
     fprintf(fp, "property float x\n");
     fprintf(fp, "property float y\n");
@@ -796,7 +800,11 @@ namespace jtk
     if (!fp)
       return false;
     fprintf(fp, "ply\n");
-    fprintf(fp, "format binary_little_endian 1.0\n");
+    int n = 1;
+    if (*(char *)&n == 1)
+      fprintf(fp, "format binary_little_endian 1.0\n");
+    else
+      fprintf(fp, "format binary_big_endian 1.0\n");
     fprintf(fp, "element vertex %d\n", (int)pts.size());
     fprintf(fp, "property float x\n");
     fprintf(fp, "property float y\n");
