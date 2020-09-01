@@ -2975,7 +2975,7 @@ I'm following the same algorithm steps, but do everything in place.
 
     start = local_ids.begin();
     root_id = construct_tree(sz, voxels, total_bb, centroid_bb, local_ids.begin(), local_ids.end());
-    if (root_id < 0)
+    if ((int32_t)root_id < 0)
       {
       qbvh_node n;
       n.axis0 = 0;
@@ -3331,7 +3331,7 @@ I'm following the same algorithm steps, but do everything in place.
     uint32_t sz;
     start = object_ids.begin();
     root_id = construct_tree(sz, voxels, total_bb, centroid_bb, object_ids.begin(), object_ids.end());
-    if (root_id < 0)
+    if ((int32_t)root_id < 0)
       {
       qbvh_two_level_node n;
       n.axis0 = 0;
@@ -3548,7 +3548,7 @@ I'm following the same algorithm steps, but do everything in place.
     uint32_t sz;
     start = object_ids.begin();
     root_id = construct_tree(sz, voxels, total_bb, centroid_bb, object_ids.begin(), object_ids.end());
-    if (root_id < 0)
+    if ((int32_t)root_id < 0)
       {
       qbvh_two_level_node n;
       n.axis0 = 0;
