@@ -43,7 +43,7 @@ endif (UNIX)
 add_definitions(-D_SCL_SECURE_NO_WARNINGS)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-add_definitions(-D_ENABLE_TBB)
+#add_definitions(-D_ENABLE_TBB)
 #add_definitions(-D_ENABLE_PPL)
 
 add_definitions(-DMEMORY_LEAK_TRACKING)

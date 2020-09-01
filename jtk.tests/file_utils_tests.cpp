@@ -38,10 +38,31 @@ namespace jtk
     TEST_EQ(std::string("line"), data[1][3]);
     }
 
+  void test_conversions_wstring_string()
+    {
+    std::wstring w = convert_string_to_wstring(std::string("A simple conversion"));
+    TEST_ASSERT(w == std::wstring(L"A simple conversion"));
+    std::string s = convert_wstring_to_string(std::wstring(L"A simple conversion"));
+    TEST_ASSERT(s == std::string("A simple conversion"));
+
+    std::wstring pi;
+    pi.push_back((wchar_t)960);
+    s = convert_wstring_to_string(pi);
+    TEST_ASSERT(s.length() == 2);
+    //0xCF 0x80
+    TEST_ASSERT((unsigned char)s[0] == 0xCF);
+    TEST_ASSERT((unsigned char)s[1] == 0x80);
+
+    w = convert_string_to_wstring(s);
+    TEST_ASSERT(w.length() == 1);
+    TEST_ASSERT(w[0] == (wchar_t)960);
+    }
+
   }
 
 void run_all_file_utils_tests()
   {
   using namespace jtk;
   csv_write_and_read();
+  test_conversions_wstring_string();
   }
