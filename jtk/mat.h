@@ -446,7 +446,7 @@ namespace jtk
     CommaConcatenator(matrix<T, Container>* m, const matrix<T, Container>& first_matrix) : _m(m)
       {
       assert(_m->rows() == first_matrix.rows() || _m->cols() == first_matrix.cols());
-      vertical = _m->rows() > first_matrix.rows();    
+      vertical = _m->rows() > first_matrix.rows();
       if (vertical)
         {
         _it = _m->begin();
@@ -487,7 +487,7 @@ namespace jtk
         {
         auto tmp_it = _it;
         auto tgt_it = i.begin();
-        for (int r = 0; r < _m->rows()-1; ++r)
+        for (int r = 0; r < _m->rows() - 1; ++r)
           {
           for (int c = 0; c < i.cols(); ++c)
             {
@@ -1105,10 +1105,10 @@ namespace jtk
       explicit NoAlias(matrix<T, Container>& m) : _matrix(m)
         {
         }
-      
+
       template <class ExprOp>
       matrix<T, Container>& operator = (const Expr<ExprOp>& result)
-        {        
+        {
         _matrix.assign_no_alias(result);
         return _matrix;
         }
@@ -1223,10 +1223,10 @@ namespace jtk
       template <class ExprOp>
       void assign(const Expr<ExprOp>& result)
         {
-        if (result.evaluate_before_assigning())          
-          assign_alias(result);          
-        else          
-          assign_no_alias(result);          
+        if (result.evaluate_before_assigning())
+          assign_alias(result);
+        else
+          assign_no_alias(result);
         }
 
       template <class ExprOp>
@@ -1280,13 +1280,13 @@ namespace jtk
         if (result.evaluate_before_assigning())
           add_assign_alias(result);
         else
-          add_assign_no_alias(result);        
+          add_assign_no_alias(result);
         return *this;
         }
 
       template <class ExprOp>
       void add_assign_alias(Expr<ExprOp> result)
-        {        
+        {
         assert(result.rows() == _rows);
         assert(result.cols() == _cols);
         matrix temp(*this);
@@ -1449,7 +1449,7 @@ namespace jtk
         return _entries.data() + row * _cols;
         }
 
-      pointer data() 
+      pointer data()
         {
         return _entries.data();
         }
@@ -1505,6 +1505,911 @@ namespace jtk
     private:
       uint64_t _rows, _cols;
       Container _entries;
+    };
+
+  ///////////////////////////////////////////////////////////////////////////////
+  // sparse vector class
+  ///////////////////////////////////////////////////////////////////////////////
+
+  template <class T>
+  class sparse_vector;
+
+  template <class T>
+  class sparse_vector_iterator
+    {
+    public:
+      typedef typename T value_type;
+      typedef typename T& reference;
+      typedef uint64_t difference_type;
+      typedef T* pointer;
+      typedef std::random_access_iterator_tag iterator_category;
+
+      sparse_vector_iterator() : _vector(nullptr) {}
+      sparse_vector_iterator(sparse_vector<T>* vector) : _vector(vector), _iter(vector->_container.begin()) {}
+      sparse_vector_iterator(const sparse_vector_iterator& other) : _vector(other._vector), _iter(other._iter) {}
+
+      void swap(sparse_vector_iterator& other)
+        {
+        std::swap(_vector, other._vector);
+        std::swap(_iter, other._iter);
+        }
+
+      sparse_vector_iterator& operator = (const sparse_vector_iterator& other)
+        {
+        sparse_vector_iterator temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      sparse_vector_iterator end() const
+        {
+        sparse_vector_iterator output_iterator(*this);
+        if (_vector)
+          output_iterator._iter = _vector->_container.end();
+        return output_iterator;
+        }
+
+      sparse_vector_iterator& operator++ ()
+        {
+        ++_iter;
+        return *this;
+        }
+
+      sparse_vector_iterator operator++ (int)
+        {
+        sparse_vector_iterator output_iterator(*this);
+        ++_iter;
+        return output_iterator;
+        }
+
+      sparse_vector_iterator& operator-- ()
+        {
+        --_iter;
+        return *this;
+        }
+
+      sparse_vector_iterator operator-- (int)
+        {
+        sparse_vector_iterator output_iterator(*this);
+        --_iter;
+        return output_iterator;
+        }
+
+      reference operator * () const
+        {
+        return _iter->second;
+        }
+
+      uint64_t entry() const
+        {
+        return _iter->first;
+        }
+
+      sparse_vector_iterator operator + (difference_type idx) const
+        {
+        sparse_vector_iterator output(*this);
+        output._iter += idx;
+        return output;
+        }
+
+      sparse_vector_iterator operator - (difference_type idx) const
+        {
+        sparse_vector_iterator output(*this);
+        output._iter -= idx;
+        return output;
+        }
+
+      sparse_vector_iterator& operator += (difference_type idx)
+        {
+        _iter += idx;
+        return *this;
+        }
+
+      sparse_vector_iterator& operator -= (difference_type idx)
+        {
+        _iter -= idx;
+        return *this;
+        }
+
+      difference_type operator + (const sparse_vector_iterator& other) const
+        {
+        return _iter + other._iter;
+        }
+
+      difference_type operator - (const sparse_vector_iterator& other) const
+        {
+        return _iter - other._iter;
+        }
+
+      bool operator == (const sparse_vector_iterator& other) const
+        {
+        return _iter == other._iter;
+        }
+
+      bool operator != (const sparse_vector_iterator& other) const
+        {
+        return !(*this == other);
+        }
+
+      bool operator < (const sparse_vector_iterator& other) const
+        {
+        if (_iter == end())
+          return false;
+        if (other._iter == other.end())
+          return true;
+        return _iter->first < other._iter->first;
+        }
+
+      bool operator <= (const sparse_vector_iterator& other) const
+        {
+        return (*this == other || *this < other);
+        }
+
+      bool operator > (const sparse_vector_iterator& other) const
+        {
+        return !(*this <= other);
+        }
+
+      bool operator >= (const sparse_vector_iterator& other) const
+        {
+        return !(*this < other);
+        }
+
+    private:
+      sparse_vector<T>* _vector;
+      typename std::vector<std::pair<uint64_t, T>>::iterator _iter;
+    };
+
+  template <class T>
+  class sparse_vector_const_iterator
+    {
+    public:
+      typedef typename T value_type;
+      typedef typename const T& reference;
+      typedef uint64_t difference_type;
+      typedef const T* pointer;
+      typedef std::random_access_iterator_tag iterator_category;
+
+      sparse_vector_const_iterator() : _vector(nullptr) {}
+      sparse_vector_const_iterator(const sparse_vector<T>* vector) : _vector(vector), _iter(vector->_container.begin()) {}
+      sparse_vector_const_iterator(const sparse_vector_const_iterator& other) : _vector(other._vector), _iter(other._iter) {}
+
+      void swap(sparse_vector_const_iterator& other)
+        {
+        std::swap(_vector, other._vector);
+        std::swap(_iter, other._iter);
+        }
+
+      sparse_vector_const_iterator& operator = (const sparse_vector_const_iterator& other)
+        {
+        sparse_vector_const_iterator temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      sparse_vector_const_iterator end() const
+        {
+        sparse_vector_const_iterator output_iterator(*this);
+        if (_vector)
+          output_iterator._iter = _vector->_container.end();
+        return output_iterator;
+        }
+
+      sparse_vector_const_iterator& operator++ ()
+        {
+        ++_iter;
+        return *this;
+        }
+
+      sparse_vector_const_iterator operator++ (int)
+        {
+        sparse_vector_const_iterator output_iterator(*this);
+        ++_iter;
+        return output_iterator;
+        }
+
+      sparse_vector_const_iterator& operator-- ()
+        {
+        --_iter;
+        return *this;
+        }
+
+      sparse_vector_const_iterator operator-- (int)
+        {
+        sparse_vector_const_iterator output_iterator(*this);
+        --_iter;
+        return output_iterator;
+        }
+
+      reference operator * () const
+        {
+        return _iter->second;
+        }
+
+      uint64_t entry() const
+        {
+        return _iter->first;
+        }
+
+      sparse_vector_const_iterator operator + (difference_type idx) const
+        {
+        sparse_vector_const_iterator output(*this);
+        output._iter += idx;
+        return output;
+        }
+
+      sparse_vector_const_iterator operator - (difference_type idx) const
+        {
+        sparse_vector_const_iterator output(*this);
+        output._iter -= idx;
+        return output;
+        }
+
+      sparse_vector_const_iterator& operator += (difference_type idx)
+        {
+        _iter += idx;
+        return *this;
+        }
+
+      sparse_vector_const_iterator& operator -= (difference_type idx)
+        {
+        _iter -= idx;
+        return *this;
+        }
+
+      difference_type operator + (const sparse_vector_const_iterator& other) const
+        {
+        return _iter + other._iter;
+        }
+
+      difference_type operator - (const sparse_vector_const_iterator& other) const
+        {
+        return _iter - other._iter;
+        }
+
+      bool operator == (const sparse_vector_const_iterator& other) const
+        {
+        return _iter == other._iter;
+        }
+
+      bool operator != (const sparse_vector_const_iterator& other) const
+        {
+        return !(*this == other);
+        }
+
+      bool operator < (const sparse_vector_const_iterator& other) const
+        {
+        if (_iter == end())
+          return false;
+        if (other._iter == other.end())
+          return true;
+        return _iter->first < other._iter->first;
+        }
+
+      bool operator <= (const sparse_vector_const_iterator& other) const
+        {
+        return (*this == other || *this < other);
+        }
+
+      bool operator > (const sparse_vector_const_iterator& other) const
+        {
+        return !(*this <= other);
+        }
+
+      bool operator >= (const sparse_vector_const_iterator& other) const
+        {
+        return !(*this < other);
+        }
+
+    private:
+      const sparse_vector<T>* _vector;
+      typename std::vector<std::pair<uint64_t, T>>::const_iterator _iter;
+    };
+
+  template <class T>
+  class sparse_vector
+    {
+    template <class T2> friend class sparse_vector_iterator;
+    template <class T2> friend class sparse_vector_const_iterator;
+
+    struct compare
+      {
+      inline bool operator () (const std::pair<uint64_t, T>& lhs, const std::pair<uint64_t, T>& rhs) const
+        {
+        return lhs.first < rhs.first;
+        }
+
+      inline bool operator () (const std::pair<uint64_t, T>& lhs, uint64_t value) const
+        {
+        return lhs.first < value;
+        }
+
+      inline bool operator () (uint64_t value, const std::pair<uint64_t, T>& rhs) const
+        {
+        return value < rhs.first;
+        }
+      };
+
+    public:
+      using value_type = T;
+      using pointer = T * ;
+      using reference = T & ;
+      using const_pointer = const T *;
+      using const_reference = const T &;
+      using iterator = sparse_vector_iterator<T>;
+      using const_iterator = sparse_vector_const_iterator<T>;
+
+      sparse_vector() : _size(0), _zero((T)0) {}
+
+      sparse_vector(uint64_t size) : _size(size), _zero((T)0) {}
+
+      void swap(sparse_vector<T>& other)
+        {
+        std::swap(_container, other._container);
+        std::swap(_size, other._size);
+        std::swap(_zero, other._zero);
+        }
+
+      sparse_vector(const sparse_vector& other)
+        {
+        sparse_vector tmp(other._size);
+        const_iterator iter_other = other.begin();
+        const_iterator end_other = other.end();
+        for (; iter_other != end_other; ++iter_other)
+          {
+          if (*iter_other != static_cast<T>(0))
+            tmp.put(iter_other.entry()) = *iter_other;
+          }
+        swap(tmp);
+        }
+
+      sparse_vector(sparse_vector&&) = default;
+
+      sparse_vector& operator = (const sparse_vector& other)
+        {
+        sparse_vector temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      sparse_vector& operator = (sparse_vector&&) = default;
+
+      template <class T2>
+      sparse_vector(const sparse_vector<T2>& other)
+        {
+        sparse_vector tmp(other._size);
+        const_iterator iter_other = i_other.begin();
+        const_iterator end_other = i_other.end();
+        for (; iter_other != end_other; ++iter_other)
+          {
+          if (*iter_other != static_cast<T2>(0))
+            tmp.put(iter_other.entry()) = static_cast<T>(*iter_other);
+          }
+        swap(tmp);
+        }
+
+      template <class T2>
+      sparse_vector& operator = (const sparse_vector<T2>& other)
+        {
+        sparse_vector temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      reference put(uint64_t idx)
+        {
+        auto iter = std::lower_bound(_container.begin(), _container.end(), idx, compare());
+        if (iter != _container.end())
+          {
+          if (iter->first == idx)
+            {
+            return iter->second;
+            }
+          else
+            {
+            iter = _container.insert(iter, std::pair<uint64_t, T>(idx, static_cast<T>(0)));
+            return iter->second;
+            }
+          }
+        else
+          {
+          _container.push_back(std::pair<uint64_t, T>(idx, static_cast<T>(0)));
+          return _container.back().second;
+          }
+        }
+
+      const_reference get(uint64_t idx) const
+        {
+        const auto iter = std::lower_bound(_container.begin(), _container.end(), idx, compare());
+        return (iter != _container.end() && iter->first == idx ? iter->second : _zero);
+        }
+
+      iterator begin()
+        {
+        return iterator(this);
+        }
+
+      iterator end()
+        {
+        return iterator(this).end();
+        }
+
+      const_iterator begin() const
+        {
+        return const_iterator(this);
+        }
+
+      const_iterator end() const
+        {
+        return const_iterator(this).end();
+        }
+
+      void resize(uint64_t size)
+        {
+        _size = size;
+        }
+
+      void operator += (const sparse_vector<T>& other)
+        {
+        assert(other.size() <= size());
+        const_iterator iter = other.begin();
+        const_iterator iter_end = other.end();
+        for (; iter != iter_end; ++iter)
+          put(iter.entry()) += *iter;
+        }
+
+      void operator -= (const sparse_vector<T>& other)
+        {
+        assert(other.size() <= size());
+        const_iterator iter = other.begin();
+        const_iterator iter_end = other.end();
+        for (; iter != iter_end; ++iter)
+          put(iter.entry()) -= *iter;
+        }
+
+      void operator *= (value_type coeff)
+        {
+        iterator iter = begin();
+        iterator iter_end = end();
+        for (; iter != iter_end; ++iter)
+          *iter *= coeff;
+        }
+
+      void operator /= (value_type coeff)
+        {
+        iterator iter = begin();
+        iterator iter_end = end();
+        for (; iter != iter_end; ++iter)
+          *iter /= coeff;
+        }
+
+      uint64_t size() const
+        {
+        return _size;
+        }
+
+      uint64_t entries_stored() const
+        {
+        return (uint64_t)_container.size();
+        }
+
+      bool operator == (const sparse_vector& other) const
+        {
+        return _size == other._size && _container == other._container;
+        }
+
+      bool operator != (const sparse_vector& other) const
+        {
+        return !(*this == other);
+        }
+
+    private:
+      std::vector<std::pair<uint64_t, T>> _container;
+      uint64_t _size;
+      T _zero;
+    };
+
+  ///////////////////////////////////////////////////////////////////////////////
+  // sparse_matrix class
+  ///////////////////////////////////////////////////////////////////////////////
+
+  template <class T>
+  class sparse_matrix;
+
+  template <class T>
+  class sparse_matrix_iterator
+    {
+    public:
+      typedef typename T value_type;
+      typedef typename T& reference;
+      typedef uint64_t difference_type;
+      typedef T* pointer;
+      typedef std::forward_iterator_tag iterator_category;
+
+      sparse_matrix_iterator() : _matrix(nullptr) {}
+      sparse_matrix_iterator(sparse_matrix<T>* matrix) : _matrix(matrix), _row(0), _iter()
+        {
+        if (_matrix && !_matrix->empty())
+          {
+          _iter = _matrix->_entries[0].begin();
+          _update_iterator_forward();
+          }
+        }
+      sparse_matrix_iterator(const sparse_matrix_iterator& other) : _matrix(other._matrix), _row(other._row), _iter(other._iter) {}
+
+      void swap(sparse_matrix_iterator& other)
+        {
+        std::swap(_matrix, other._matrix);
+        std::swap(_row, other._row);
+        std::swap(_iter, other._iter);
+        }
+
+      sparse_matrix_iterator& operator = (const sparse_matrix_iterator& other)
+        {
+        sparse_matrix_iterator temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      sparse_matrix_iterator end() const
+        {
+        sparse_matrix_iterator output_iterator(*this);
+        if (_matrix)
+          {
+          output_iterator._row = _matrix->rows();
+          output_iterator._iter = _matrix->_entries[output_iterator._row - 1].end();
+          }
+        return output_iterator;
+        }
+
+      sparse_matrix_iterator& operator++ ()
+        {
+        ++_iter;
+        _update_iterator_forward();
+        return *this;
+        }
+
+      sparse_matrix_iterator operator++ (int)
+        {
+        sparse_matrix_iterator output_iterator(*this);
+        ++_iter;
+        _update_iterator_forward();
+        return output_iterator;
+        }
+
+      reference operator * () const
+        {
+        return *_iter;
+        }
+
+      uint64_t first_entry() const
+        {
+        return _row;
+        }
+
+      uint64_t second_entry() const
+        {
+        return _iter.entry();
+        }
+
+      bool operator == (const sparse_matrix_iterator& other) const
+        {
+        return _row == other._row && _iter == other._iter;
+        }
+
+      bool operator != (const sparse_matrix_iterator& other) const
+        {
+        return !(*this == other);
+        }
+
+      bool operator < (const sparse_matrix_iterator& other) const
+        {
+        if (_row == other._row)
+          return _iter < other._iter;
+        return _row < other._row;
+        }
+
+      bool operator <= (const sparse_matrix_iterator& other) const
+        {
+        return (*this == other || *this < other);
+        }
+
+      bool operator > (const sparse_matrix_iterator& other) const
+        {
+        return !(*this <= other);
+        }
+
+      bool operator >= (const sparse_matrix_iterator& other) const
+        {
+        return !(*this < other);
+        }
+
+    private:
+      void _update_iterator_forward()
+        {
+        while (_iter == _iter.end() && ++_row < _matrix->rows())
+          _iter = _matrix->_entries[_row].begin();
+        }
+
+    private:
+      sparse_matrix<T>* _matrix;
+      uint64_t _row;
+      typename sparse_vector<T>::iterator _iter;
+    };
+
+  template <class T>
+  class sparse_matrix_const_iterator
+    {
+    public:
+      typedef typename T value_type;
+      typedef typename const T& reference;
+      typedef uint64_t difference_type;
+      typedef const T* pointer;
+      typedef std::forward_iterator_tag iterator_category;
+
+      sparse_matrix_const_iterator() : _matrix(nullptr) {}
+      sparse_matrix_const_iterator(const sparse_matrix<T>* matrix) : _matrix(matrix), _row(0), _iter()
+        {
+        if (_matrix && !_matrix->empty())
+          {
+          _iter = _matrix->_entries[0].begin();
+          _update_iterator_forward();
+          }
+        }
+      sparse_matrix_const_iterator(const sparse_matrix_const_iterator& other) : _matrix(other._matrix), _row(other._row), _iter(other._iter) {}
+
+      void swap(sparse_matrix_const_iterator& other)
+        {
+        std::swap(_matrix, other._matrix);
+        std::swap(_row, other._row);
+        std::swap(_iter, other._iter);
+        }
+
+      sparse_matrix_const_iterator& operator = (const sparse_matrix_const_iterator& other)
+        {
+        sparse_matrix_const_iterator temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      sparse_matrix_const_iterator end() const
+        {
+        sparse_matrix_const_iterator output_iterator(*this);
+        if (_matrix)
+          {
+          output_iterator._row = _matrix->rows();
+          output_iterator._iter = _matrix->_entries[output_iterator._row - 1].end();
+          }
+        return output_iterator;
+        }
+
+      sparse_matrix_const_iterator& operator++ ()
+        {
+        ++_iter;
+        _update_iterator_forward();
+        return *this;
+        }
+
+      sparse_matrix_const_iterator operator++ (int)
+        {
+        sparse_matrix_const_iterator output_iterator(*this);
+        ++_iter;
+        _update_iterator_forward();
+        return output_iterator;
+        }
+
+      reference operator * () const
+        {
+        return *_iter;
+        }
+
+      uint64_t first_entry() const
+        {
+        return _row;
+        }
+
+      uint64_t second_entry() const
+        {
+        return _iter.entry();
+        }
+
+      bool operator == (const sparse_matrix_const_iterator& other) const
+        {
+        return _row == other._row && _iter == other._iter;
+        }
+
+      bool operator != (const sparse_matrix_const_iterator& other) const
+        {
+        return !(*this == other);
+        }
+
+      bool operator < (const sparse_matrix_const_iterator& other) const
+        {
+        if (_row == other._row)
+          return _iter < other._iter;
+        return _row < other._row;
+        }
+
+      bool operator <= (const sparse_matrix_const_iterator& other) const
+        {
+        return (*this == other || *this < other);
+        }
+
+      bool operator > (const sparse_matrix_const_iterator& other) const
+        {
+        return !(*this <= other);
+        }
+
+      bool operator >= (const sparse_matrix_const_iterator& other) const
+        {
+        return !(*this < other);
+        }
+
+    private:
+      void _update_iterator_forward()
+        {
+        while (_iter == _iter.end() && ++_row < _matrix->rows())
+          _iter = _matrix->_entries[_row].begin();
+        }
+
+    private:
+      const sparse_matrix<T>* _matrix;
+      uint64_t _row;
+      typename sparse_vector<T>::const_iterator _iter;
+    };
+
+  template <class T>
+  class sparse_matrix
+    {
+    template <class T2> friend class sparse_matrix_iterator;
+    template <class T2> friend class sparse_matrix_const_iterator;
+
+    public:
+      using value_type = T;
+      using pointer = T * ;
+      using reference = T & ;
+      using const_pointer = const T *;
+      using const_reference = const T &;
+      using iterator = sparse_matrix_iterator<T>;
+      using const_iterator = sparse_matrix_const_iterator<T>;
+
+      sparse_matrix() : _rows(0), _cols(0)
+        {
+        }
+
+      sparse_matrix(uint64_t rows, uint64_t cols) : _rows(rows), _cols(cols), _entries(rows, sparse_vector<T>(cols))
+        {
+        }
+
+      void swap(sparse_matrix& other)
+        {
+        std::swap(_cols, other._cols);
+        std::swap(_rows, other._rows);
+        std::swap(_entries, other._entries);
+        }
+
+      sparse_matrix(const sparse_matrix& other) : _rows(other._rows), _cols(other._cols), _entries(other._entries)
+        {
+        }
+
+      sparse_matrix(sparse_matrix&&) = default;
+
+      sparse_matrix& operator = (const sparse_matrix& other)
+        {
+        sparse_matrix temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      sparse_matrix& operator = (sparse_matrix&&) = default;
+
+      template <class T2>
+      sparse_matrix(const sparse_matrix<T2>& other) : _rows(other.rows()), _cols(other.cols())
+        {
+        resize(_rows, _cols);
+        auto it = _entries.begin();
+        auto other_it = other.begin();
+        const auto other_it_end = other.end();
+        for (; other_it != other_it_end; ++other_it)
+          {
+          *it = *other_it;
+          ++it;
+          }
+        }
+
+      template <class T2>
+      sparse_matrix& operator = (const sparse_matrix<T2>& other)
+        {
+        sparse_matrix temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      //template <class ExprOp>
+      //sparse_matrix(const Expr<ExprOp>& result)
+      //  {
+      //  assign(result);
+      //  }
+      //
+      //template <class ExprOp>
+      //sparse_matrix& operator = (const Expr<ExprOp>& result)
+      //  {
+      //  assign(result);
+      //  return *this;
+      //  }
+
+      bool empty() const
+        {
+        return _rows == 0 && _cols == 0;
+        }
+
+      void resize(uint64_t rows, uint64_t cols)
+        {
+        _rows = rows;
+        _cols = cols;
+        _entries.resize(rows);
+        for (auto& row : _entries)
+          row.resize(cols);
+        }
+
+      const_reference operator()(uint64_t r, uint64_t c) const
+        {
+        return _entries[r].get(c);
+        }
+
+      const_reference get(uint64_t r, uint64_t c) const
+        {
+        return _entries[r].get(c);
+        }
+
+      reference put(uint64_t r, uint64_t c)
+        {
+        return _entries[r].put(c);
+        }
+
+      uint64_t rows() const
+        {
+        return _rows;
+        }
+
+      uint64_t cols() const
+        {
+        return _cols;
+        }
+
+      iterator begin()
+        {
+        return iterator(this);
+        }
+
+      iterator end()
+        {
+        return iterator(this).end();
+        }
+      
+      const_iterator cbegin() const
+        {
+        return const_iterator(this);
+        }
+
+      const_iterator cend() const
+        {
+        return const_iterator(this).end();
+        }
+
+      const_iterator begin() const
+        {
+        return const_iterator(this);
+        }
+
+      const_iterator end() const
+        {
+        return const_iterator(this).end();
+        }
+        
+    private:
+      uint64_t _rows, _cols;
+      std::vector<sparse_vector<T>> _entries;
     };
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -2272,13 +3177,13 @@ namespace jtk
 
   template <class ExprOp>
   double trace(Expr<ExprOp> expr)
-    {    
+    {
     auto it = diagonal(expr);
     uint64_t sz = std::min(expr.rows(), expr.cols());
     double sum = *it;
     for (uint64_t i = 1; i < sz; ++i)
       {
-      ++it;      
+      ++it;
       sum += (double)*it;
       }
     return sum;

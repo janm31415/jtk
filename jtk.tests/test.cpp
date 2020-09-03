@@ -11,10 +11,10 @@ int main(int /*argc*/, const char* /*argv*/[])
   InitTestEngine();
 
   auto tic = std::clock();
-  run_all_file_utils_tests();
+  //run_all_file_utils_tests();
   run_all_mat_tests();
-  run_all_qbvh_tests();
-  run_all_vec_tests();  
+  //run_all_qbvh_tests();
+  //run_all_vec_tests();  
   auto toc = std::clock();
 
   if (!testing_fails) 

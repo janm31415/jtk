@@ -3846,6 +3846,288 @@ namespace jtk
       TEST_ASSERT(m_1 == m_2);
       }
 
+    struct sparse_vector_fixture
+      {
+      sparse_vector_fixture() : vector_1(5), vector_2(5), vector_3(10), vector_4(5)
+        {
+        size_t i;
+        for (i = 0; i < 5; ++i)
+          {
+          vector_1.put(i) = static_cast<double>(i);
+          vector_2.put(i) = static_cast<double>(i)*2.0;
+          vector_4.put(i) = static_cast<int>(i) * 4;
+          }
+        for (i = 0; i < 10; ++i)
+          {
+          vector_3.put(i) = static_cast<double>(i)*3.0;
+          }
+        }
+
+      sparse_vector<double> vector_1;
+      sparse_vector<double> vector_2;
+      sparse_vector<double> vector_3;
+      sparse_vector<int> vector_4;
+
+      };
+
+    void sparse_vector_construction()
+      {
+      sparse_vector<double> v(5);
+      size_t i;
+      for (i = 0; i < 5; ++i)
+        v.put(i) = static_cast<double>(i);
+      for (i = 0; i < 5; ++i)
+        TEST_EQ(v.get(i), i);
+      sparse_vector<double> v2(0);
+      TEST_ASSERT(v2.begin() == v2.end());
+      }
+
+    void sparse_vector_sparsity_optimization()
+      {
+      sparse_vector<double> v(5);
+      size_t i;
+      for (i = 0; i < 5; ++i)
+        v.put(i) = 0.0;
+      v.put(0) = 1.0;
+      TEST_EQ(v.entries_stored(), static_cast<size_t>(5));
+      sparse_vector<double> v2 = v;
+      TEST_EQ(v2.entries_stored(), static_cast<size_t>(1));
+      TEST_EQ(v2.get(0), 1.0);
+      }
+
+    struct sparse_vector_copy_constructor : public sparse_vector_fixture 
+      {
+      void test()
+        {
+        int i;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), i);
+        sparse_vector<double> newcontainer(vector_1);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(newcontainer.get(i), i);
+        }
+      };
+
+    struct sparse_vector_swap : public sparse_vector_fixture
+      {
+      void test()
+        {
+        vector_1.swap(vector_3);
+        int i;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_3.get(i), i);
+        for (i = 0; i < 10; ++i)
+          TEST_EQ(vector_1.get(i), i * 3);
+        }
+      };
+
+    struct sparse_vector_assignment : public sparse_vector_fixture
+      {
+      void test()
+        {
+        vector_3 = vector_1;
+        size_t i;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_3.get(i), i);
+        TEST_EQ(vector_3.size(), static_cast<size_t>(5));
+        }
+      };
+
+    struct sparse_vector_mul_div : public sparse_vector_fixture
+      {
+      void test()
+        {
+        vector_1 *= 2.0;
+        size_t i;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), 2.0*i);
+        vector_1 /= 2.0;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), i);
+        }
+      };
+
+    struct sparse_vector_add : public sparse_vector_fixture
+      {
+      void test()
+        {
+        vector_1 += vector_2;
+        size_t i;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), 3.0*i);
+        vector_1 -= vector_2;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), i);
+        vector_1 += vector_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), 2.0*i);
+        vector_1 -= vector_1;
+        vector_1 -= vector_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), 0.0);
+        }
+      };
+
+    struct sparse_vector_equality : public sparse_vector_fixture
+      {
+      void test()
+        {
+        TEST_ASSERT(vector_1 == vector_1);
+        TEST_ASSERT(vector_1 != vector_2);
+        }
+      };
+
+    struct fixture_sparse_matrix
+      {
+      fixture_sparse_matrix() : m_matrix_1(3, 3), m_matrix_2(3, 3), m_matrix_3(4, 1), m_matrix_4(1, 2)
+        {
+        size_t i, j;
+        for (i = 0; i < 3; ++i)
+          for (j = 0; j < 3; ++j)
+            {
+            m_matrix_1.put(i, j) = static_cast<double>(i * 3 + j)*1.0;
+            m_matrix_2.put(i, j) = static_cast<double>(i * 3 + j)*2.0;
+            }
+        for (i = 0; i < 4; ++i)
+          {
+          m_matrix_3.put(i, 0) = static_cast<double>(i)*3.0;
+          }
+        }
+
+
+      sparse_matrix<double> m_matrix_1;
+      sparse_matrix<double> m_matrix_2;
+      sparse_matrix<double> m_matrix_3;
+      sparse_matrix<double> m_matrix_4;
+      };
+
+    struct sparse_matrix_getput_test : public fixture_sparse_matrix
+      {
+      void test()
+        {
+        int i, j;
+        for (i = 0; i < 3; ++i)
+          for (j = 0; j < 3; ++j)
+            {
+            TEST_EQ(m_matrix_1.get(i, j), static_cast<double>(i * 3 + j));
+            }
+        m_matrix_1.put(1, 1) = 100.0;
+        TEST_EQ(m_matrix_1.get(1, 1), 100.0);
+        m_matrix_1.put(1, 2) = 101.0;
+        TEST_EQ(m_matrix_1.get(1, 2), 101.0);
+        }
+      };
+
+    struct sparse_matrix_size_test : public fixture_sparse_matrix
+      {
+      void test()
+        {        
+        TEST_EQ(m_matrix_1.rows(), static_cast<size_t>(3));
+        TEST_EQ(m_matrix_1.cols(), static_cast<size_t>(3));
+        
+        TEST_EQ(m_matrix_3.rows(), static_cast<size_t>(4));
+        TEST_EQ(m_matrix_3.cols(), static_cast<size_t>(1));
+        
+        TEST_EQ(m_matrix_4.rows(), static_cast<size_t>(1));
+        TEST_EQ(m_matrix_4.cols(), static_cast<size_t>(2));
+        }
+      };
+
+    struct sparse_matrix_swap_test : public fixture_sparse_matrix
+      {
+      void test()
+        {
+        int i, j;
+        for (i = 0; i < 3; ++i)
+          for (j = 0; j < 3; ++j)
+            {
+            TEST_EQ(m_matrix_1.get(i, j), static_cast<double>(i * 3 + j));
+            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            }
+        m_matrix_1.swap(m_matrix_2);
+        for (i = 0; i < 3; ++i)
+          for (j = 0; j < 3; ++j)
+            {
+            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j));
+            TEST_EQ(m_matrix_1.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            }
+        m_matrix_1.swap(m_matrix_4);
+        for (i = 0; i < 3; ++i)
+          for (j = 0; j < 3; ++j)
+            {
+            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j));
+            TEST_EQ(m_matrix_4.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            }
+        TEST_EQ(m_matrix_1.rows(), static_cast<size_t>(1));
+        TEST_EQ(m_matrix_1.cols(), static_cast<size_t>(2));
+        }
+      };
+
+    struct sparse_matrix_assignment_test : public fixture_sparse_matrix
+      {
+      void test()
+        {
+        int i, j;
+        for (i = 0; i < 3; ++i)
+          for (j = 0; j < 3; ++j)
+            {
+            TEST_EQ(m_matrix_1.get(i, j), static_cast<double>(i * 3 + j));
+            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            }
+        m_matrix_1 = m_matrix_2;
+        for (i = 0; i < 3; ++i)
+          for (j = 0; j < 3; ++j)
+            {
+            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            TEST_EQ(m_matrix_1.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            }
+        m_matrix_1 = m_matrix_4;
+        for (i = 0; i < 3; ++i)
+          for (j = 0; j < 3; ++j)
+            {
+            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            }
+        TEST_EQ(m_matrix_1.rows(), static_cast<size_t>(1));
+        TEST_EQ(m_matrix_1.cols(), static_cast<size_t>(2));
+
+        TEST_EQ(m_matrix_4.rows(), static_cast<size_t>(1));
+        TEST_EQ(m_matrix_4.cols(), static_cast<size_t>(2));
+        }
+      };
+
+    struct sparse_matrix_resize_test : public fixture_sparse_matrix
+      {
+      void test()
+        {
+        m_matrix_1.resize(100, 500);
+        TEST_EQ(m_matrix_1.rows(), static_cast<size_t>(100));
+        TEST_EQ(m_matrix_1.cols(), static_cast<size_t>(500));
+        }
+      };
+
+    struct sparse_matrix_iterator_test : public fixture_sparse_matrix
+      {
+      void test()
+        {
+        auto iter = m_matrix_1.begin();
+        auto end = m_matrix_1.end();
+        int i = 0;
+        for (; iter != end; ++iter)
+          {
+          TEST_EQ((*iter), static_cast<double>(i++));
+          }
+        auto citer = m_matrix_1.cbegin();
+        auto cend = m_matrix_1.cend();
+        i = 0;
+        for (; citer != cend; ++citer)
+          {
+          TEST_EQ((*citer), static_cast<double>(i++));
+          }
+        iter = m_matrix_1.begin();
+        (*iter) = 5.0;
+        TEST_EQ(m_matrix_1(0, 0), 5.0);
+        }
+      };
     }
   }
 
@@ -4016,4 +4298,18 @@ void run_all_mat_tests()
   hconcattest();
   vconcattest2();
   hconcattest2();
+  sparse_vector_construction();
+  sparse_vector_sparsity_optimization();
+  sparse_vector_copy_constructor().test();
+  sparse_vector_swap().test();
+  sparse_vector_assignment().test();
+  sparse_vector_mul_div().test();
+  sparse_vector_add().test();  
+  sparse_vector_equality().test();
+  sparse_matrix_getput_test().test();
+  sparse_matrix_size_test().test();
+  sparse_matrix_swap_test().test();
+  sparse_matrix_assignment_test().test();
+  sparse_matrix_resize_test().test();
+  sparse_matrix_iterator_test().test();
 }
