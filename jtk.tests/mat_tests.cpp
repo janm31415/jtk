@@ -1054,6 +1054,38 @@ namespace jtk
         }
       };
 
+    void transpose_aliasing_problem()
+      {
+      jtk::mat m(3, 3);
+      m << 1, 2, 3, 4, 5, 6, 7, 8, 9;
+      m = jtk::transpose(m);
+      TEST_EQ(1.0, m(0, 0));
+      TEST_EQ(2.0, m(1, 0));
+      TEST_EQ(3.0, m(2, 0));
+      TEST_EQ(4.0, m(0, 1));
+      TEST_EQ(5.0, m(1, 1));
+      TEST_EQ(6.0, m(2, 1));
+      TEST_EQ(7.0, m(0, 2));
+      TEST_EQ(8.0, m(1, 2));
+      TEST_EQ(9.0, m(2, 2));
+      }
+
+    void transpose_aliasing_problem_2()
+      {
+      jtk::mat m(3, 3);
+      m << 1, 2, 3, 4, 5, 6, 7, 8, 9;
+      m = -jtk::transpose(m);
+      TEST_EQ(-1.0, m(0, 0));
+      TEST_EQ(-2.0, m(1, 0));
+      TEST_EQ(-3.0, m(2, 0));
+      TEST_EQ(-4.0, m(0, 1));
+      TEST_EQ(-5.0, m(1, 1));
+      TEST_EQ(-6.0, m(2, 1));
+      TEST_EQ(-7.0, m(0, 2));
+      TEST_EQ(-8.0, m(1, 2));
+      TEST_EQ(-9.0, m(2, 2));
+      }
+
     struct scalarmultiply : public matrix_fixture {
       void test()
         {
@@ -4294,6 +4326,113 @@ namespace jtk
         }
       };
 
+    struct sparse_matrix_transpose_test : public fixture_sparse_matrix_operations
+      {
+      void test()
+        {
+        int i;
+        sparse_matrix<double> sm = transpose(m_smat_1);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), static_cast<double>(i));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(5));
+
+        sm = transpose(m_smat_1 + m_smat_2);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), 3.0*static_cast<double>(i));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        }
+      };
+
+    void sparse_matrix_multiply()
+      {
+      sparse_matrix<double> sm1(2, 3);
+      sm1.put(0, 0) = 1.0;
+      sm1.put(0, 2) = 2.0;
+      sm1.put(1, 0) = -1.0;
+      sm1.put(1, 1) = 3.0;
+      sm1.put(1, 2) = 1.0;
+      TEST_EQ(sm1.entries_stored(), static_cast<size_t>(5));
+
+      sparse_matrix<double> sm2(3, 2);
+      sm2.put(0, 0) = 3.0;
+      sm2.put(0, 1) = 1.0;
+      sm2.put(1, 0) = 2.0;
+      sm2.put(1, 1) = 1.0;
+      sm2.put(2, 0) = 1.0;
+      TEST_EQ(sm2.entries_stored(), static_cast<size_t>(5));
+
+      sparse_matrix<double> sm = sm1 * sm2;
+      TEST_EQ(sm.get(0, 0), 5.0);
+      TEST_EQ(sm.get(0, 1), 1.0);
+      TEST_EQ(sm.get(1, 0), 4.0);
+      TEST_EQ(sm.get(1, 1), 2.0);
+      TEST_EQ(sm.rows(), static_cast<uint64_t>(2));
+      TEST_EQ(sm.cols(), static_cast<uint64_t>(2));
+      TEST_EQ(sm.entries_stored(), static_cast<uint64_t>(4));
+
+      sm = (sm1 + sm1)*sm2;
+      TEST_EQ(sm.get(0, 0), 2.0*5.0);
+      TEST_EQ(sm.get(0, 1), 2.0*1.0);
+      TEST_EQ(sm.get(1, 0), 2.0*4.0);
+      TEST_EQ(sm.get(1, 1), 2.0*2.0);
+      TEST_EQ(sm.rows(), static_cast<size_t>(2));
+      TEST_EQ(sm.cols(), static_cast<size_t>(2));
+
+      sm = sm1 * (sm2 + sm2);
+      TEST_EQ(sm.get(0, 0), 2.0*5.0);
+      TEST_EQ(sm.get(0, 1), 2.0*1.0);
+      TEST_EQ(sm.get(1, 0), 2.0*4.0);
+      TEST_EQ(sm.get(1, 1), 2.0*2.0);
+      TEST_EQ(sm.rows(), static_cast<size_t>(2));
+      TEST_EQ(sm.cols(), static_cast<size_t>(2));
+
+      sm = (2.0*sm1)*(sm2 + sm2);
+      TEST_EQ(sm.get(0, 0), 4.0*5.0);
+      TEST_EQ(sm.get(0, 1), 4.0*1.0);
+      TEST_EQ(sm.get(1, 0), 4.0*4.0);
+      TEST_EQ(sm.get(1, 1), 4.0*2.0);
+      TEST_EQ(sm.rows(), static_cast<size_t>(2));
+      TEST_EQ(sm.cols(), static_cast<size_t>(2));
+      }
+
+    void sparse_matrix_vector_multiply()
+      {
+      sparse_matrix<double> sm1(2, 3);
+      sm1.put(0, 0) = 1.0;
+      sm1.put(0, 2) = 2.0;
+      sm1.put(1, 0) = -1.0;
+      sm1.put(1, 1) = 3.0;
+      sm1.put(1, 2) = 1.0;
+
+      mat v1(3);
+      v1(0) = 3.0;
+      v1(1) = 2.0;
+      v1(2) = 1.0;
+
+      mat x = sm1 * v1;
+      TEST_EQ(x(0), 5.0);
+      TEST_EQ(x(1), 4.0);
+      TEST_EQ(x.rows(), static_cast<size_t>(2));
+      TEST_EQ(x.cols(), static_cast<size_t>(1));
+
+      x = (sm1+sm1) * v1;
+      TEST_EQ(x(0), 10.0);
+      TEST_EQ(x(1), 8.0);
+      TEST_EQ(x.rows(), static_cast<size_t>(2));
+      TEST_EQ(x.cols(), static_cast<size_t>(1));
+
+      x = sm1 * (v1 + v1);
+      TEST_EQ(x(0), 10.0);
+      TEST_EQ(x(1), 8.0);
+      TEST_EQ(x.rows(), static_cast<size_t>(2));
+      TEST_EQ(x.cols(), static_cast<size_t>(1));
+
+      x = (sm1 + sm1) * (v1 + v1);
+      TEST_EQ(x(0), 20.0);
+      TEST_EQ(x(1), 16.0);
+      TEST_EQ(x.rows(), static_cast<size_t>(2));
+      TEST_EQ(x.cols(), static_cast<size_t>(1));
+      }
     }
   }
 
@@ -4456,6 +4595,8 @@ void run_all_mat_tests()
   hqrtest();
   eigtest();
   negating_outside_namespace();
+  transpose_aliasing_problem();
+  transpose_aliasing_problem_2();
   aliasing();
   noaliasing();
   datatest();
@@ -4483,4 +4624,7 @@ void run_all_mat_tests()
   sparse_matrix_negate_test().test();
   sparse_matrix_scalar_mul_test().test();
   sparse_matrix_scalar_div_test().test();
+  sparse_matrix_transpose_test().test();
+  sparse_matrix_multiply();
+  sparse_matrix_vector_multiply();
 }
