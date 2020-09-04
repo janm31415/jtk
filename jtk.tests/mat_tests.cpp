@@ -2110,7 +2110,7 @@ namespace jtk
       for (auto value : m16)
         TEST_EQ(1.f, value);
 
-      m16 = identity<float> (2, 3);
+      m16 = identity<float>(2, 3);
       TEST_EQ(2, m16.rows());
       TEST_EQ(3, m16.cols());
       for (int i = 0; i < 2; ++i)
@@ -3854,10 +3854,10 @@ namespace jtk
         for (int c = 0; c < 3; ++c)
           {
           TEST_EQ(m_concat(r, c), m_left(r, c));
-          TEST_EQ(m_concat(r, c+3), m_mid(r, c));
-          TEST_EQ(m_concat(r, c+7), m_right(r, c));
+          TEST_EQ(m_concat(r, c + 3), m_mid(r, c));
+          TEST_EQ(m_concat(r, c + 7), m_right(r, c));
           }
-        }   
+        }
       for (int r = 0; r < 3; ++r)
         {
         TEST_EQ(m_concat(r, 6), m_mid(r, 3));
@@ -3927,7 +3927,7 @@ namespace jtk
       TEST_EQ(v2.get(0), 1.0);
       }
 
-    struct sparse_vector_copy_constructor : public sparse_vector_fixture 
+    struct sparse_vector_copy_constructor : public sparse_vector_fixture
       {
       void test()
         {
@@ -4011,26 +4011,26 @@ namespace jtk
 
     struct fixture_sparse_matrix
       {
-      fixture_sparse_matrix() : m_matrix_1(3, 3), m_matrix_2(3, 3), m_matrix_3(4, 1), m_matrix_4(1, 2)
+      fixture_sparse_matrix() : matrix_1(3, 3), matrix_2(3, 3), matrix_3(4, 1), matrix_4(1, 2)
         {
         size_t i, j;
         for (i = 0; i < 3; ++i)
           for (j = 0; j < 3; ++j)
             {
-            m_matrix_1.put(i, j) = static_cast<double>(i * 3 + j)*1.0;
-            m_matrix_2.put(i, j) = static_cast<double>(i * 3 + j)*2.0;
+            matrix_1.put(i, j) = static_cast<double>(i * 3 + j)*1.0;
+            matrix_2.put(i, j) = static_cast<double>(i * 3 + j)*2.0;
             }
         for (i = 0; i < 4; ++i)
           {
-          m_matrix_3.put(i, 0) = static_cast<double>(i)*3.0;
+          matrix_3.put(i, 0) = static_cast<double>(i)*3.0;
           }
         }
 
 
-      sparse_matrix<double> m_matrix_1;
-      sparse_matrix<double> m_matrix_2;
-      sparse_matrix<double> m_matrix_3;
-      sparse_matrix<double> m_matrix_4;
+      sparse_matrix<double> matrix_1;
+      sparse_matrix<double> matrix_2;
+      sparse_matrix<double> matrix_3;
+      sparse_matrix<double> matrix_4;
       };
 
     struct sparse_matrix_getput_test : public fixture_sparse_matrix
@@ -4041,27 +4041,27 @@ namespace jtk
         for (i = 0; i < 3; ++i)
           for (j = 0; j < 3; ++j)
             {
-            TEST_EQ(m_matrix_1.get(i, j), static_cast<double>(i * 3 + j));
+            TEST_EQ(matrix_1.get(i, j), static_cast<double>(i * 3 + j));
             }
-        m_matrix_1.put(1, 1) = 100.0;
-        TEST_EQ(m_matrix_1.get(1, 1), 100.0);
-        m_matrix_1.put(1, 2) = 101.0;
-        TEST_EQ(m_matrix_1.get(1, 2), 101.0);
+        matrix_1.put(1, 1) = 100.0;
+        TEST_EQ(matrix_1.get(1, 1), 100.0);
+        matrix_1.put(1, 2) = 101.0;
+        TEST_EQ(matrix_1.get(1, 2), 101.0);
         }
       };
 
     struct sparse_matrix_size_test : public fixture_sparse_matrix
       {
       void test()
-        {        
-        TEST_EQ(m_matrix_1.rows(), static_cast<size_t>(3));
-        TEST_EQ(m_matrix_1.cols(), static_cast<size_t>(3));
-        
-        TEST_EQ(m_matrix_3.rows(), static_cast<size_t>(4));
-        TEST_EQ(m_matrix_3.cols(), static_cast<size_t>(1));
-        
-        TEST_EQ(m_matrix_4.rows(), static_cast<size_t>(1));
-        TEST_EQ(m_matrix_4.cols(), static_cast<size_t>(2));
+        {
+        TEST_EQ(matrix_1.rows(), static_cast<size_t>(3));
+        TEST_EQ(matrix_1.cols(), static_cast<size_t>(3));
+
+        TEST_EQ(matrix_3.rows(), static_cast<size_t>(4));
+        TEST_EQ(matrix_3.cols(), static_cast<size_t>(1));
+
+        TEST_EQ(matrix_4.rows(), static_cast<size_t>(1));
+        TEST_EQ(matrix_4.cols(), static_cast<size_t>(2));
         }
       };
 
@@ -4073,25 +4073,25 @@ namespace jtk
         for (i = 0; i < 3; ++i)
           for (j = 0; j < 3; ++j)
             {
-            TEST_EQ(m_matrix_1.get(i, j), static_cast<double>(i * 3 + j));
-            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            TEST_EQ(matrix_1.get(i, j), static_cast<double>(i * 3 + j));
+            TEST_EQ(matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
             }
-        m_matrix_1.swap(m_matrix_2);
+        matrix_1.swap(matrix_2);
         for (i = 0; i < 3; ++i)
           for (j = 0; j < 3; ++j)
             {
-            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j));
-            TEST_EQ(m_matrix_1.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            TEST_EQ(matrix_2.get(i, j), static_cast<double>(i * 3 + j));
+            TEST_EQ(matrix_1.get(i, j), static_cast<double>(i * 3 + j) * 2);
             }
-        m_matrix_1.swap(m_matrix_4);
+        matrix_1.swap(matrix_4);
         for (i = 0; i < 3; ++i)
           for (j = 0; j < 3; ++j)
             {
-            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j));
-            TEST_EQ(m_matrix_4.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            TEST_EQ(matrix_2.get(i, j), static_cast<double>(i * 3 + j));
+            TEST_EQ(matrix_4.get(i, j), static_cast<double>(i * 3 + j) * 2);
             }
-        TEST_EQ(m_matrix_1.rows(), static_cast<size_t>(1));
-        TEST_EQ(m_matrix_1.cols(), static_cast<size_t>(2));
+        TEST_EQ(matrix_1.rows(), static_cast<size_t>(1));
+        TEST_EQ(matrix_1.cols(), static_cast<size_t>(2));
         }
       };
 
@@ -4103,27 +4103,27 @@ namespace jtk
         for (i = 0; i < 3; ++i)
           for (j = 0; j < 3; ++j)
             {
-            TEST_EQ(m_matrix_1.get(i, j), static_cast<double>(i * 3 + j));
-            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            TEST_EQ(matrix_1.get(i, j), static_cast<double>(i * 3 + j));
+            TEST_EQ(matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
             }
-        m_matrix_1 = m_matrix_2;
+        matrix_1 = matrix_2;
         for (i = 0; i < 3; ++i)
           for (j = 0; j < 3; ++j)
             {
-            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
-            TEST_EQ(m_matrix_1.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            TEST_EQ(matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            TEST_EQ(matrix_1.get(i, j), static_cast<double>(i * 3 + j) * 2);
             }
-        m_matrix_1 = m_matrix_4;
+        matrix_1 = matrix_4;
         for (i = 0; i < 3; ++i)
           for (j = 0; j < 3; ++j)
             {
-            TEST_EQ(m_matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
+            TEST_EQ(matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
             }
-        TEST_EQ(m_matrix_1.rows(), static_cast<size_t>(1));
-        TEST_EQ(m_matrix_1.cols(), static_cast<size_t>(2));
+        TEST_EQ(matrix_1.rows(), static_cast<size_t>(1));
+        TEST_EQ(matrix_1.cols(), static_cast<size_t>(2));
 
-        TEST_EQ(m_matrix_4.rows(), static_cast<size_t>(1));
-        TEST_EQ(m_matrix_4.cols(), static_cast<size_t>(2));
+        TEST_EQ(matrix_4.rows(), static_cast<size_t>(1));
+        TEST_EQ(matrix_4.cols(), static_cast<size_t>(2));
         }
       };
 
@@ -4131,9 +4131,9 @@ namespace jtk
       {
       void test()
         {
-        m_matrix_1.resize(100, 500);
-        TEST_EQ(m_matrix_1.rows(), static_cast<size_t>(100));
-        TEST_EQ(m_matrix_1.cols(), static_cast<size_t>(500));
+        matrix_1.resize(100, 500);
+        TEST_EQ(matrix_1.rows(), static_cast<size_t>(100));
+        TEST_EQ(matrix_1.cols(), static_cast<size_t>(500));
         }
       };
 
@@ -4141,51 +4141,51 @@ namespace jtk
       {
       void test()
         {
-        auto iter = m_matrix_1.begin();
-        auto end = m_matrix_1.end();
+        auto iter = matrix_1.begin();
+        auto end = matrix_1.end();
         int i = 0;
         for (; iter != end; ++iter)
           {
           TEST_EQ((*iter), static_cast<double>(i++));
           }
-        auto citer = m_matrix_1.cbegin();
-        auto cend = m_matrix_1.cend();
+        auto citer = matrix_1.cbegin();
+        auto cend = matrix_1.cend();
         i = 0;
         for (; citer != cend; ++citer)
           {
           TEST_EQ((*citer), static_cast<double>(i++));
           }
-        iter = m_matrix_1.begin();
+        iter = matrix_1.begin();
         (*iter) = 5.0;
-        TEST_EQ(m_matrix_1(0, 0), 5.0);
+        TEST_EQ(matrix_1(0, 0), 5.0);
         }
       };
 
     struct fixture_sparse_matrix_operations
       {
-      fixture_sparse_matrix_operations() : m_mat_1(5, 5), m_mat_2(5, 5), m_smat_1(5, 5), m_smat_2(5, 5), m_mat_1col(5, 5)
+      fixture_sparse_matrix_operations() : mat_1(5, 5), mat_2(5, 5), smat_1(5, 5), smat_2(5, 5), mat_1col(5, 5)
         {
         size_t i, j;
         for (i = 0; i < 5; ++i)
           for (j = 0; j < 5; ++j)
             {
-            m_mat_1(i, j) = (double)(i * 5 + j);
-            m_mat_2(i, j) = (double)((i * 5 + j)*2.0);
-            m_mat_1col(i, j) = (double)(i + 5 * j);
+            mat_1(i, j) = (double)(i * 5 + j);
+            mat_2(i, j) = (double)((i * 5 + j)*2.0);
+            mat_1col(i, j) = (double)(i + 5 * j);
             }
         for (i = 0; i < 5; ++i)
           {
-          m_smat_1.put(i, i) = (double)(i);
-          m_smat_2.put(i, i) = (double)(i*2.0);
+          smat_1.put(i, i) = (double)(i);
+          smat_2.put(i, i) = (double)(i*2.0);
 
           }
         }
 
-      matrix<double> m_mat_1;
-      matrix<double> m_mat_2;
-      matrix<double> m_mat_1col;
-      sparse_matrix<double> m_smat_1;
-      sparse_matrix<double> m_smat_2;
+      matrix<double> mat_1;
+      matrix<double> mat_2;
+      matrix<double> mat_1col;
+      sparse_matrix<double> smat_1;
+      sparse_matrix<double> smat_2;
       };
 
     struct sparse_matrix_add_test : public fixture_sparse_matrix_operations
@@ -4193,32 +4193,32 @@ namespace jtk
       void test()
         {
         int i;
-        sparse_matrix<double> sm = m_smat_1 + m_smat_2;
-        
+        sparse_matrix<double> sm = smat_1 + smat_2;
+
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*3.0);
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
-        
-        sm = m_smat_1 + (m_smat_1 + m_smat_2);
-        for (i = 0; i < 5; ++i)
-          TEST_EQ(sm.get(i, i), i*4.0);
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
-        
-        sm = (m_smat_1 + m_smat_2) + m_smat_1;
+
+        sm = smat_1 + (smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*4.0);
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = (m_smat_1 + m_smat_2) + (m_smat_2 + m_smat_1);
+        sm = (smat_1 + smat_2) + smat_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), i*4.0);
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = (smat_1 + smat_2) + (smat_2 + smat_1);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*6.0);
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = m_smat_1 + m_smat_2 + m_smat_2 + m_smat_1;
+        sm = smat_1 + smat_2 + smat_2 + smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*6.0);
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
-        
+
         }
       };
 
@@ -4227,27 +4227,27 @@ namespace jtk
       void test()
         {
         int i;
-        sparse_matrix<double> sm = m_smat_1 - m_smat_2;
+        sparse_matrix<double> sm = smat_1 - smat_2;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), -static_cast<double>(i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = m_smat_1 - (m_smat_1 + m_smat_2);
+        sm = smat_1 - (smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), -static_cast<double>(i*2.0));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = (m_smat_1 + m_smat_2) - m_smat_1;
+        sm = (smat_1 + smat_2) - smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*2.0);
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = (m_smat_1 + m_smat_2) - (m_smat_2 - m_smat_1);
+        sm = (smat_1 + smat_2) - (smat_2 - smat_1);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*2.0);
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = m_smat_1 - m_smat_2 - m_smat_2 - m_smat_1;
+        sm = smat_1 - smat_2 - smat_2 - smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), -static_cast<double>(i*4.0));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
@@ -4260,12 +4260,12 @@ namespace jtk
       void test()
         {
         int i;
-        sparse_matrix<double> sm = -m_smat_1;
+        sparse_matrix<double> sm = -smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), -static_cast<double>(i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = -(m_smat_1 + m_smat_2);
+        sm = -(smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), -static_cast<double>(3.0*i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
@@ -4277,22 +4277,22 @@ namespace jtk
       void test()
         {
         int i;
-        sparse_matrix<double> sm = m_smat_1*2.0;
+        sparse_matrix<double> sm = smat_1 * 2.0;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 2.0*static_cast<double>(i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = 2 * m_smat_1;
+        sm = 2 * smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 2.0*static_cast<double>(i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = (m_smat_1 + m_smat_2)*2.0;
+        sm = (smat_1 + smat_2)*2.0;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 6.0*static_cast<double>(i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = 2.0*(m_smat_1 + m_smat_2);
+        sm = 2.0*(smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 6.0*static_cast<double>(i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
@@ -4304,22 +4304,22 @@ namespace jtk
       void test()
         {
         int i;
-        sparse_matrix<double> sm = 2.0 / m_smat_1;
+        sparse_matrix<double> sm = 2.0 / smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 2.0 / static_cast<double>(i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(5));
-        
-        sm = m_smat_1 / 2.0;
+
+        sm = smat_1 / 2.0;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), static_cast<double>(i) / 2.0);
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
-        
-        sm = (m_smat_1 + m_smat_2) / 2.0;
+
+        sm = (smat_1 + smat_2) / 2.0;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 3.0*static_cast<double>(i) / 2.0);
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = 2.0 / (m_smat_1 + m_smat_2);
+        sm = 2.0 / (smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 2.0 / (3.0*static_cast<double>(i)));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(5));
@@ -4331,12 +4331,12 @@ namespace jtk
       void test()
         {
         int i;
-        sparse_matrix<double> sm = transpose(m_smat_1);
+        sparse_matrix<double> sm = transpose(smat_1);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), static_cast<double>(i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(5));
 
-        sm = transpose(m_smat_1 + m_smat_2);
+        sm = transpose(smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 3.0*static_cast<double>(i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
@@ -4415,7 +4415,7 @@ namespace jtk
       TEST_EQ(x.rows(), static_cast<size_t>(2));
       TEST_EQ(x.cols(), static_cast<size_t>(1));
 
-      x = (sm1+sm1) * v1;
+      x = (sm1 + sm1) * v1;
       TEST_EQ(x(0), 10.0);
       TEST_EQ(x(1), 8.0);
       TEST_EQ(x.rows(), static_cast<size_t>(2));
@@ -4432,6 +4432,139 @@ namespace jtk
       TEST_EQ(x(1), 16.0);
       TEST_EQ(x.rows(), static_cast<size_t>(2));
       TEST_EQ(x.cols(), static_cast<size_t>(1));
+      }
+
+    void sparse_norm_tests()
+      {
+      sparse_matrix<double> v(5, 1);
+      v.put(3, 1) = 2.0;
+      v.put(4, 1) = 3.0;
+      TEST_EQ(std::sqrt(4 + 9), norm(v));
+      sparse_matrix<double> m(2, 2);
+      m.put(0, 1) = 5.0;
+      m.put(1, 1) = 7.0;
+      TEST_EQ(std::sqrt(25 + 49), norm(m));
+      sparse_matrix<double> m2(2, 2);
+      m2.put(0, 0) = -2;
+      TEST_EQ(std::sqrt(4 + 25 + 49), norm(m + m2));
+      }
+
+    void sparse_diagonal_tests()
+      {
+      sparse_matrix<double> m(4, 5);
+      m.put(0, 0) = 5.0;
+      m.put(1, 1) = 7.0;
+      m.put(3, 1) = 17.0;
+      m.put(0, 2) = 9.0;
+      mat d = diagonal(m);
+      TEST_EQ(d.rows(), 4);
+      TEST_EQ(d.cols(), 1);
+      TEST_EQ(5.0, d(0));
+      TEST_EQ(7.0, d(1));
+      TEST_EQ(0.0, d(2));
+      TEST_EQ(0.0, d(3));
+      d = diagonal(m + m);
+      TEST_EQ(10.0, d(0));
+      TEST_EQ(14.0, d(1));
+      TEST_EQ(0.0, d(2));
+      TEST_EQ(0.0, d(3));
+      }
+
+    void sparse_block_matrix()
+      {
+      sparse_matrix<double> m(4, 4);
+      for (int i = 0; i < 16; ++i)
+        m.put(i / 4, i % 4) = i + 1;
+
+      sparse_matrix<double> b = block(m, 1, 1, 2, 2);
+      TEST_EQ(6.f, b(0, 0));
+      TEST_EQ(7.f, b(0, 1));
+      TEST_EQ(10.f, b(1, 0));
+      TEST_EQ(11.f, b(1, 1));
+
+      b = block(m, 0, 0, 3, 3);
+      TEST_EQ(1.f, b(0, 0));
+      TEST_EQ(2.f, b(0, 1));
+      TEST_EQ(3.f, b(0, 2));
+      TEST_EQ(5, b(1, 0));
+      TEST_EQ(6, b(1, 1));
+      TEST_EQ(7, b(1, 2));
+      TEST_EQ(9, b(2, 0));
+      TEST_EQ(10.f, b(2, 1));
+      TEST_EQ(11.f, b(2, 2));
+
+      mat d = diagonal(block(m, 0, 0, 3, 3));
+      TEST_EQ(1.f, d(0));
+      TEST_EQ(6.f, d(1));
+      TEST_EQ(11.f, d(2));
+
+      b = block(block(m, 0, 0, 3, 3), 1, 1, 2, 2);
+      TEST_EQ(6.f, b(0, 0));
+      TEST_EQ(7.f, b(0, 1));
+      TEST_EQ(10.f, b(1, 0));
+      TEST_EQ(11.f, b(1, 1));
+      }
+
+    void sparse_trace_test()
+      {
+      sparse_matrix<double> m(5, 5);
+      for (int i = 0; i < 5; ++i)
+        {
+        for (int j = 0; j < 5; ++j)
+          {
+          m.put(i, j) = (double)(i * 5 + j);
+          }
+        }
+      m.put(0, 0) = 100.0;
+      double tr = trace(m);
+      TEST_EQ(100. + (1.*5. + 1.) + (2.*5. + 2.) + (3.*5. + 3.) + (4.*5. + 4.), tr);
+      tr = trace(m + m);
+      TEST_EQ((100. + (1.*5. + 1.) + (2.*5. + 2.) + (3.*5. + 3.) + (4.*5. + 4.))*2.0, tr);
+      }
+
+    void sparse_matrix_init()
+      {
+      sparse_matrix<double> m = zeros(3, 4);
+      TEST_EQ(3, m.rows());
+      TEST_EQ(4, m.cols());
+      for (int r = 0; r < m.rows(); ++r)
+        {
+        for (int c = 0; c < m.cols(); ++c)
+          TEST_EQ(0.f, m(r, c));
+        }
+      TEST_EQ(0, m.entries_stored());
+      
+      m = ones(5, 7);
+      TEST_EQ(5, m.rows());
+      TEST_EQ(7, m.cols());
+      for (int r = 0; r < m.rows(); ++r)
+        {
+        for (int c = 0; c < m.cols(); ++c)
+          TEST_EQ(1.f, m(r, c));
+        }
+      
+      m = identity(2, 3);
+      TEST_EQ(2, m.rows());
+      TEST_EQ(3, m.cols());
+      for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 3; ++j)
+          TEST_EQ(i == j ? 1.0 : 0.0, m(i, j));      
+      TEST_EQ(2, m.entries_stored());
+      }
+
+    void assign_sparse_to_dense()
+      {
+      sparse_matrix<double> m = identity(3, 4);
+      matrix<double> d = m;
+      for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 4; ++j)
+          TEST_EQ(i == j ? 1.0 : 0.0, d(i, j));
+
+      m = d;
+      for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 4; ++j)
+          TEST_EQ(i == j ? 1.0 : 0.0, m(i, j));
+      TEST_EQ(3, m.entries_stored());
       }
     }
   }
@@ -4611,7 +4744,7 @@ void run_all_mat_tests()
   sparse_vector_swap().test();
   sparse_vector_assignment().test();
   sparse_vector_mul_div().test();
-  sparse_vector_add().test();  
+  sparse_vector_add().test();
   sparse_vector_equality().test();
   sparse_matrix_getput_test().test();
   sparse_matrix_size_test().test();
@@ -4627,4 +4760,10 @@ void run_all_mat_tests()
   sparse_matrix_transpose_test().test();
   sparse_matrix_multiply();
   sparse_matrix_vector_multiply();
-}
+  sparse_norm_tests();
+  sparse_diagonal_tests();
+  sparse_block_matrix();
+  sparse_trace_test();
+  sparse_matrix_init();
+  assign_sparse_to_dense();
+  }
