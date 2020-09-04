@@ -6343,6 +6343,129 @@ namespace jtk
         a(0) = 1;
       out += a(0) * w;
       }
+    iterations = A.rows();
+    }
+
+  template <class T, class Container, class TBlackBox, class TPreconditioner>
+  void preconditioned_conjugate_gradient(matrix<T, Container>& out,
+    T& residu,
+    uint64_t& iterations,
+    const TBlackBox& A,
+    const TPreconditioner& P,
+    const matrix<T, Container>& b,
+    const matrix<T, Container>& x0,
+    T tolerance)
+    {
+    matrix<T, Container> r, p, y;
+    r = A*x0 - b;
+    y = P * r;
+    p = -y;
+    out = x0;
+    matrix<T, Container> denom(1), alpha(1), beta(1);
+
+    for (uint64_t i = 0; i < A.rows(); ++i)
+      {      
+      residu = norm(r);
+      if (residu < tolerance)
+        {
+        iterations = i;
+        return;
+        }
+      denom = transpose(p) * (A*p);
+      if (denom(0))
+        alpha = (transpose(r)*y) / denom(0);
+      else
+        alpha(0) = 1;
+      out += alpha(0)*p;
+      denom = transpose(r)*y;
+      r += alpha(0)*(A*p);
+      y = P * r;
+      if (denom(0))
+        beta = (transpose(r)*y) / denom(0);
+      else
+        beta(0) = 1;
+      p = -y + beta(0)*p;
+      }
+    iterations = A.rows();
+    }
+
+  template <class T, class Container, class TBlackBox>
+  void bicgstab(matrix<T, Container>& out,
+    T& residu,
+    uint64_t& iterations,
+    const TBlackBox& A,
+    const matrix<T, Container>& b,
+    const matrix<T, Container>& x0,
+    T tolerance)
+    {
+    matrix<T, Container> r, r_, p, s, t, v;
+    matrix<T, Container> rho_1(1), rho_2(1), alpha(1), omega(1);
+    rho_1(0) = rho_2(0) = alpha(0) = omega(0) = 0;
+    T beta = 0;
+    out = x0;
+    T normb = norm(b);
+    r = b - A * out;
+    r_ = r;
+
+    if (normb == (T)0)
+      normb = 1;
+
+    double resid = norm(r)/normb;
+    if (resid <= tolerance)
+      {
+      residu = resid;
+      iterations = 0;
+      return;
+      }
+
+    for (uint64_t i = 0; i < A.rows(); ++i)
+      {
+      rho_1 = transpose(r_) * r;
+      if (rho_1(0) == 0)
+        {
+        residu = norm(r) / normb;
+        iterations = i + 1;
+        return;
+        }
+      if (i == 0)
+        p = r;
+      else
+        {
+        beta = (rho_1(0) / rho_2(0))*(alpha(0) / omega(0));
+        p = r + beta * (p - omega(0)*v);
+        }
+      v = A * p;
+      alpha = rho_1(0) / (transpose(r_)*v);
+      s = r - alpha(0)*v;
+      resid = norm(s) / normb;
+      if (resid < tolerance)
+        {
+        out += alpha(0)*p;
+        residu = resid;
+        iterations = i + 1;
+        return;
+        }
+      t = A * s;
+      omega = (transpose(t)*s) / matrix<T, Container>(transpose(t)*t)(0);
+      out += alpha(0)*p + omega(0)*s;
+      r = s - omega(0)*t;
+      rho_2 = rho_1;
+      resid = norm(r) / normb;
+      if (resid < tolerance)
+        {
+        residu = resid;
+        iterations = i + 1;
+        return;
+        }
+      if (omega(0) == 0)
+        {
+        residu = norm(r) / normb;
+        iterations = i + 1;
+        return;
+        }
+      }
+    residu = resid;
+    iterations = A.rows();
     }
 
   ///////////////////////////////////////////////////////////////////////////////
