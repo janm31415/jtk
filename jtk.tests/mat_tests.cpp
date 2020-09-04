@@ -4566,6 +4566,32 @@ namespace jtk
           TEST_EQ(i == j ? 1.0 : 0.0, m(i, j));
       TEST_EQ(3, m.entries_stored());
       }
+
+    void conjugate_gradient_tests()
+      {
+      smat A(10, 10);
+      for (int i = 1; i <= 10; ++i)
+        A.put(i - 1, i - 1) = (double)i;
+      mat b(10);
+      for (int i = 1; i <= 10; ++i)
+        b(i - 1) = (double)i;
+
+      mat x;
+      mat x0 = zeros(10, 1);
+      double residu;
+      uint64_t iter;
+      conjugate_gradient(x, residu, iter, A, b, x0, 0.00001);
+
+      for (int i = 0; i < 10; ++i)
+        TEST_EQ_CLOSE(1.0, x(i), 0.00001);
+      TEST_EQ(9, iter);
+
+      b = ones(10, 1);
+      conjugate_gradient(x, residu, iter, A, b, x0, 0.00001);
+      for (int i = 0; i < 10; ++i)
+        TEST_EQ_CLOSE(1.0 / ((double)(i + 1)), x(i), 0.00001);
+      TEST_EQ(9, iter);
+      }
     }
   }
 
@@ -4766,4 +4792,5 @@ void run_all_mat_tests()
   sparse_trace_test();
   sparse_matrix_init();
   assign_sparse_to_dense();
+  conjugate_gradient_tests();
   }

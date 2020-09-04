@@ -1939,7 +1939,7 @@ namespace jtk
       void assign_no_alias(SparseExpr<ExprOp> result)
         {
         resize(result.rows(), result.cols());
-        auto it = _entries.begin(); 
+        auto it = _entries.begin();
         for (uint64_t r = 0; r < rows(); ++r)
           {
           for (uint64_t c = 0; c < cols(); ++c)
@@ -6291,6 +6291,58 @@ namespace jtk
     balanc(a);
     elmhes(a);
     return hqr(a, wr, wi);
+    }
+
+  ///////////////////////////////////////////////////////////////////////////////
+  // iterative methods
+  ///////////////////////////////////////////////////////////////////////////////
+
+  template <class T, class Container, class TBlackBox>
+  void conjugate_gradient(matrix<T, Container>& out,
+    T& residu,
+    uint64_t& iterations,
+    const TBlackBox& A,
+    const matrix<T, Container>& b,
+    const matrix<T, Container>& x0,
+    T tolerance)
+    {
+    matrix<T, Container> r, w, z;
+    r = b - A * x0;
+    w = -r;
+    z = A * w;
+    matrix<T, Container> denom = transpose(w) * z;
+    matrix<T, Container> a(1);
+    if (denom(0))
+      a = (transpose(r)*w) / denom(0);
+    else
+      a(0) = 1;
+    out = x0 + a(0) * w;
+    matrix<T, Container> B(1);
+    B(0) = 0;
+
+    for (uint64_t i = 0; i < A.rows(); ++i)
+      {
+      r -= a(0) * z;
+      residu = norm(r);
+      if (residu < tolerance)
+        {
+        iterations = i;
+        return;
+        }
+      denom = transpose(w) * z;
+      if (denom(0))
+        B = (transpose(r)*z) / denom(0);
+      else
+        B(0) = 1;
+      w = -r + B(0) * w;
+      z = A * w;
+      denom = transpose(w) * z;
+      if (denom(0))
+        a = (transpose(r)*w) / denom(0);
+      else
+        a(0) = 1;
+      out += a(0) * w;
+      }
     }
 
   ///////////////////////////////////////////////////////////////////////////////
