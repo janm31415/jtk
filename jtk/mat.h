@@ -4,8 +4,8 @@
 // matrices are stored row major
 //
 // Author    :  Jan Maes                                            
-// Version   :  1.4
-// Date      :  30 June 2020
+// Version   :  1.5
+// Date      :  03 September 2020
 // License   :  MIT License
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -24,6 +24,8 @@ V1.3: 30 April 2020
   - concatenation of matrices with << operator in horizontal or vertical direction
 V1.4: 30 June 2020
   - adding zeros, ones, identity in templatized form, e.g. zeros<float>(m, n).
+V1.5: 03 September 2020
+  - adding sparse matrices.
 */
 
 
@@ -620,6 +622,163 @@ namespace jtk
       bool _evaluate_before_assigning;
     };
 
+  template <class A, class B, class Op>
+  class BinExprSparseOp
+    {
+    public:
+      using value_type = typename Op::value_type;
+
+      BinExprSparseOp(const A& a, const B& b, uint64_t rows, uint64_t cols, bool eval_before_assigning) : _a(a), _b(b), _rows(rows), _cols(cols),
+        _evaluate_before_assigning(eval_before_assigning)
+        {
+        _set_entry_1();
+        _set_entry_2();
+        }
+
+      BinExprSparseOp(const BinExprSparseOp&) = default;
+
+      value_type operator * () const
+        {
+        return Op::apply((value_type)*_a, (value_type)*_b);
+        }
+
+      void operator++()
+        {
+        if (iterator_1_equal_to_iterator_2())
+          {
+          ++_a;
+          ++_b;
+          _set_entry_1();
+          _set_entry_2();
+          }
+        else if (iterator_1_smaller_than_iterator_2())
+          {
+          ++_a;
+          _set_entry_1();
+          }
+        else
+          {
+          ++_b;
+          _set_entry_2();
+          }
+        }     
+
+      BinExprSparseOp end() const
+        {
+        BinExprSparseOp out(*this);
+        out._a = out._a.end();
+        out._b = out._b.end();
+        return out;
+        }
+
+      uint64_t rows() const
+        {
+        return _rows;
+        }
+
+      uint64_t cols() const
+        {
+        return _cols;
+        }
+
+      bool evaluate_before_assigning() const
+        {
+        return _evaluate_before_assigning;
+        }
+
+      uint64_t first_entry() const
+        {
+        if (iterator_1_smaller_than_iterator_2())
+          return _first_entry_1;
+        else
+          return _first_entry_2;
+        }
+
+      uint64_t second_entry() const
+        {
+        if (iterator_1_smaller_than_iterator_2())
+          return _second_entry_1;
+        else
+          return _second_entry_2;
+        }
+
+      bool operator == (const BinExprSparseOp& i_other) const
+        {
+        return (_a == i_other._a && _b == i_other._b);
+        }
+
+      bool operator != (const BinExprSparseOp& i_other) const
+        {
+        return !((*this) == i_other);
+        }
+
+    private:
+
+      void _set_entry_1()
+        {
+        if (_a == _a.end())
+          {
+          _first_entry_1 = static_cast<size_t>(-1);
+          _second_entry_1 = static_cast<size_t>(-1);
+          }
+        else
+          {
+          _first_entry_1 = _a.first_entry();
+          _second_entry_1 = _a.second_entry();
+          }
+        }
+
+      void _set_entry_2()
+        {
+        if (_b == _b.end())
+          {
+          _first_entry_2 = static_cast<size_t>(-1);
+          _second_entry_2 = static_cast<size_t>(-1);
+          }
+        else
+          {
+          _first_entry_2 = _b.first_entry();
+          _second_entry_2 = _b.second_entry();
+          }
+        }
+
+      bool iterator_1_equal_to_iterator_2() const
+        {
+        return (_first_entry_1 == _first_entry_2 &&
+          _second_entry_1 == _second_entry_2);        
+        }
+
+      bool iterator_1_smaller_than_iterator_2() const
+        {
+        if (_first_entry_1 < _first_entry_2)
+          return true;
+        else if (_first_entry_1 == _first_entry_2)
+          {
+          return (_second_entry_1 < _second_entry_2);
+          }
+        return false;
+        }
+
+      bool iterator_2_smaller_than_iterator_1() const
+        {
+        if (_first_entry_2 < _first_entry_1)
+          return true;
+        else if (_first_entry_1 == _first_entry_2)
+          {
+          return (_second_entry_2 < _second_entry_1);
+          }
+        return false;
+        }
+
+
+    private:
+      A _a;
+      B _b;
+      uint64_t _rows, _cols;
+      uint64_t _first_entry_1, _first_entry_2, _second_entry_1, _second_entry_2;
+      bool _evaluate_before_assigning;
+    };
+
   template <class A, class B>
   class MatMatMul
     {
@@ -1091,6 +1250,70 @@ namespace jtk
       bool evaluate_before_assigning() const
         {
         return _evaluate_before_assigning;
+        }   
+
+    private:
+      ExprOp _expr_op;
+      bool _evaluate_before_assigning;
+    };
+
+  template <class ExprOp>
+  class SparseExpr
+    {
+    public:
+      using value_type = typename ExprOp::value_type;
+
+      SparseExpr(const ExprOp& expr_op) : _expr_op(expr_op), _evaluate_before_assigning(expr_op.evaluate_before_assigning())
+        {}
+
+      value_type operator * () const
+        {
+        return *_expr_op;
+        }
+
+      void operator++()
+        {
+        ++_expr_op;
+        }    
+
+      uint64_t rows() const
+        {
+        return _expr_op.rows();
+        }
+
+      uint64_t cols() const
+        {
+        return _expr_op.cols();
+        }
+
+      bool evaluate_before_assigning() const
+        {
+        return _evaluate_before_assigning;
+        }
+
+      ExprOp end() const
+        {
+        return _expr_op.end();
+        }
+
+      uint64_t first_entry() const
+        {
+        return _expr_op.first_entry();
+        }
+
+      uint64_t second_entry() const
+        {
+        return _expr_op.second_entry();
+        }
+
+      bool operator == (const SparseExpr& other) const
+        {
+        return (_expr_op == other._expr_op);
+        }
+
+      bool operator != (const SparseExpr& other) const
+        {
+        return !((*this) == other);
         }
 
     private:
@@ -2325,22 +2548,68 @@ namespace jtk
         return *this;
         }
 
-      //template <class ExprOp>
-      //sparse_matrix(const Expr<ExprOp>& result)
-      //  {
-      //  assign(result);
-      //  }
-      //
-      //template <class ExprOp>
-      //sparse_matrix& operator = (const Expr<ExprOp>& result)
-      //  {
-      //  assign(result);
-      //  return *this;
-      //  }
+      template <class ExprOp>
+      sparse_matrix(const SparseExpr<ExprOp>& result)
+        {
+        assign(result);
+        }
+      
+      template <class ExprOp>
+      sparse_matrix& operator = (const SparseExpr<ExprOp>& result)
+        {
+        assign(result);
+        return *this;
+        }
+
+      template <class ExprOp>
+      void assign(const SparseExpr<ExprOp>& result)
+        {
+        if (result.evaluate_before_assigning())
+          assign_alias(result);
+        else
+          assign_no_alias(result);
+        }
+
+      template <class ExprOp>
+      void assign_alias(SparseExpr<ExprOp> result)
+        {
+        sparse_matrix temp(result.rows(), result.cols());
+        auto iter_end = result.end();
+        while (result != iter_end)
+          {
+          auto value = *result;
+          if (value)
+            temp.put(result.first_entry(), result.second_entry()) = value;
+          ++result;
+          }
+        swap(temp);       
+        }
+
+      template <class ExprOp>
+      void assign_no_alias(SparseExpr<ExprOp> result)
+        {
+        resize(result.rows(), result.cols());
+        auto iter_end = result.end();
+        while (result != iter_end)
+          {
+          auto value = *result;
+          if (value)
+            put(result.first_entry(), result.second_entry()) = value;
+          ++result;
+          }        
+        }
 
       bool empty() const
         {
         return _rows == 0 && _cols == 0;
+        }
+
+      uint64_t entries_stored() const
+        {
+        uint64_t output = 0;
+        for (const auto& row : _entries)
+          output += row.entries_stored();
+        return output;
         }
 
       void resize(uint64_t rows, uint64_t cols)
@@ -2630,6 +2899,71 @@ namespace jtk
       OpAdd<typename ExprOp1::value_type> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
     return Expr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning()));
+    }
+
+
+  template <class T, class T2>
+  SparseExpr<
+    BinExprSparseOp<
+    typename sparse_matrix<T>::const_iterator,
+    typename sparse_matrix<T2>::const_iterator,
+    OpAdd<T> > > operator + (const sparse_matrix<T>& a, const sparse_matrix<T2>& b)
+    {
+    typedef BinExprSparseOp<
+      typename sparse_matrix<T>::const_iterator,
+      typename sparse_matrix<T2>::const_iterator,
+      OpAdd<T> > ExprT;
+    assert(a.rows() == b.rows());
+    assert(a.cols() == b.cols());
+    return SparseExpr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false));
+    }
+
+  template <class T, class ExprOp >
+  SparseExpr<
+    BinExprSparseOp<
+    typename sparse_matrix<T>::const_iterator,
+    SparseExpr<ExprOp>,
+    OpAdd<T> > > operator + (const sparse_matrix<T>& a, const SparseExpr<ExprOp>& b)
+    {
+    typedef BinExprSparseOp<
+      typename sparse_matrix<T>::const_iterator,
+      SparseExpr<ExprOp>,
+      OpAdd<T> > ExprT;
+    assert(a.rows() == b.rows());
+    assert(a.cols() == b.cols());
+    return SparseExpr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning()));
+    }
+
+  template <class T, class ExprOp >
+  SparseExpr<
+    BinExprSparseOp<
+    SparseExpr<ExprOp>,
+    typename sparse_matrix<T>::const_iterator,
+    OpAdd<T> > > operator + (const SparseExpr<ExprOp>& a, const sparse_matrix<T>& b)
+    {
+    typedef BinExprSparseOp<
+      SparseExpr<ExprOp>,
+      typename sparse_matrix<T>::const_iterator,
+      OpAdd<T> > ExprT;
+    assert(a.rows() == b.rows());
+    assert(a.cols() == b.cols());
+    return SparseExpr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning()));
+    }
+
+  template <class ExprOp1, class ExprOp2 >
+  SparseExpr<
+    BinExprSparseOp<
+    SparseExpr<ExprOp1>,
+    SparseExpr<ExprOp2>,
+    OpAdd<typename ExprOp1::value_type> > > operator + (const SparseExpr<ExprOp1>& a, const SparseExpr<ExprOp2>& b)
+    {
+    typedef BinExprSparseOp<
+      SparseExpr<ExprOp1>,
+      SparseExpr<ExprOp2>,
+      OpAdd<typename ExprOp1::value_type> > ExprT;
+    assert(a.rows() == b.rows());
+    assert(a.cols() == b.cols());
+    return SparseExpr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning()));
     }
 
   ///////////////////////////////////////////////////////////////////////////////

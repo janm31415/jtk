@@ -4128,6 +4128,67 @@ namespace jtk
         TEST_EQ(m_matrix_1(0, 0), 5.0);
         }
       };
+
+    struct fixture_sparse_matrix_operations
+      {
+      fixture_sparse_matrix_operations() : m_mat_1(5, 5), m_mat_2(5, 5), m_smat_1(5, 5), m_smat_2(5, 5), m_mat_1col(5, 5)
+        {
+        size_t i, j;
+        for (i = 0; i < 5; ++i)
+          for (j = 0; j < 5; ++j)
+            {
+            m_mat_1(i, j) = (double)(i * 5 + j);
+            m_mat_2(i, j) = (double)((i * 5 + j)*2.0);
+            m_mat_1col(i, j) = (double)(i + 5 * j);
+            }
+        for (i = 0; i < 5; ++i)
+          {
+          m_smat_1.put(i, i) = (double)(i);
+          m_smat_2.put(i, i) = (double)(i*2.0);
+
+          }
+        }
+
+      matrix<double> m_mat_1;
+      matrix<double> m_mat_2;
+      matrix<double> m_mat_1col;
+      sparse_matrix<double> m_smat_1;
+      sparse_matrix<double> m_smat_2;
+      };
+
+    struct sparse_matrix_add_test : public fixture_sparse_matrix_operations
+      {
+      void test()
+        {
+        int i;
+        sparse_matrix<double> sm = m_smat_1 + m_smat_2;
+        
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), i*3.0);
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        
+        sm = m_smat_1 + (m_smat_1 + m_smat_2);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), i*4.0);
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        
+        sm = (m_smat_1 + m_smat_2) + m_smat_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), i*4.0);
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = (m_smat_1 + m_smat_2) + (m_smat_2 + m_smat_1);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), i*6.0);
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = m_smat_1 + m_smat_2 + m_smat_2 + m_smat_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), i*6.0);
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        
+        }
+      };
     }
   }
 
@@ -4312,4 +4373,5 @@ void run_all_mat_tests()
   sparse_matrix_assignment_test().test();
   sparse_matrix_resize_test().test();
   sparse_matrix_iterator_test().test();
+  sparse_matrix_add_test().test();
 }
