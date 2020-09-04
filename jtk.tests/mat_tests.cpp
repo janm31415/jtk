@@ -4189,6 +4189,111 @@ namespace jtk
         
         }
       };
+
+    struct sparse_matrix_subtract_test : public fixture_sparse_matrix_operations
+      {
+      void test()
+        {
+        int i;
+        sparse_matrix<double> sm = m_smat_1 - m_smat_2;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), -static_cast<double>(i));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = m_smat_1 - (m_smat_1 + m_smat_2);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), -static_cast<double>(i*2.0));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = (m_smat_1 + m_smat_2) - m_smat_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), i*2.0);
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = (m_smat_1 + m_smat_2) - (m_smat_2 - m_smat_1);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), i*2.0);
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = m_smat_1 - m_smat_2 - m_smat_2 - m_smat_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), -static_cast<double>(i*4.0));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        }
+      };
+
+    struct sparse_matrix_negate_test : public fixture_sparse_matrix_operations
+      {
+      void test()
+        {
+        int i;
+        sparse_matrix<double> sm = -m_smat_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), -static_cast<double>(i));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = -(m_smat_1 + m_smat_2);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), -static_cast<double>(3.0*i));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        }
+      };
+
+    struct sparse_matrix_scalar_mul_test : public fixture_sparse_matrix_operations
+      {
+      void test()
+        {
+        int i;
+        sparse_matrix<double> sm = m_smat_1*2.0;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), 2.0*static_cast<double>(i));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = 2 * m_smat_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), 2.0*static_cast<double>(i));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = (m_smat_1 + m_smat_2)*2.0;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), 6.0*static_cast<double>(i));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = 2.0*(m_smat_1 + m_smat_2);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), 6.0*static_cast<double>(i));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        }
+      };
+
+    struct sparse_matrix_scalar_div_test : public fixture_sparse_matrix_operations
+      {
+      void test()
+        {
+        int i;
+        sparse_matrix<double> sm = 2.0 / m_smat_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), 2.0 / static_cast<double>(i));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(5));
+        
+        sm = m_smat_1 / 2.0;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), static_cast<double>(i) / 2.0);
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        
+        sm = (m_smat_1 + m_smat_2) / 2.0;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), 3.0*static_cast<double>(i) / 2.0);
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+
+        sm = 2.0 / (m_smat_1 + m_smat_2);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(sm.get(i, i), 2.0 / (3.0*static_cast<double>(i)));
+        TEST_EQ(sm.entries_stored(), static_cast<size_t>(5));
+        }
+      };
+
     }
   }
 
@@ -4374,4 +4479,8 @@ void run_all_mat_tests()
   sparse_matrix_resize_test().test();
   sparse_matrix_iterator_test().test();
   sparse_matrix_add_test().test();
+  sparse_matrix_subtract_test().test();
+  sparse_matrix_negate_test().test();
+  sparse_matrix_scalar_mul_test().test();
+  sparse_matrix_scalar_div_test().test();
 }
