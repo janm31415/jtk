@@ -31,6 +31,7 @@
 #include <vector>
 #include <cassert>
 #include <exception>
+#include <algorithm>
 #endif
 
 namespace jtk

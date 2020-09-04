@@ -4282,7 +4282,7 @@ namespace jtk
           TEST_EQ(sm.get(i, i), 2.0*static_cast<double>(i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
 
-        sm = 2 * smat_1;
+        sm = 2.0 * smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 2.0*static_cast<double>(i));
         TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
@@ -4678,7 +4678,7 @@ namespace jtk
       for (int i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0 / ((double)(i + 1)), x(i), 0.00001);
       TEST_EQ(1, iter);
-      }
+      }      
     }
   }
 
@@ -4858,7 +4858,7 @@ void run_all_mat_tests()
   sparse_vector_assignment().test();
   sparse_vector_mul_div().test();
   sparse_vector_add().test();
-  sparse_vector_equality().test();
+  sparse_vector_equality().test();  
   sparse_matrix_getput_test().test();
   sparse_matrix_size_test().test();
   sparse_matrix_swap_test().test();
@@ -4882,5 +4882,5 @@ void run_all_mat_tests()
   conjugate_gradient_tests();
   preconditioned_conjugate_gradient_tests();
   bicgstab_tests();
-  bipcgstab_tests();
+  bipcgstab_tests();  
   }

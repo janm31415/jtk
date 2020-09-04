@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <vector>
 #include <numeric>
+#include <string.h>
 
 namespace jtk
   {

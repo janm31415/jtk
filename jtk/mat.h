@@ -1531,7 +1531,7 @@ namespace jtk
     public:
       using value_type = typename Op::value_type;
 
-      BinExprSparseScalarOp(const A& a, typename value_type scalar, uint64_t rows, uint64_t cols, bool evaluate_before_assigning) : _a(a), _scalar(scalar), _rows(rows), _cols(cols), _evaluate_before_assigning(evaluate_before_assigning)
+      BinExprSparseScalarOp(const A& a, value_type scalar, uint64_t rows, uint64_t cols, bool evaluate_before_assigning) : _a(a), _scalar(scalar), _rows(rows), _cols(cols), _evaluate_before_assigning(evaluate_before_assigning)
         {
         }
 
@@ -1591,7 +1591,7 @@ namespace jtk
 
     private:
       A _a;
-      typename value_type _scalar;
+      value_type _scalar;
       uint64_t _rows, _cols;
       bool _evaluate_before_assigning;
     };
@@ -2214,8 +2214,8 @@ namespace jtk
   class sparse_vector_iterator
     {
     public:
-      typedef typename T value_type;
-      typedef typename T& reference;
+      typedef T value_type;
+      typedef T& reference;
       typedef uint64_t difference_type;
       typedef T* pointer;
       typedef std::random_access_iterator_tag iterator_category;
@@ -2360,8 +2360,8 @@ namespace jtk
   class sparse_vector_const_iterator
     {
     public:
-      typedef typename T value_type;
-      typedef typename const T& reference;
+      typedef T value_type;
+      typedef const T& reference;
       typedef uint64_t difference_type;
       typedef const T* pointer;
       typedef std::random_access_iterator_tag iterator_category;
@@ -2574,8 +2574,8 @@ namespace jtk
       sparse_vector(const sparse_vector<T2>& other)
         {
         sparse_vector tmp(other._size);
-        const_iterator iter_other = i_other.begin();
-        const_iterator end_other = i_other.end();
+        const_iterator iter_other = other.begin();
+        const_iterator end_other = other.end();
         for (; iter_other != end_other; ++iter_other)
           {
           if (*iter_other != static_cast<T2>(0))
@@ -2718,8 +2718,8 @@ namespace jtk
   class sparse_matrix_iterator
     {
     public:
-      typedef typename T value_type;
-      typedef typename T& reference;
+      typedef T value_type;
+      typedef T& reference;
       typedef uint64_t difference_type;
       typedef T* pointer;
       typedef std::forward_iterator_tag iterator_category;
@@ -2839,8 +2839,8 @@ namespace jtk
   class sparse_matrix_const_iterator
     {
     public:
-      typedef typename T value_type;
-      typedef typename const T& reference;
+      typedef T value_type;
+      typedef const T& reference;
       typedef uint64_t difference_type;
       typedef const T* pointer;
       typedef std::forward_iterator_tag iterator_category;
