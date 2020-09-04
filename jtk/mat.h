@@ -6468,6 +6468,87 @@ namespace jtk
     iterations = A.rows();
     }
 
+  template <class T, class Container, class TBlackBox, class TPreconditioner>
+  void bipcgstab(matrix<T, Container>& out,
+    T& residu,
+    uint64_t& iterations,
+    const TBlackBox& A,
+    const TPreconditioner& P,
+    const matrix<T, Container>& b,
+    const matrix<T, Container>& x0,
+    T tolerance)
+    {
+    matrix<T, Container> r, r_, p, s, phat, shat, t, v;
+    matrix<T, Container> rho_1(1), rho_2(1), alpha(1), omega(1);
+    T beta = 0;
+    out = x0;
+    T normb = norm(b);
+    r = b - A * out;
+    r_ = r;
+
+    if (normb == (T)0)
+      normb = (T)1;
+
+    T resid = norm(r) / normb;
+    if (resid <= tolerance)
+      {
+      residu = resid;
+      iterations = 0;
+      return;
+      }
+
+    for (uint64_t i = 0; i < A.rows(); ++i)
+      {
+      rho_1 = transpose(r_) * r;
+      if (rho_1(0) == (T)0)
+        {
+        residu = norm(r) / normb;
+        iterations = i + 1;
+        return;
+        }
+      if (i == 0)
+        p = r;
+      else
+        {
+        beta = (rho_1(0) / rho_2(0))*(alpha(0) / omega(0));
+        p = r + beta * (p - omega(0)*v);
+        }
+      phat = P * p;
+      v = A * phat;      
+      alpha = rho_1(0) / (transpose(r_)*v);
+      s = r - alpha(0)*v;
+      resid = norm(s) / normb;
+      if (resid < tolerance)
+        {
+        out += alpha(0)*phat;
+        residu = resid;
+        iterations = i + 1;
+        return;
+        }
+      shat = P * s;
+      t = A * shat;
+      omega = (transpose(t)*s) / matrix<T, Container>(transpose(t)*t)(0);
+      out += alpha(0)*phat + omega(0)*shat;
+      r = s - omega(0)*t;
+      rho_2 = rho_1;
+      resid = norm(r) / normb;
+      if (resid < tolerance)
+        {
+        residu = resid;
+        iterations = i + 1;
+        return;
+        }
+      if (omega(0) == 0)
+        {
+        residu = norm(r) / normb;
+        iterations = i + 1;
+        return;
+        }
+      }
+    residu = resid;
+    iterations = A.rows();
+    }
+
   ///////////////////////////////////////////////////////////////////////////////
   // typedefs
   ///////////////////////////////////////////////////////////////////////////////
