@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 
 #include "../jtk/mat.h"
 
@@ -4395,6 +4396,24 @@ namespace jtk
       TEST_EQ(sm.cols(), static_cast<size_t>(2));
       }
 
+    void sparse_matrix_multiply_2()
+      {
+      smatf A(2, 3);
+      A.put(0, 0) = 1;
+      A.put(1, 0) = -1;
+      A.put(1, 2) = 3;
+      smatf B(3, 3);
+      B.put(0, 0) = 7;
+      B.put(2, 2) = 1;
+      smatf AB = A * B;
+      TEST_EQ(7, AB(0, 0));
+      TEST_EQ(0, AB(0, 1));
+      TEST_EQ(0, AB(0, 2));
+      TEST_EQ(-7, AB(1, 0));
+      TEST_EQ(0, AB(1, 1));
+      TEST_EQ(3, AB(1, 2));
+      }
+
     void sparse_matrix_vector_multiply()
       {
       sparse_matrix<double> sm1(2, 3);
@@ -4584,43 +4603,44 @@ namespace jtk
 
       for (int i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0, x(i), 0.00001);
-      TEST_EQ(9, iter);
+      TEST_EQ(1, iter);
 
       b = ones(10, 1);
       conjugate_gradient(x, residu, iter, A, b, x0, 0.00001);
       for (int i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0 / ((double)(i + 1)), x(i), 0.00001);
-      TEST_EQ(9, iter);
+      TEST_EQ(1, iter);
       }
 
     void preconditioned_conjugate_gradient_tests()
       {
-      smat A(10, 10);
-      smat P(10, 10);
+      smatf A(10, 10);
+
       for (int i = 1; i <= 10; ++i)
         {
-        A.put(i - 1, i - 1) = (double)i;
-        P.put(i - 1, i - 1) = 1.0/(double)i;
+        A.put(i - 1, i - 1) = (float)i;
         }
 
-      mat b(10);
-      for (int i = 1; i <= 10; ++i)
-        b(i - 1) = (double)i;
+      DiagonalPreconditioner P(A);
 
-      mat x;
-      mat x0 = zeros(10, 1);
-      double residu;
+      matf b(10);
+      for (int i = 1; i <= 10; ++i)
+        b(i - 1) = (float)i;
+
+      matf x;
+      matf x0 = zeros<float>(10, 1);
+      float residu;
       uint64_t iter;
-      preconditioned_conjugate_gradient(x, residu, iter, A, P, b, x0, 0.00001);
+      preconditioned_conjugate_gradient(x, residu, iter, A, P, b, x0, 0.00001f);
 
       for (int i = 0; i < 10; ++i)
-        TEST_EQ_CLOSE(1.0, x(i), 0.00001);
+        TEST_EQ_CLOSE(1.f, x(i), 0.00001f);
       TEST_EQ(1, iter);
 
-      b = ones(10, 1);
-      preconditioned_conjugate_gradient(x, residu, iter, A, P, b, x0, 0.00001);
+      b = ones<float>(10, 1);
+      preconditioned_conjugate_gradient(x, residu, iter, A, P, b, x0, 0.00001f);
       for (int i = 0; i < 10; ++i)
-        TEST_EQ_CLOSE(1.0 / ((double)(i + 1)), x(i), 0.00001);
+        TEST_EQ_CLOSE(1.f / ((float)(i + 1)), x(i), 0.00001f);
       TEST_EQ(1, iter);
       }
 
@@ -4641,24 +4661,23 @@ namespace jtk
 
       for (int i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0, x(i), 0.00001);
-      TEST_EQ(10, iter);
+      TEST_EQ(1, iter);
       
       b = ones(10, 1);
       bicgstab(x, residu, iter, A, b, x0, 0.000001);
       for (int i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0 / ((double)(i + 1)), x(i), 0.00001);
-      TEST_EQ(9, iter);      
+      TEST_EQ(1, iter);      
       }
 
     void bipcgstab_tests()
       {
       smat A(10, 10);
-      smat P(10, 10);
       for (int i = 1; i <= 10; ++i)
         {
         A.put(i - 1, i - 1) = (double)i;
-        P.put(i - 1, i - 1) = 1.0 / (double)i;
         }
+      DiagonalPreconditioner P(A);
       mat b(10);
       for (int i = 1; i <= 10; ++i)
         b(i - 1) = (double)i;
@@ -4678,7 +4697,48 @@ namespace jtk
       for (int i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0 / ((double)(i + 1)), x(i), 0.00001);
       TEST_EQ(1, iter);
-      }      
+      }    
+
+    void poisson_with_conjugate_gradient_tests()
+      {
+      /*
+      Poisson equation:
+      u"(x) = -f(x) with 0 < x < 1.
+      Dirichlet boundary conditions, i.e. u(0) = u(1) = 0.
+      Let u(x) = x * (1 - x), then u'(x) = 1 - 2*x, and u"(x) = -2
+
+      Solving poisson with linear FEM using Galerkin method, (equals same system as differences method)
+      */
+      int n = 100;
+      float h = 1.f / (float)(n+1);
+      smatf A(n, n);
+      for (int i = 0; i < n; ++i)
+        {
+        A.put(i, i) = 2.f/(h*h);
+        if (i > 0)
+          A.put(i, i - 1) = -1.f/(h*h);
+        if (i < n - 1)
+          A.put(i, i + 1) = -1.f/(h*h);
+        }
+      matf b(n);
+      for (int i = 0; i < n; ++i)
+        {
+        b(i) = 2.f; //-u"(x)
+        }
+      float tol = std::numeric_limits<float>::epsilon();
+      float residu;
+      uint64_t iter;
+      matf sol;
+      matf x0 = zeros<float>(n,1);
+      conjugate_gradient(sol, residu, iter, A, b, x0, tol);
+      for (int i = 0; i < n; ++i)
+        {
+        double x = (double)(i+1) / (double)(n + 1);
+        double u = x * (1 - x); // we know the exact solution u(x)
+        TEST_EQ_CLOSE((float)u, sol(i), 0.00001f);
+        }
+      }
+
     }
   }
 
@@ -4872,6 +4932,7 @@ void run_all_mat_tests()
   sparse_matrix_scalar_div_test().test();
   sparse_matrix_transpose_test().test();
   sparse_matrix_multiply();
+  sparse_matrix_multiply_2();
   sparse_matrix_vector_multiply();
   sparse_norm_tests();
   sparse_diagonal_tests();
@@ -4883,4 +4944,5 @@ void run_all_mat_tests()
   preconditioned_conjugate_gradient_tests();
   bicgstab_tests();
   bipcgstab_tests();  
+  poisson_with_conjugate_gradient_tests();
   }

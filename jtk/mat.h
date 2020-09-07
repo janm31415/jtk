@@ -42,6 +42,10 @@ V1.5: 04 September 2020
 #include <limits>
 #include <cmath>
 
+#include <immintrin.h>
+
+#include "timer.h"
+
 namespace jtk
   {
 
@@ -517,13 +521,26 @@ namespace jtk
     bool vertical;
     };
 
+  template <class T1, class T2>
+  struct gettype
+    {
+    typedef T1 ty;
+    };
+
+  template <>
+  struct gettype<float, double>
+    {
+    typedef double ty;
+    };
+
   template <class T>
   struct OpAdd
     {
     using value_type = T;
-    static inline T apply(T a, T b)
+    template <class T2, class T3>
+    static inline T apply(T2 a, T3 b)
       {
-      return a + b;
+      return static_cast<T>(a + b);
       }
     };
 
@@ -531,9 +548,10 @@ namespace jtk
   struct OpSub
     {
     using value_type = T;
-    static inline T apply(T a, T b)
+    template <class T2, class T3>
+    static inline T apply(T2 a, T3 b)
       {
-      return a - b;
+      return static_cast<T>(a - b);
       }
     };
 
@@ -541,9 +559,10 @@ namespace jtk
   struct OpMul
     {
     using value_type = T;
-    static inline T apply(T a, T b)
+    template <class T2, class T3>
+    static inline T apply(T2 a, T3 b)
       {
-      return a * b;
+      return static_cast<T>(a * b);
       }
     };
 
@@ -551,9 +570,10 @@ namespace jtk
   struct OpDiv
     {
     using value_type = T;
-    static inline T apply(T a, T b)
+    template <class T2, class T3>
+    static inline T apply(T2 a, T3 b)
       {
-      return a / b;
+      return static_cast<T>(a / b);
       }
     };
 
@@ -561,9 +581,10 @@ namespace jtk
   struct OpDivInv
     {
     using value_type = T;
-    static inline T apply(T a, T b)
+    template <class T2, class T3>
+    static inline T apply(T2 a, T3 b)
       {
-      return b / a;
+      return static_cast<T>(b / a);
       }
     };
 
@@ -571,9 +592,10 @@ namespace jtk
   struct OpNeg
     {
     using value_type = T;
-    static inline T apply(T a)
+    template <class T2>
+    static inline T apply(T2 a)
       {
-      return -a;
+      return static_cast<T>(-a);
       }
     };
 
@@ -581,9 +603,10 @@ namespace jtk
   struct OpId
     {
     using value_type = T;
-    static inline T apply(T a)
+    template <class T2>
+    static inline T apply(T2 a)
       {
-      return a;
+      return static_cast<T>(a);
       }
     };
 
@@ -604,7 +627,7 @@ namespace jtk
 
       value_type operator * () const
         {
-        return Op::apply((value_type)*_a, (value_type)*_b);
+        return Op::apply<typename A::value_type, typename B::value_type>(*_a, *_b);
         }
 
       void operator++()
@@ -666,11 +689,11 @@ namespace jtk
       value_type operator * () const
         {
         if (iterator_1_equal_to_iterator_2())
-          return Op::apply((value_type)*_a, (value_type)*_b);
+          return Op::apply<typename A::value_type, typename B::value_type>(*_a, *_b);
         else if (iterator_1_smaller_than_iterator_2())
-          return Op::apply((value_type)*_a, static_cast<value_type>(0));
+          return Op::apply<typename A::value_type, typename B::value_type>(*_a, static_cast<typename B::value_type>(0));
         else
-          return Op::apply(static_cast<value_type>(0), (value_type)*_b);
+          return Op::apply<typename A::value_type, typename B::value_type>(static_cast<A::value_type>(0), *_b);
         }
 
       void operator++()
@@ -699,6 +722,18 @@ namespace jtk
         BinExprSparseOp out(*this);
         out._a = out._a.end();
         out._b = out._b.end();
+        return out;
+        }
+
+      BinExprSparseOp row(uint64_t idx) const
+        {
+        BinExprSparseOp out(*this);
+        out._a = out._a.row(idx);
+        out._b = out._b.row(idx);
+        out._first_entry_1 = idx;
+        out._first_entry_2 = idx;
+        out._second_entry_1 = out._a.second_entry();
+        out._second_entry_2 = out._b.second_entry();
         return out;
         }
 
@@ -814,7 +849,7 @@ namespace jtk
   class MatMatMul
     {
     public:
-      using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
+      using value_type = typename gettype<typename ::jtk::implementation_details::get_value_type<A>::value_type, typename ::jtk::implementation_details::get_value_type<B>::value_type>::ty;
 
       MatMatMul(const A& a, const B& b, uint64_t rows, uint64_t cols, uint64_t mid_dim) : _a(a), _b(b), _rows(rows), _cols(cols), _mid_dim(mid_dim),
         _index(0), _evaluate_before_assigning(true)
@@ -882,7 +917,7 @@ namespace jtk
   class SparseMatMatMul
     {
     public:
-      using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
+      using value_type = typename gettype<typename ::jtk::implementation_details::get_value_type<A>::value_type, typename ::jtk::implementation_details::get_value_type<B>::value_type>::ty;
 
       SparseMatMatMul(const A& a, const B& b, uint64_t rows, uint64_t cols, uint64_t mid_dim) : _a(a), _b(b), _rows(rows), _cols(cols), _mid_dim(mid_dim),
         _index(0), _evaluate_before_assigning(true)
@@ -893,27 +928,11 @@ namespace jtk
         {
         const uint64_t r = _index / _cols;
         const uint64_t c = _index % _cols;
-        auto a_it = _a.row(r).begin();
-        auto a_it_end = a_it.end();
-        auto b_it = _b + c;
-        uint32_t b_entry = 0;
         value_type res = (value_type)0;
-        while (a_it != a_it_end)
+        auto a_it = _a.row(r);
+        for (; a_it.first_entry() == r; ++a_it)
           {
-          if (a_it.entry() == b_entry)
-            {
-            res += (*a_it)*(*b_it);
-            ++a_it; ++b_it; ++b_entry;
-            }
-          else if (a_it.entry() < b_entry)
-            {
-            ++a_it;
-            }
-          else
-            {
-            ++b_entry;
-            ++b_it;
-            }
+          res += static_cast<value_type>(*a_it) * static_cast<value_type>(*(_b + a_it.second_entry() * _cols + c));
           }
         return res;
         }
@@ -1086,7 +1105,14 @@ namespace jtk
 
       value_type operator * () const
         {
-        return _a.get(_index, _index);
+        auto row_it = _a.row(_index);
+        while (row_it.first_entry() == _index)
+          {
+          if (row_it.second_entry() == _index)
+            return *row_it;
+          ++row_it;
+          }
+        return (value_type)0;
         }
 
       void operator++()
@@ -1255,6 +1281,13 @@ namespace jtk
         {
         BlockSparse out(*this);
         out._a = out._a.end();
+        return out;
+        }
+
+      BlockSparse row(uint64_t idx) const
+        {
+        BlockSparse out(*this);
+        out._a = out._a.row(idx);
         return out;
         }
 
@@ -1499,6 +1532,13 @@ namespace jtk
         return out;
         }
 
+      UnExprSparseOp row(uint64_t idx) const
+        {
+        UnExprSparseOp out(*this);
+        out._a = out._a.row(idx);
+        return out;
+        }
+
       uint64_t first_entry() const
         {
         return _a.first_entry();
@@ -1539,7 +1579,7 @@ namespace jtk
 
       value_type operator * () const
         {
-        return Op::apply(*_a, _scalar);
+        return Op::apply<typename A::value_type, value_type>(*_a, _scalar);
         }
 
       void operator++()
@@ -1566,6 +1606,13 @@ namespace jtk
         {
         BinExprSparseScalarOp out(*this);
         out._a = out._a.end();
+        return out;
+        }
+
+      BinExprSparseScalarOp row(uint64_t idx) const
+        {
+        BinExprSparseScalarOp out(*this);
+        out._a = out._a.row(idx);
         return out;
         }
 
@@ -1686,6 +1733,13 @@ namespace jtk
         {
         SparseExpr out(*this);
         out._expr_op = out._expr_op.end();
+        return out;
+        }
+
+      SparseExpr row(uint64_t idx) const
+        {
+        SparseExpr out(*this);
+        out._expr_op = out._expr_op.row(idx);
         return out;
         }
 
@@ -2760,6 +2814,15 @@ namespace jtk
         return output_iterator;
         }
 
+      sparse_matrix_iterator row(uint64_t idx) const
+        {
+        sparse_matrix_iterator output_iterator(*this);
+        output_iterator._row = idx;
+        output_iterator._iter = _matrix->_entries[idx].begin();
+        output_iterator._update_iterator_forward();
+        return output_iterator;
+        }
+
       sparse_matrix_iterator& operator++ ()
         {
         ++_iter;
@@ -2878,6 +2941,15 @@ namespace jtk
           output_iterator._row = _matrix->rows();
           output_iterator._iter = _matrix->_entries[output_iterator._row - 1].end();
           }
+        return output_iterator;
+        }
+
+      sparse_matrix_const_iterator row(uint64_t idx) const
+        {
+        sparse_matrix_const_iterator output_iterator(*this);
+        output_iterator._row = idx;
+        output_iterator._iter = _matrix->_entries[idx].begin();
+        output_iterator._update_iterator_forward();
         return output_iterator;
         }
 
@@ -3405,12 +3477,12 @@ namespace jtk
     BinExprOp<
     typename matrix<T, Container>::const_iterator,
     typename matrix<T2, Container2>::const_iterator,
-    OpAdd<T> > > operator + (const matrix<T, Container>& a, const matrix<T2, Container2>& b)
+    OpAdd<typename gettype<T, T2>::ty> > > operator + (const matrix<T, Container>& a, const matrix<T2, Container2>& b)
     {
     typedef BinExprOp<
       typename matrix<T, Container>::const_iterator,
       typename matrix<T2, Container2>::const_iterator,
-      OpAdd<T> > ExprT;
+      OpAdd<typename gettype<T, T2>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
     return Expr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false));
     }
@@ -3420,12 +3492,12 @@ namespace jtk
     BinExprOp<
     typename matrix<T, Container>::const_iterator,
     Expr<ExprOp>,
-    OpAdd<T> > > operator + (const matrix<T, Container>& a, const Expr<ExprOp>& b)
+    OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > > operator + (const matrix<T, Container>& a, const Expr<ExprOp>& b)
     {
     typedef BinExprOp<
       typename matrix<T, Container>::const_iterator,
       Expr<ExprOp>,
-      OpAdd<T> > ExprT;
+      OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
     return Expr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning()));
     }
@@ -3435,12 +3507,12 @@ namespace jtk
     BinExprOp<
     Expr<ExprOp>,
     typename matrix<T, Container>::const_iterator,
-    OpAdd<T> > > operator + (const Expr<ExprOp>& a, const matrix<T, Container>& b)
+    OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > > operator + (const Expr<ExprOp>& a, const matrix<T, Container>& b)
     {
     typedef BinExprOp<
       Expr<ExprOp>,
       typename matrix<T, Container>::const_iterator,
-      OpAdd<T> > ExprT;
+      OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
     return Expr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning()));
     }
@@ -3450,12 +3522,12 @@ namespace jtk
     BinExprOp<
     Expr<ExprOp1>,
     Expr<ExprOp2>,
-    OpAdd<typename ExprOp1::value_type> > > operator + (const Expr<ExprOp1>& a, const Expr<ExprOp2>& b)
+    OpAdd<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > > operator + (const Expr<ExprOp1>& a, const Expr<ExprOp2>& b)
     {
     typedef BinExprOp<
       Expr<ExprOp1>,
       Expr<ExprOp2>,
-      OpAdd<typename ExprOp1::value_type> > ExprT;
+      OpAdd<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
     return Expr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning()));
     }
@@ -3466,12 +3538,12 @@ namespace jtk
     BinExprSparseOp<
     typename sparse_matrix<T>::const_iterator,
     typename sparse_matrix<T2>::const_iterator,
-    OpAdd<T> > > operator + (const sparse_matrix<T>& a, const sparse_matrix<T2>& b)
+    OpAdd<typename gettype<T, T2>::ty> > > operator + (const sparse_matrix<T>& a, const sparse_matrix<T2>& b)
     {
     typedef BinExprSparseOp<
       typename sparse_matrix<T>::const_iterator,
       typename sparse_matrix<T2>::const_iterator,
-      OpAdd<T> > ExprT;
+      OpAdd<typename gettype<T, T2>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
     return SparseExpr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false));
@@ -3482,12 +3554,12 @@ namespace jtk
     BinExprSparseOp<
     typename sparse_matrix<T>::const_iterator,
     SparseExpr<ExprOp>,
-    OpAdd<T> > > operator + (const sparse_matrix<T>& a, const SparseExpr<ExprOp>& b)
+    OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > > operator + (const sparse_matrix<T>& a, const SparseExpr<ExprOp>& b)
     {
     typedef BinExprSparseOp<
       typename sparse_matrix<T>::const_iterator,
       SparseExpr<ExprOp>,
-      OpAdd<T> > ExprT;
+      OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
     return SparseExpr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning()));
@@ -3498,12 +3570,12 @@ namespace jtk
     BinExprSparseOp<
     SparseExpr<ExprOp>,
     typename sparse_matrix<T>::const_iterator,
-    OpAdd<T> > > operator + (const SparseExpr<ExprOp>& a, const sparse_matrix<T>& b)
+    OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > > operator + (const SparseExpr<ExprOp>& a, const sparse_matrix<T>& b)
     {
     typedef BinExprSparseOp<
       SparseExpr<ExprOp>,
       typename sparse_matrix<T>::const_iterator,
-      OpAdd<T> > ExprT;
+      OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
     return SparseExpr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning()));
@@ -3514,12 +3586,12 @@ namespace jtk
     BinExprSparseOp<
     SparseExpr<ExprOp1>,
     SparseExpr<ExprOp2>,
-    OpAdd<typename ExprOp1::value_type> > > operator + (const SparseExpr<ExprOp1>& a, const SparseExpr<ExprOp2>& b)
+    OpAdd<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > > operator + (const SparseExpr<ExprOp1>& a, const SparseExpr<ExprOp2>& b)
     {
     typedef BinExprSparseOp<
       SparseExpr<ExprOp1>,
       SparseExpr<ExprOp2>,
-      OpAdd<typename ExprOp1::value_type> > ExprT;
+      OpAdd<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
     return SparseExpr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning()));
@@ -3534,12 +3606,12 @@ namespace jtk
     BinExprOp<
     typename matrix<T, Container>::const_iterator,
     typename matrix<T2, Container2>::const_iterator,
-    OpSub<T> > > operator - (const matrix<T, Container>& a, const matrix<T2, Container2>& b)
+    OpSub<typename gettype<T, T2>::ty> > > operator - (const matrix<T, Container>& a, const matrix<T2, Container2>& b)
     {
     typedef BinExprOp<
       typename matrix<T, Container>::const_iterator,
       typename matrix<T2, Container2>::const_iterator,
-      OpSub<T> > ExprT;
+      OpSub<typename gettype<T, T2>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
     return Expr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false));
     }
@@ -3549,12 +3621,12 @@ namespace jtk
     BinExprOp<
     typename matrix<T, Container>::const_iterator,
     Expr<ExprOp>,
-    OpSub<T> > > operator - (const matrix<T, Container>& a, const Expr<ExprOp>& b)
+    OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > > operator - (const matrix<T, Container>& a, const Expr<ExprOp>& b)
     {
     typedef BinExprOp<
       typename matrix<T, Container>::const_iterator,
       Expr<ExprOp>,
-      OpSub<T> > ExprT;
+      OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
     return Expr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning()));
     }
@@ -3564,12 +3636,12 @@ namespace jtk
     BinExprOp<
     Expr<ExprOp>,
     typename matrix<T, Container>::const_iterator,
-    OpSub<T> > > operator - (const Expr<ExprOp>& a, const matrix<T, Container>& b)
+    OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > > operator - (const Expr<ExprOp>& a, const matrix<T, Container>& b)
     {
     typedef BinExprOp<
       Expr<ExprOp>,
       typename matrix<T, Container>::const_iterator,
-      OpSub<T> > ExprT;
+      OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
     return Expr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning()));
     }
@@ -3579,12 +3651,12 @@ namespace jtk
     BinExprOp<
     Expr<ExprOp1>,
     Expr<ExprOp2>,
-    OpSub<typename ExprOp1::value_type> > > operator - (const Expr<ExprOp1>& a, const Expr<ExprOp2>& b)
+    OpSub<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > > operator - (const Expr<ExprOp1>& a, const Expr<ExprOp2>& b)
     {
     typedef BinExprOp<
       Expr<ExprOp1>,
       Expr<ExprOp2>,
-      OpSub<typename ExprOp1::value_type> > ExprT;
+      OpSub<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
     return Expr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning()));
     }
@@ -3595,12 +3667,12 @@ namespace jtk
     BinExprSparseOp<
     typename sparse_matrix<T>::const_iterator,
     typename sparse_matrix<T2>::const_iterator,
-    OpSub<T> > > operator - (const sparse_matrix<T>& a, const sparse_matrix<T2>& b)
+    OpSub<typename gettype<T, T2>::ty> > > operator - (const sparse_matrix<T>& a, const sparse_matrix<T2>& b)
     {
     typedef BinExprSparseOp<
       typename sparse_matrix<T>::const_iterator,
       typename sparse_matrix<T2>::const_iterator,
-      OpSub<T> > ExprT;
+      OpSub<typename gettype<T, T2>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
     return SparseExpr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false));
@@ -3611,12 +3683,12 @@ namespace jtk
     BinExprSparseOp<
     typename sparse_matrix<T>::const_iterator,
     SparseExpr<ExprOp>,
-    OpSub<T> > > operator - (const sparse_matrix<T>& a, const SparseExpr<ExprOp>& b)
+    OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > > operator - (const sparse_matrix<T>& a, const SparseExpr<ExprOp>& b)
     {
     typedef BinExprSparseOp<
       typename sparse_matrix<T>::const_iterator,
       SparseExpr<ExprOp>,
-      OpSub<T> > ExprT;
+      OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
     return SparseExpr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning()));
@@ -3627,12 +3699,12 @@ namespace jtk
     BinExprSparseOp<
     SparseExpr<ExprOp>,
     typename sparse_matrix<T>::const_iterator,
-    OpSub<T> > > operator - (const SparseExpr<ExprOp>& a, const sparse_matrix<T>& b)
+    OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > > operator - (const SparseExpr<ExprOp>& a, const sparse_matrix<T>& b)
     {
     typedef BinExprSparseOp<
       SparseExpr<ExprOp>,
       typename sparse_matrix<T>::const_iterator,
-      OpSub<T> > ExprT;
+      OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
     return SparseExpr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning()));
@@ -3643,12 +3715,12 @@ namespace jtk
     BinExprSparseOp<
     SparseExpr<ExprOp1>,
     SparseExpr<ExprOp2>,
-    OpSub<typename ExprOp1::value_type> > > operator - (const SparseExpr<ExprOp1>& a, const SparseExpr<ExprOp2>& b)
+    OpSub<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > > operator - (const SparseExpr<ExprOp1>& a, const SparseExpr<ExprOp2>& b)
     {
     typedef BinExprSparseOp<
       SparseExpr<ExprOp1>,
       SparseExpr<ExprOp2>,
-      OpSub<typename ExprOp1::value_type> > ExprT;
+      OpSub<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
     return SparseExpr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning()));
@@ -3715,12 +3787,12 @@ namespace jtk
     BinExprOp<
     typename matrix<T, Container>::const_iterator,
     Constant<T>,
-    OpMul<T> > > operator * (const matrix<T, Container>& a, T2 b)
+    OpMul<typename gettype<T, T2>::ty> > > operator * (const matrix<T, Container>& a, T2 b)
     {
     typedef BinExprOp<
       typename matrix<T, Container>::const_iterator,
       Constant<T>,
-      OpMul<T> > ExprT;
+      OpMul<typename gettype<T, T2>::ty> > ExprT;
     return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false));
     }
 
@@ -3729,12 +3801,12 @@ namespace jtk
     BinExprOp<
     Constant<T>,
     typename matrix<T, Container>::const_iterator,
-    OpMul<T> > > operator * (T2 a, const matrix<T, Container>& b)
+    OpMul<typename gettype<T, T2>::ty> > > operator * (T2 a, const matrix<T, Container>& b)
     {
     typedef BinExprOp<
       Constant<T>,
       typename matrix<T, Container>::const_iterator,
-      OpMul<T> > ExprT;
+      OpMul<typename gettype<T, T2>::ty> > ExprT;
     return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false));
     }
 
@@ -3743,12 +3815,12 @@ namespace jtk
     BinExprOp<
     Expr<ExprOp>,
     Constant<typename ExprOp::value_type>,
-    OpMul<typename ExprOp::value_type> > > operator * (const Expr<ExprOp>& a, T2 b)
+    OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator * (const Expr<ExprOp>& a, T2 b)
     {
     typedef BinExprOp<
       Expr<ExprOp>,
       Constant<typename ExprOp::value_type>,
-      OpMul<typename ExprOp::value_type> > ExprT;
+      OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning()));
     }
 
@@ -3757,12 +3829,12 @@ namespace jtk
     BinExprOp<
     Constant<typename ExprOp::value_type>,
     Expr<ExprOp>,
-    OpMul<typename ExprOp::value_type> > > operator * (T2 a, const Expr<ExprOp>& b)
+    OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator * (T2 a, const Expr<ExprOp>& b)
     {
     typedef BinExprOp<
       Constant<typename ExprOp::value_type>,
       Expr<ExprOp>,
-      OpMul<typename ExprOp::value_type> > ExprT;
+      OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning()));
     }
 
@@ -3771,11 +3843,11 @@ namespace jtk
   SparseExpr <
     BinExprSparseScalarOp<
     typename sparse_matrix<T>::const_iterator,
-    OpMul<T> > > operator * (const sparse_matrix<T>& a, T2 b)
+    OpMul<typename gettype<T, T2>::ty> > > operator * (const sparse_matrix<T>& a, T2 b)
     {
     typedef BinExprSparseScalarOp<
       typename sparse_matrix<T>::const_iterator,
-      OpMul<T> > ExprT;
+      OpMul<typename gettype<T, T2>::ty> > ExprT;
     return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false));
     }
 
@@ -3783,11 +3855,11 @@ namespace jtk
   SparseExpr <
     BinExprSparseScalarOp<
     typename sparse_matrix<T>::const_iterator,
-    OpMul<T> > > operator * (T2 b, const sparse_matrix<T>& a)
+    OpMul<typename gettype<T, T2>::ty> > > operator * (T2 b, const sparse_matrix<T>& a)
     {
     typedef BinExprSparseScalarOp<
       typename sparse_matrix<T>::const_iterator,
-      OpMul<T> > ExprT;
+      OpMul<typename gettype<T, T2>::ty> > ExprT;
     return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false));
     }
 
@@ -3795,11 +3867,11 @@ namespace jtk
   SparseExpr<
     BinExprSparseScalarOp<
     SparseExpr<ExprOp>,
-    OpMul<typename ExprOp::value_type> > > operator * (const SparseExpr<ExprOp>& a, T2 b)
+    OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator * (const SparseExpr<ExprOp>& a, T2 b)
     {
     typedef BinExprSparseScalarOp<
       SparseExpr<ExprOp>,
-      OpMul<typename ExprOp::value_type> > ExprT;
+      OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning()));
     }
 
@@ -3807,11 +3879,11 @@ namespace jtk
   SparseExpr<
     BinExprSparseScalarOp<
     SparseExpr<ExprOp>,
-    OpMul<typename ExprOp::value_type> > > operator * (T2 b, const SparseExpr<ExprOp>& a)
+    OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator * (T2 b, const SparseExpr<ExprOp>& a)
     {
     typedef BinExprSparseScalarOp<
       SparseExpr<ExprOp>,
-      OpMul<typename ExprOp::value_type> > ExprT;
+      OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning()));
     }
 
@@ -3824,12 +3896,12 @@ namespace jtk
     BinExprOp<
     typename matrix<T, Container>::const_iterator,
     Constant<T>,
-    OpDiv<T> > > operator / (const matrix<T, Container>& a, T2 b)
+    OpDiv<typename gettype<T, T2>::ty> > > operator / (const matrix<T, Container>& a, T2 b)
     {
     typedef BinExprOp<
       typename matrix<T, Container>::const_iterator,
       Constant<T>,
-      OpDiv<T> > ExprT;
+      OpDiv<typename gettype<T, T2>::ty> > ExprT;
     return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false));
     }
 
@@ -3838,12 +3910,12 @@ namespace jtk
     BinExprOp<
     Constant<T>,
     typename matrix<T, Container>::const_iterator,
-    OpDiv<T> > > operator / (T2 a, const matrix<T, Container>& b)
+    OpDiv<typename gettype<T, T2>::ty> > > operator / (T2 a, const matrix<T, Container>& b)
     {
     typedef BinExprOp<
       Constant<T>,
       typename matrix<T, Container>::const_iterator,
-      OpDiv<T> > ExprT;
+      OpDiv<typename gettype<T, T2>::ty> > ExprT;
     return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false));
     }
 
@@ -3852,12 +3924,12 @@ namespace jtk
     BinExprOp<
     Expr<ExprOp>,
     Constant<typename ExprOp::value_type>,
-    OpDiv<typename ExprOp::value_type> > > operator / (const Expr<ExprOp>& a, T2 b)
+    OpDiv<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator / (const Expr<ExprOp>& a, T2 b)
     {
     typedef BinExprOp<
       Expr<ExprOp>,
       Constant<typename ExprOp::value_type>,
-      OpDiv<typename ExprOp::value_type> > ExprT;
+      OpDiv<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning()));
     }
 
@@ -3866,12 +3938,12 @@ namespace jtk
     BinExprOp<
     Constant<typename ExprOp::value_type>,
     Expr<ExprOp>,
-    OpDiv<typename ExprOp::value_type> > > operator / (T2 a, const Expr<ExprOp>& b)
+    OpDiv<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator / (T2 a, const Expr<ExprOp>& b)
     {
     typedef BinExprOp<
       Constant<typename ExprOp::value_type>,
       Expr<ExprOp>,
-      OpDiv<typename ExprOp::value_type> > ExprT;
+      OpDiv<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning()));
     }
 
@@ -3882,11 +3954,11 @@ namespace jtk
   SparseExpr <
     BinExprSparseScalarOp<
     typename sparse_matrix<T>::const_iterator,
-    OpDiv<T> > > operator / (const sparse_matrix<T>& a, T2 b)
+    OpDiv<typename gettype<T, T2>::ty> > > operator / (const sparse_matrix<T>& a, T2 b)
     {
     typedef BinExprSparseScalarOp<
       typename sparse_matrix<T>::const_iterator,
-      OpDiv<T> > ExprT;
+      OpDiv<typename gettype<T, T2>::ty> > ExprT;
     return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false));
     }
 
@@ -3894,11 +3966,11 @@ namespace jtk
   SparseExpr <
     BinExprSparseScalarOp<
     typename sparse_matrix<T>::const_iterator,
-    OpDivInv<T> > > operator / (T2 b, const sparse_matrix<T>& a)
+    OpDivInv<typename gettype<T, T2>::ty> > > operator / (T2 b, const sparse_matrix<T>& a)
     {
     typedef BinExprSparseScalarOp<
       typename sparse_matrix<T>::const_iterator,
-      OpDivInv<T> > ExprT;
+      OpDivInv<typename gettype<T, T2>::ty> > ExprT;
     return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false));
     }
 
@@ -3906,11 +3978,11 @@ namespace jtk
   SparseExpr<
     BinExprSparseScalarOp<
     SparseExpr<ExprOp>,
-    OpDiv<typename ExprOp::value_type> > > operator / (const SparseExpr<ExprOp>& a, T2 b)
+    OpDiv<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator / (const SparseExpr<ExprOp>& a, T2 b)
     {
     typedef BinExprSparseScalarOp<
       SparseExpr<ExprOp>,
-      OpDiv<typename ExprOp::value_type> > ExprT;
+      OpDiv<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning()));
     }
 
@@ -3918,11 +3990,11 @@ namespace jtk
   SparseExpr<
     BinExprSparseScalarOp<
     SparseExpr<ExprOp>,
-    OpDivInv<typename ExprOp::value_type> > > operator / (T2 b, const SparseExpr<ExprOp>& a)
+    OpDivInv<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator / (T2 b, const SparseExpr<ExprOp>& a)
     {
     typedef BinExprSparseScalarOp<
       SparseExpr<ExprOp>,
-      OpDivInv<typename ExprOp::value_type> > ExprT;
+      OpDivInv<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning()));
     }
 
@@ -3935,12 +4007,12 @@ namespace jtk
     BinExprOp<
     typename matrix<T, Container>::const_iterator,
     Constant<T>,
-    OpAdd<T> > > operator + (const matrix<T, Container>& a, T2 b)
+    OpAdd<typename gettype<T, T2>::ty> > > operator + (const matrix<T, Container>& a, T2 b)
     {
     typedef BinExprOp<
       typename matrix<T, Container>::const_iterator,
       Constant<T>,
-      OpAdd<T> > ExprT;
+      OpAdd<typename gettype<T, T2>::ty> > ExprT;
     return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false));
     }
 
@@ -3949,12 +4021,12 @@ namespace jtk
     BinExprOp<
     Constant<T>,
     typename matrix<T, Container>::const_iterator,
-    OpAdd<T> > > operator + (T2 a, const matrix<T, Container>& b)
+    OpAdd<typename gettype<T, T2>::ty> > > operator + (T2 a, const matrix<T, Container>& b)
     {
     typedef BinExprOp<
       Constant<T>,
       typename matrix<T, Container>::const_iterator,
-      OpAdd<T> > ExprT;
+      OpAdd<typename gettype<T, T2>::ty> > ExprT;
     return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false));
     }
 
@@ -3963,12 +4035,12 @@ namespace jtk
     BinExprOp<
     Expr<ExprOp>,
     Constant<typename ExprOp::value_type>,
-    OpAdd<typename ExprOp::value_type> > > operator + (const Expr<ExprOp>& a, T2 b)
+    OpAdd<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator + (const Expr<ExprOp>& a, T2 b)
     {
     typedef BinExprOp<
       Expr<ExprOp>,
       Constant<typename ExprOp::value_type>,
-      OpAdd<typename ExprOp::value_type> > ExprT;
+      OpAdd<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning()));
     }
 
@@ -3977,12 +4049,12 @@ namespace jtk
     BinExprOp<
     Constant<typename ExprOp::value_type>,
     Expr<ExprOp>,
-    OpAdd<typename ExprOp::value_type> > > operator + (T2 a, const Expr<ExprOp>& b)
+    OpAdd<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator + (T2 a, const Expr<ExprOp>& b)
     {
     typedef BinExprOp<
       Constant<typename ExprOp::value_type>,
       Expr<ExprOp>,
-      OpAdd<typename ExprOp::value_type> > ExprT;
+      OpAdd<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning()));
     }
 
@@ -3996,12 +4068,12 @@ namespace jtk
     BinExprOp<
     typename matrix<T, Container>::const_iterator,
     Constant<T>,
-    OpSub<T> > > operator - (const matrix<T, Container>& a, T2 b)
+    OpSub<typename gettype<T, T2>::ty> > > operator - (const matrix<T, Container>& a, T2 b)
     {
     typedef BinExprOp<
       typename matrix<T, Container>::const_iterator,
       Constant<T>,
-      OpSub<T> > ExprT;
+      OpSub<typename gettype<T, T2>::ty> > ExprT;
     return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false));
     }
 
@@ -4010,12 +4082,12 @@ namespace jtk
     BinExprOp<
     Constant<T>,
     typename matrix<T, Container>::const_iterator,
-    OpSub<T> > > operator - (T2 a, const matrix<T, Container>& b)
+    OpSub<typename gettype<T, T2>::ty> > > operator - (T2 a, const matrix<T, Container>& b)
     {
     typedef BinExprOp<
       Constant<T>,
       typename matrix<T, Container>::const_iterator,
-      OpSub<T> > ExprT;
+      OpSub<typename gettype<T, T2>::ty> > ExprT;
     return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false));
     }
 
@@ -4024,12 +4096,12 @@ namespace jtk
     BinExprOp<
     Expr<ExprOp>,
     Constant<typename ExprOp::value_type>,
-    OpSub<typename ExprOp::value_type> > > operator - (const Expr<ExprOp>& a, T2 b)
+    OpSub<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator - (const Expr<ExprOp>& a, T2 b)
     {
     typedef BinExprOp<
       Expr<ExprOp>,
       Constant<typename ExprOp::value_type>,
-      OpSub<typename ExprOp::value_type> > ExprT;
+      OpSub<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning()));
     }
 
@@ -4038,12 +4110,12 @@ namespace jtk
     BinExprOp<
     Constant<typename ExprOp::value_type>,
     Expr<ExprOp>,
-    OpSub<typename ExprOp::value_type> > > operator - (T2 a, const Expr<ExprOp>& b)
+    OpSub<typename gettype<T2, typename ExprOp::value_type>::ty> > > operator - (T2 a, const Expr<ExprOp>& b)
     {
     typedef BinExprOp<
       Constant<typename ExprOp::value_type>,
       Expr<ExprOp>,
-      OpSub<typename ExprOp::value_type> > ExprT;
+      OpSub<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
     return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning()));
     }
 
@@ -4107,7 +4179,7 @@ namespace jtk
   template <class T, class T2>
   T dot(const sparse_vector<T>& a, const sparse_vector<T2>& b)
     {
-    T out = static_cast<T>(0);
+    double out = 0.0;
     const auto a_end = a.end();
     const auto b_end = b.end();
     auto a_it = a.begin();
@@ -4116,29 +4188,35 @@ namespace jtk
       {
       if (a_it.entry() == b_it.entry())
         {
-        out += (*a_it)*(*b_it);
+        out += (double)(*a_it)*(double)(*b_it);
         ++a_it; ++b_it;
         }
+      else if (a_it.entry() < b_it.entry())
+        ++a_it;
       else
-        {
-        a_it.entry() < b_it.entry() ? ++a_it : ++b_it;
-        }
+        ++b_it;
       }
-    return out;
+    return (T)out;
     }
 
   template <class T, class T2>
   sparse_matrix<T> operator * (const sparse_matrix<T>& a, const sparse_matrix<T2>& b)
     {
     sparse_matrix<T> out(a.rows(), b.cols());
-    sparse_matrix<T2> bt = transpose(b);
     for (uint64_t i = 0; i < a.rows(); ++i)
       {
-      for (uint64_t j = 0; j < bt.rows(); ++j)
+      auto it = a.row(i).begin();
+      auto it_end = it.end();
+      for (; it != it_end; ++it)
         {
-        T value = dot(a.row(i), bt.row(j));
-        if (value)
-          out.put(i, j) = value;
+        uint64_t k = it.entry();
+        auto it2 = b.row(k).begin();
+        auto it2_end = it2.end();
+        for (; it2 != it2_end; ++it2)
+          {
+          uint64_t j = it2.entry();
+          out.put(i, j) += *it*(T)(*it2);
+          }
         }
       }
     return out;
@@ -4149,14 +4227,20 @@ namespace jtk
     {
     sparse_matrix<typename ExprOp1::value_type> out(a.rows(), b.cols());
     sparse_matrix<typename ExprOp1::value_type> a1 = a;
-    sparse_matrix<T> bt = transpose(b);
-    for (uint64_t i = 0; i < a.rows(); ++i)
+    for (uint64_t i = 0; i < a1.rows(); ++i)
       {
-      for (uint64_t j = 0; j < bt.rows(); ++j)
+      auto it = a1.row(i).begin();
+      auto it_end = it.end();
+      for (; it != it_end; ++it)
         {
-        typename ExprOp1::value_type value = dot(a1.row(i), bt.row(j));
-        if (value)
-          out.put(i, j) = value;
+        uint64_t k = it.entry();
+        auto it2 = b.row(k).begin();
+        auto it2_end = it2.end();
+        for (; it2 != it2_end; ++it2)
+          {
+          uint64_t j = it2.entry();
+          out.put(i, j) += *it*(typename ExprOp1::value_type)(*it2);
+          }
         }
       }
     return out;
@@ -4166,14 +4250,21 @@ namespace jtk
   sparse_matrix<T> operator * (const sparse_matrix<T>& a, const SparseExpr<ExprOp1>& b)
     {
     sparse_matrix<T> out(a.rows(), b.cols());
-    sparse_matrix<typename ExprOp1::value_type> bt = transpose(b);
+    sparse_matrix<typename ExprOp1::value_type> bb = b;
     for (uint64_t i = 0; i < a.rows(); ++i)
       {
-      for (uint64_t j = 0; j < bt.rows(); ++j)
+      auto it = a.row(i).begin();
+      auto it_end = it.end();
+      for (; it != it_end; ++it)
         {
-        T value = dot(a.row(i), bt.row(j));
-        if (value)
-          out.put(i, j) = value;
+        uint64_t k = it.entry();
+        auto it2 = bb.row(k).begin();
+        auto it2_end = it2.end();
+        for (; it2 != it2_end; ++it2)
+          {
+          uint64_t j = it2.entry();
+          out.put(i, j) += *it*(T)(*it2);
+          }
         }
       }
     return out;
@@ -4184,73 +4275,194 @@ namespace jtk
     {
     sparse_matrix<typename ExprOp1::value_type> out(a.rows(), b.cols());
     sparse_matrix<typename ExprOp1::value_type> a1 = a;
-    sparse_matrix<typename ExprOp2::value_type> bt = transpose(b);
-    for (uint64_t i = 0; i < a.rows(); ++i)
+    sparse_matrix<typename ExprOp2::value_type> bb = b;
+    for (uint64_t i = 0; i < a1.rows(); ++i)
       {
-      for (uint64_t j = 0; j < bt.rows(); ++j)
+      auto it = a1.row(i).begin();
+      auto it_end = it.end();
+      for (; it != it_end; ++it)
         {
-        typename ExprOp1::value_type value = dot(a1.row(i), bt.row(j));
-        if (value)
-          out.put(i, j) = value;
+        uint64_t k = it.entry();
+        auto it2 = bb.row(k).begin();
+        auto it2_end = it2.end();
+        for (; it2 != it2_end; ++it2)
+          {
+          uint64_t j = it2.entry();
+          out.put(i, j) += *it*(typename ExprOp1::value_type)(*it2);
+          }
         }
       }
     return out;
     }
 
+  /*
+  template <class T, class T2, class Container2>
+  matrix<T, Container2> operator *  (const sparse_matrix<T>& a, const matrix<T2, Container2>& b)
+    {
+    matrix<T, Container2> out(a.rows(), b.cols());
+    for (uint64_t i = 0; i < a.rows(); ++i)
+      {
+      for (uint64_t j = 0; j < b.cols(); ++j)
+        {
+        T val = (T)0;
+        auto it = a.row(i).begin();
+        auto it_end = it.end();
+        for (; it != it_end; ++it)
+          {
+          val += *it * b(it.entry(), j);
+          }
+        out(i, j) = val;
+        }
+      }
+    return out;
+    }
+  */
+
   template <class T, class T2, class Container2>
   Expr<
     SparseMatMatMul<
-    sparse_matrix<T>,
+    typename sparse_matrix<T>::const_iterator,
     typename matrix<T2, Container2>::const_iterator > > operator * (const sparse_matrix<T>& a, const matrix<T2, Container2>& b)
     {
     typedef SparseMatMatMul<
-      sparse_matrix<T>,
+      typename sparse_matrix<T>::const_iterator,
+      typename matrix<T2, Container2>::const_iterator > ExprT;
+    assert(a.cols() == b.rows());
+    return Expr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), b.cols(), a.cols()));
+    }
+
+
+  template <class ExprOp, class T2, class Container2>
+  Expr<
+    SparseMatMatMul<
+    SparseExpr<ExprOp>,
+    typename matrix<T2, Container2>::const_iterator > > operator * (const SparseExpr<ExprOp>& a, const matrix<T2, Container2>& b)
+    {
+    typedef SparseMatMatMul<
+      SparseExpr<ExprOp>,
       typename matrix<T2, Container2>::const_iterator > ExprT;
     assert(a.cols() == b.rows());
     return Expr<ExprT>(ExprT(a, b.begin(), a.rows(), b.cols(), a.cols()));
     }
 
-  template <class ExprOp, class T2, class Container2>
-  Expr<
-    SparseMatMatMul<
-    sparse_matrix<typename ExprOp::value_type>,
-    typename matrix<T2, Container2>::const_iterator > > operator * (const SparseExpr<ExprOp>& a, const matrix<T2, Container2>& b)
-    {
-    typedef SparseMatMatMul<
-      sparse_matrix<typename ExprOp::value_type>,
-      typename matrix<T2, Container2>::const_iterator > ExprT;
-    assert(a.cols() == b.rows());
-    sparse_matrix<typename ExprOp::value_type> sma(a);
-    return Expr<ExprT>(ExprT(sma, b.begin(), a.rows(), b.cols(), a.cols()));
-    }
-
   template <class T, class ExprOp>
   Expr<
     SparseMatMatMul<
-    sparse_matrix<T>,
+    typename sparse_matrix<T>::const_iterator,
     Expr<ExprOp> > > operator * (const sparse_matrix<T>& a, const Expr<ExprOp>& b)
     {
     typedef SparseMatMatMul<
-      sparse_matrix<T>,
+      typename sparse_matrix<T>::const_iterator,
       Expr<ExprOp> > ExprT;
     assert(a.cols() == b.rows());
-    return Expr<ExprT>(ExprT(a, b, a.rows(), b.cols(), a.cols()));
+    return Expr<ExprT>(ExprT(a.begin(), b, a.rows(), b.cols(), a.cols()));
     }
 
   template <class ExprOp, class ExprOp2>
   Expr<
     SparseMatMatMul<
-    sparse_matrix<typename ExprOp::value_type>,
+    SparseExpr<ExprOp>,
     Expr<ExprOp2>  > > operator * (const SparseExpr<ExprOp>& a, const Expr<ExprOp2>& b)
     {
     typedef SparseMatMatMul<
-      sparse_matrix<typename ExprOp::value_type>,
+      SparseExpr<ExprOp>,
       Expr<ExprOp2> > ExprT;
     assert(a.cols() == b.rows());
-    sparse_matrix<typename ExprOp::value_type> sma(a);
-    return Expr<ExprT>(ExprT(sma, b, a.rows(), b.cols(), a.cols()));
+    return Expr<ExprT>(ExprT(a, b, a.rows(), b.cols(), a.cols()));
     }
 
+  template <class T, class Container, class T2, class Container2>
+  T dot(const matrix<T, Container>& a, const matrix<T2, Container2>& b)
+    {
+    double out = 0.0;
+    auto it = a.begin();
+    auto it_end = a.end();
+    auto it2 = b.begin();
+    for (; it != it_end; ++it, ++it2)
+      out += (double)(*it) * (double)(*it2);
+    return (T)out;
+    }
+
+  template <class Container, class Container2>
+  float dot(const matrix<float, Container>& a, const matrix<float, Container2>& b)
+    {
+    /*
+    const float* ita = a.data();
+    const float* itb = b.data();
+    uint64_t len = a.rows()*a.cols();
+    uint64_t len4 = len / 4;
+    __m128d sum = _mm_setzero_pd();
+    for (uint64_t i = 0; i < len4; ++i)
+      {
+      __m128 v1 = _mm_loadu_ps(ita + (i << 2));
+      __m128 v2 = _mm_loadu_ps(itb + (i << 2));
+      __m128 d = _mm_mul_ps(v1, v2);
+      __m128d d1 = _mm_cvtps_pd(d);
+      __m128d d2 = _mm_cvtps_pd(_mm_shuffle_ps(d, d, _MM_SHUFFLE(1, 0, 3, 2)));
+      sum = _mm_add_pd(sum, d1);
+      sum = _mm_add_pd(sum, d2);
+      }
+    double buffer[2];
+    _mm_storeu_pd(buffer, sum);
+    double totalsum = buffer[0] + buffer[1];
+    for (uint64_t i = len4 * 4; i < len; ++i)
+      {
+      float v1 = *(ita + i);
+      float v2 = *(itb + i);
+      float d = v1 * v2;
+      totalsum += (double)d;
+      }
+    return (float)totalsum;
+    */
+    const float* ita = a.data();
+    const float* itb = b.data();
+    uint64_t len = a.rows()*a.cols();
+    uint64_t len4 = len / 4;
+    double sum = 0.0;
+    for (uint64_t i = 0; i < len4; ++i)
+      {
+      __m128 v1 = _mm_loadu_ps(ita + (i << 2));
+      __m128 v2 = _mm_loadu_ps(itb + (i << 2));
+      __m128 d = _mm_dp_ps(v1, v2, 0xf1);
+      sum += (double)_mm_cvtss_f32(d);
+      }
+    for (uint64_t i = len4 * 4; i < len; ++i)
+      {
+      float v1 = *(ita + i);
+      float v2 = *(itb + i);
+      float d = v1 * v2;
+      sum += (double)d;
+      }
+    return (float)sum;
+    }
+
+  template <class Container, class Container2>
+  double dot(const matrix<double, Container>& a, const matrix<double, Container2>& b)
+    {    
+    const double* ita = a.data();
+    const double* itb = b.data();
+    uint64_t len = a.rows()*a.cols();
+    uint64_t len2 = len / 2;
+    __m128d sum = _mm_setzero_pd();
+    for (uint64_t i = 0; i < len2; ++i)
+      {
+      __m128d v1 = _mm_loadu_pd(ita + (i << 1));
+      __m128d v2 = _mm_loadu_pd(itb + (i << 1));
+      __m128d d = _mm_mul_pd(v1, v2);     
+      sum = _mm_add_pd(sum, d);      
+      }
+    double buffer[2];
+    _mm_storeu_pd(buffer, sum);
+    double totalsum = buffer[0] + buffer[1];
+    for (uint64_t i = len2 * 2; i < len; ++i)
+      {
+      double v1 = *(ita + i);
+      double v2 = *(itb + i);
+      double d = v1 * v2;
+      totalsum += (double)d;
+      }
+    return (float)totalsum;    
+    }
   ///////////////////////////////////////////////////////////////////////////////
   // Transposing matrices
   ///////////////////////////////////////////////////////////////////////////////
@@ -4328,20 +4540,19 @@ namespace jtk
   template <class T>
   Expr<
     DiagonalSparse<
-    sparse_matrix<T> > > diagonal(const sparse_matrix<T>& a)
+    typename sparse_matrix<T>::const_iterator > > diagonal(const sparse_matrix<T>& a)
     {
-    typedef DiagonalSparse< sparse_matrix<T> > ExprT;
-    return Expr<ExprT>(ExprT(a, a.rows(), a.cols(), false));
+    typedef DiagonalSparse< typename sparse_matrix<T>::const_iterator > ExprT;
+    return Expr<ExprT>(ExprT(a.begin(), a.rows(), a.cols(), false));
     }
 
   template <class ExprOp>
   Expr<
     DiagonalSparse<
-    sparse_matrix<typename ExprOp::value_type> > > diagonal(const SparseExpr<ExprOp>& a)
+    SparseExpr<ExprOp> > > diagonal(const SparseExpr<ExprOp>& a)
     {
-    typedef DiagonalSparse< sparse_matrix<typename ExprOp::value_type> > ExprT;
-    sparse_matrix<typename ExprOp::value_type> sma(a);
-    return Expr<ExprT>(ExprT(sma, sma.rows(), sma.cols(), a.evaluate_before_assigning()));
+    typedef DiagonalSparse< SparseExpr<ExprOp> > ExprT;
+    return Expr<ExprT>(ExprT(a, a.rows(), a.cols(), a.evaluate_before_assigning()));
     }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -4426,16 +4637,63 @@ namespace jtk
   ///////////////////////////////////////////////////////////////////////////////
 
   template <class T, class Container >
-  T norm(const matrix<T, Container>& a)
+  T norm_sqr(const matrix<T, Container>& a)
     {
-    T sum = (T)0;
+    double sum = 0.0;
     for (const auto& value : a)
       sum += value * value;
-    return (T)std::sqrt(sum);
+    return (T)sum;
+    }
+
+  template <class Container>
+  float norm_sqr(const matrix<float, Container>& a)
+    {
+    const float* ita = a.data();
+    uint64_t len = a.rows()*a.cols();
+    uint64_t len4 = len / 4;
+    double sum = 0.0;
+    for (uint64_t i = 0; i < len4; ++i)
+      {
+      __m128 v1 = _mm_loadu_ps(ita + (i << 2));
+      __m128 d = _mm_dp_ps(v1, v1, 0xf1);
+      sum += (double)_mm_cvtss_f32(d);
+      }
+    for (uint64_t i = len4 * 4; i < len; ++i)
+      {
+      float v1 = *(ita + i);
+      float d = v1 * v1;
+      sum += (double)d;
+      }
+    return (float)sum;
+    }
+
+  template <class Container>
+  double norm_sqr(const matrix<double, Container>& a)
+    {
+    const double* ita = a.data();
+    uint64_t len = a.rows()*a.cols();
+    uint64_t len2 = len / 2;
+    __m128d sum = _mm_setzero_pd();
+    for (uint64_t i = 0; i < len2; ++i)
+      {
+      __m128d v1 = _mm_loadu_pd(ita + (i << 1));
+      __m128d d = _mm_mul_pd(v1, v1);
+      sum = _mm_add_pd(sum, d);
+      }
+    double buffer[2];
+    _mm_storeu_pd(buffer, sum);
+    double totalsum = buffer[0] + buffer[1];
+    for (uint64_t i = len2 * 2; i < len; ++i)
+      {
+      double v1 = *(ita + i);
+      double d = v1 * v1;
+      totalsum += (double)d;
+      }
+    return (float)totalsum;
     }
 
   template <class ExprOp>
-  double norm(Expr<ExprOp> expr)
+  double norm_sqr(Expr<ExprOp> expr)
     {
     uint64_t sz = expr.rows()*expr.cols();
     if (sz == 0)
@@ -4448,20 +4706,20 @@ namespace jtk
       value = *expr;
       sum += (double)value*value;
       }
-    return (double)std::sqrt((double)sum);
+    return sum;
     }
 
   template <class T >
-  T norm(const sparse_matrix<T>& a)
+  T norm_sqr(const sparse_matrix<T>& a)
     {
-    T sum = (T)0;
+    double sum = 0.0;
     for (const auto& value : a)
       sum += value * value;
-    return (T)std::sqrt(sum);
+    return (T)sum;
     }
 
   template <class ExprOp>
-  double norm(SparseExpr<ExprOp> expr)
+  double norm_sqr(SparseExpr<ExprOp> expr)
     {
     double sum = 0.0;
     auto expr_end = expr.end();
@@ -4471,7 +4729,31 @@ namespace jtk
       sum += (double)value*value;
       ++expr;
       }
-    return (double)std::sqrt((double)sum);
+    return sum;
+    }
+
+  template <class T, class Container >
+  T norm(const matrix<T, Container>& a)
+    {
+    return std::sqrt(norm_sqr(a));
+    }
+
+  template <class ExprOp>
+  double norm(Expr<ExprOp> expr)
+    {
+    return std::sqrt(norm_sqr(expr));
+    }
+
+  template <class T >
+  T norm(const sparse_matrix<T>& a)
+    {
+    return std::sqrt(norm_sqr(a));
+    }
+
+  template <class ExprOp>
+  double norm(SparseExpr<ExprOp> expr)
+    {
+    return std::sqrt(norm_sqr(expr));
     }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -4483,11 +4765,11 @@ namespace jtk
     {
     auto it = diagonal(a);
     uint64_t sz = std::min(a.rows(), a.cols());
-    T sum = *it;
+    double sum = (double)*it;
     for (uint64_t i = 1; i < sz; ++i)
       {
       ++it;
-      sum += (T)*it;
+      sum += (double)*it;
       }
     return (T)sum;
     }
@@ -4511,11 +4793,11 @@ namespace jtk
     {
     auto it = diagonal(a);
     uint64_t sz = std::min(a.rows(), a.cols());
-    T sum = *it;
+    double sum = (double)*it;
     for (uint64_t i = 1; i < sz; ++i)
       {
       ++it;
-      sum += (T)*it;
+      sum += (double)*it;
       }
     return (T)sum;
     }
@@ -6297,182 +6579,168 @@ namespace jtk
   // iterative methods
   ///////////////////////////////////////////////////////////////////////////////
 
-  template <class T, class Container, class TBlackBox>
-  void conjugate_gradient(matrix<T, Container>& out,
-    T& residu,
-    uint64_t& iterations,
-    const TBlackBox& A,
-    const matrix<T, Container>& b,
-    const matrix<T, Container>& x0,
-    T tolerance)
+  template <class T, class Container>
+  void sparse_matrix_vector_multiply(matrix<T, Container>& out, const sparse_matrix<T>& a, const matrix<T, Container>& b)
     {
-    matrix<T, Container> r, w, z;
-    r = b - A * x0;
-    w = -r;
-    z = A * w;
-    matrix<T, Container> denom = transpose(w) * z;
-    matrix<T, Container> a(1);
-    if (denom(0))
-      a = (transpose(r)*w) / denom(0);
-    else
-      a(0) = 1;
-    out = x0 + a(0) * w;
-    matrix<T, Container> B(1);
-    B(0) = 0;
-
-    for (uint64_t i = 0; i < A.rows(); ++i)
+    assert(b.cols() == 1);
+    out.resize(a.rows(), 1);
+    for (uint64_t i = 0; i < a.rows(); ++i)
       {
-      r -= a(0) * z;
-      residu = norm(r);
-      if (residu < tolerance)
+      T val = (T)0;
+      auto it = a.row(i).begin();
+      const auto it_end = it.end();
+      for (; it != it_end; ++it)
         {
-        iterations = i;
-        return;
+        val += *it * b(it.entry());
         }
-      denom = transpose(w) * z;
-      if (denom(0))
-        B = (transpose(r)*z) / denom(0);
-      else
-        B(0) = 1;
-      w = -r + B(0) * w;
-      z = A * w;
-      denom = transpose(w) * z;
-      if (denom(0))
-        a = (transpose(r)*w) / denom(0);
-      else
-        a(0) = 1;
-      out += a(0) * w;
+      out(i) = val;
       }
-    iterations = A.rows();
     }
 
-  template <class T, class Container, class TBlackBox, class TPreconditioner>
+  template <class T, class Container>
+  void sparse_symmetric_matrix_vector_multiply(matrix<T, Container>& out, const sparse_matrix<T>& a, const matrix<T, Container>& b)
+    {
+    assert(b.cols() == 1);
+    out.resize(a.rows(), 1);
+    for (uint64_t i = 0; i < a.rows(); ++i)
+      {
+      T val = (T)0;
+      const T bi = b(i);
+      auto it = a.row(i).begin();
+      const auto it_end = it.end();
+
+      for (; (it != it_end) && (it.entry() < i); ++it)
+        {
+        const auto Aij = *it;
+        val += Aij * b(it.entry());
+        out(it.entry()) += Aij * bi;
+        }
+      if ((it != it_end) && (it.entry() == i))
+        {
+        val += (*it)*bi;
+        }
+      out(i) = val;
+      }
+    }
+
+  template <class T>
+  class DiagonalPreconditioner
+    {
+    public:
+      explicit DiagonalPreconditioner(const sparse_matrix<T>& A)
+        {
+        invD = diagonal(A);
+        for (auto& v : invD)
+          v = (v==0) ? 1 : (1 / v);
+        }
+
+      template <class T2, class Container>
+      Expr<
+        BinExprOp<
+        typename matrix<T>::const_iterator,
+        typename matrix<T2, Container>::const_iterator,
+        OpMul<typename gettype<T, T2>::ty> > >
+      solve(const matrix<T2, Container>& residual) const
+        {
+        typedef BinExprOp<
+          typename matrix<T>::const_iterator,
+          typename matrix<T2, Container>::const_iterator,
+          OpMul<typename gettype<T, T2>::ty> > ExprT;
+        return Expr<ExprT>(ExprT(invD.begin(), residual.begin(), invD.rows(), 1, false));
+        }
+
+    private:
+      matrix<T> invD;
+    };
+
+  template <class T, class Container, class TPreconditioner>
   void preconditioned_conjugate_gradient(matrix<T, Container>& out,
     T& residu,
     uint64_t& iterations,
-    const TBlackBox& A,
+    const sparse_matrix<T>& A,
     const TPreconditioner& P,
     const matrix<T, Container>& b,
     const matrix<T, Container>& x0,
     T tolerance)
     {
-    matrix<T, Container> r, p, y;
-    r = A*x0 - b;
-    y = P * r;
-    p = -y;
     out = x0;
-    matrix<T, Container> denom(1), alpha(1), beta(1);
-
-    for (uint64_t i = 0; i < A.rows(); ++i)
-      {      
-      residu = norm(r);
-      if (residu < tolerance)
-        {
-        iterations = i;
-        return;
-        }
-      denom = transpose(p) * (A*p);
-      if (denom(0))
-        alpha = (transpose(r)*y) / denom(0);
-      else
-        alpha(0) = 1;
-      out += alpha(0)*p;
-      denom = transpose(r)*y;
-      r += alpha(0)*(A*p);
-      y = P * r;
-      if (denom(0))
-        beta = (transpose(r)*y) / denom(0);
-      else
-        beta(0) = 1;
-      p = -y + beta(0)*p;
+    matrix<T, Container> r = b - A * out;
+    T rhsnorm = norm_sqr(b);
+    if (rhsnorm == (T)0)
+      {
+      out = zeros(b.rows(), 1);
+      iterations = 0;
+      residu = (T)0;
+      return;
       }
-    iterations = A.rows();
+    const T threshold = tolerance * tolerance * rhsnorm;
+    T residualnorm = norm_sqr(r);
+    if (residualnorm < threshold)
+      {
+      iterations = 0;
+      residu = residualnorm / rhsnorm;
+      return;
+      }
+
+    matrix<T, Container> p = P.solve(r);
+
+    matrix<T, Container> z, tmp;
+    T absnew = dot(r, p);
+
+    double time1 = 0;
+    double time2 = 0;
+
+    timer t1, t2;
+
+    uint64_t i = 0;
+    for (; i < A.rows(); ++i)
+      {
+      t1.start();
+      //tmp.noalias() = A * p;
+      //sparse_matrix_vector_multiply(tmp, A, p);
+      sparse_symmetric_matrix_vector_multiply(tmp, A, p);
+      double multime = t1.time_elapsed();
+      //printf("A*x, time: %f\n", multime);
+      time1 += multime;
+
+      t2.start();
+      T alpha = absnew / dot(p, tmp);
+      out += alpha * p;
+      r -= alpha * tmp;
+      residualnorm = norm_sqr(r);
+      if (residualnorm < threshold)
+        break;
+      z = P.solve(r);
+      T absold = absnew;
+      absnew = dot(r, z);
+      T beta = absnew / absold;
+      p = z + beta * p;
+      time2 += t2.time_elapsed();
+      }
+    printf("time1: %f\n", time1);
+    printf("time2: %f\n", time2);
+    iterations = i + 1;
+    residu = residualnorm / rhsnorm;
     }
 
-  template <class T, class Container, class TBlackBox>
-  void bicgstab(matrix<T, Container>& out,
+  template <class T, class Container>
+  void conjugate_gradient(matrix<T, Container>& out,
     T& residu,
     uint64_t& iterations,
-    const TBlackBox& A,
+    const sparse_matrix<T>& A,
     const matrix<T, Container>& b,
     const matrix<T, Container>& x0,
     T tolerance)
     {
-    matrix<T, Container> r, r_, p, s, t, v;
-    matrix<T, Container> rho_1(1), rho_2(1), alpha(1), omega(1);
-    rho_1(0) = rho_2(0) = alpha(0) = omega(0) = 0;
-    T beta = 0;
-    out = x0;
-    T normb = norm(b);
-    r = b - A * out;
-    r_ = r;
-
-    if (normb == (T)0)
-      normb = 1;
-
-    double resid = norm(r)/normb;
-    if (resid <= tolerance)
-      {
-      residu = resid;
-      iterations = 0;
-      return;
-      }
-
-    for (uint64_t i = 0; i < A.rows(); ++i)
-      {
-      rho_1 = transpose(r_) * r;
-      if (rho_1(0) == 0)
-        {
-        residu = norm(r) / normb;
-        iterations = i + 1;
-        return;
-        }
-      if (i == 0)
-        p = r;
-      else
-        {
-        beta = (rho_1(0) / rho_2(0))*(alpha(0) / omega(0));
-        p = r + beta * (p - omega(0)*v);
-        }
-      v = A * p;
-      alpha = rho_1(0) / (transpose(r_)*v);
-      s = r - alpha(0)*v;
-      resid = norm(s) / normb;
-      if (resid < tolerance)
-        {
-        out += alpha(0)*p;
-        residu = resid;
-        iterations = i + 1;
-        return;
-        }
-      t = A * s;
-      omega = (transpose(t)*s) / matrix<T, Container>(transpose(t)*t)(0);
-      out += alpha(0)*p + omega(0)*s;
-      r = s - omega(0)*t;
-      rho_2 = rho_1;
-      resid = norm(r) / normb;
-      if (resid < tolerance)
-        {
-        residu = resid;
-        iterations = i + 1;
-        return;
-        }
-      if (omega(0) == 0)
-        {
-        residu = norm(r) / normb;
-        iterations = i + 1;
-        return;
-        }
-      }
-    residu = resid;
-    iterations = A.rows();
+    DiagonalPreconditioner P(A);
+    preconditioned_conjugate_gradient(out, residu, iterations, A, P, b, x0, tolerance);
     }
 
-  template <class T, class Container, class TBlackBox, class TPreconditioner>
+  template <class T, class Container, class TPreconditioner>
   void bipcgstab(matrix<T, Container>& out,
     T& residu,
     uint64_t& iterations,
-    const TBlackBox& A,
+    const sparse_matrix<T>& A,
     const TPreconditioner& P,
     const matrix<T, Container>& b,
     const matrix<T, Container>& x0,
@@ -6513,8 +6781,8 @@ namespace jtk
         beta = (rho_1(0) / rho_2(0))*(alpha(0) / omega(0));
         p = r + beta * (p - omega(0)*v);
         }
-      phat = P * p;
-      v = A * phat;      
+      phat = P.solve(p);
+      v = A * phat;
       alpha = rho_1(0) / (transpose(r_)*v);
       s = r - alpha(0)*v;
       resid = norm(s) / normb;
@@ -6525,7 +6793,7 @@ namespace jtk
         iterations = i + 1;
         return;
         }
-      shat = P * s;
+      shat = P.solve(s);
       t = A * shat;
       omega = (transpose(t)*s) / matrix<T, Container>(transpose(t)*t)(0);
       out += alpha(0)*phat + omega(0)*shat;
@@ -6547,6 +6815,19 @@ namespace jtk
       }
     residu = resid;
     iterations = A.rows();
+    }
+
+  template <class T, class Container>
+  void bicgstab(matrix<T, Container>& out,
+    T& residu,
+    uint64_t& iterations,
+    const sparse_matrix<T>& A,
+    const matrix<T, Container>& b,
+    const matrix<T, Container>& x0,
+    T tolerance)
+    {
+    DiagonalPreconditioner P(A);
+    bipcgstab(out, residu, iterations, A, P, b, x0, tolerance);
     }
 
   ///////////////////////////////////////////////////////////////////////////////
