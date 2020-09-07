@@ -19,7 +19,7 @@ namespace jtk
       return (double)diff.count();
       }
 
-    std::chrono::steady_clock::time_point tic, toc;
+    std::chrono::high_resolution_clock::time_point tic, toc;
     std::chrono::duration<double> diff;
     };
 

@@ -627,7 +627,7 @@ namespace jtk
 
       value_type operator * () const
         {
-        return Op::apply<typename A::value_type, typename B::value_type>(*_a, *_b);
+        return Op::apply(*_a, *_b);
         }
 
       void operator++()
@@ -689,11 +689,11 @@ namespace jtk
       value_type operator * () const
         {
         if (iterator_1_equal_to_iterator_2())
-          return Op::apply<typename A::value_type, typename B::value_type>(*_a, *_b);
+          return Op::apply(*_a, *_b);
         else if (iterator_1_smaller_than_iterator_2())
-          return Op::apply<typename A::value_type, typename B::value_type>(*_a, static_cast<typename B::value_type>(0));
+          return Op::apply(*_a, static_cast<typename B::value_type>(0));
         else
-          return Op::apply<typename A::value_type, typename B::value_type>(static_cast<A::value_type>(0), *_b);
+          return Op::apply(static_cast<typename A::value_type>(0), *_b);
         }
 
       void operator++()
@@ -1579,7 +1579,7 @@ namespace jtk
 
       value_type operator * () const
         {
-        return Op::apply<typename A::value_type, value_type>(*_a, _scalar);
+        return Op::apply(*_a, _scalar);
         }
 
       void operator++()
