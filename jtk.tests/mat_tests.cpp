@@ -193,7 +193,7 @@ namespace jtk
         value = d;
         d += 1.0;
         }
-      for (int i = 0; i < 10; ++i)
+      for (uint32_t i = 0; i < 10; ++i)
         TEST_EQ((double)i, v(i));
       }
 
@@ -206,7 +206,7 @@ namespace jtk
         value = d;
         d += 1.0;
         }
-      for (int i = 0; i < 10; ++i)
+      for (uint32_t i = 0; i < 10; ++i)
         TEST_EQ((double)i, v(i));
       }
 
@@ -222,14 +222,14 @@ namespace jtk
       pts.push_back(p2);
       auto c = make_vec3(1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0);
       mat a(3, 3);
-      for (int i = 0; i < 3; ++i)
+      for (uint32_t i = 0; i < 3; ++i)
         {
-        for (int j = 0; j < 3; ++j)
+        for (uint32_t j = 0; j < 3; ++j)
           a[i][j] = 0.0;
         }
-      for (size_t k = 0; k < pts.size(); ++k)
-        for (int i = 0; i < 3; ++i)
-          for (int j = 0; j < 3; ++j)
+      for (uint32_t k = 0; k < pts.size(); ++k)
+        for (uint32_t i = 0; i < 3; ++i)
+          for (uint32_t j = 0; j < 3; ++j)
             a[i][j] += (pts[k](i) - c(i))*(pts[k](j) - c(j));
       mat w, v;
       bool res = svd(a, w, v);
@@ -238,18 +238,18 @@ namespace jtk
       TEST_EQ_CLOSE(1.0, w(0), 1e-12);
       TEST_EQ_CLOSE(1.0, w(1), 1e-12);
       TEST_EQ_CLOSE(0.0, w(2), 1e-12);
-      for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 3; ++j)
+      for (uint32_t i = 0; i < 3; ++i)
+        for (uint32_t j = 0; j < 3; ++j)
           TEST_EQ_CLOSE(a[i][j], v[i][j], 1e-12);
       }
 
 
     void svd_2()
       {
-      int m = 4;
-      int n = 3;
+      uint32_t m = 4;
+      uint32_t n = 3;
       matf A(m, n);
-      for (int i = 1; i <= 12; ++i)
+      for (uint32_t i = 1; i <= 12; ++i)
         A[(i - 1) / 3][(i - 1) % 3] = float(i);
       matf A_copy(A);
 
@@ -259,12 +259,12 @@ namespace jtk
       bool res = svd(A, sigma, V);
       TEST_ASSERT(res);
 
-      for (int r = 0; r < m; ++r)
+      for (uint32_t r = 0; r < m; ++r)
         {
-        for (int c = 0; c < n; ++c)
+        for (uint32_t c = 0; c < n; ++c)
           {
           float val = 0.f;
-          for (int k = 0; k < n; ++k)
+          for (uint32_t k = 0; k < n; ++k)
             {
             val += A[r][k] * sigma(k) * V[c][k];
             }
@@ -275,10 +275,10 @@ namespace jtk
 
     void svd_3()
       {
-      int m = 3;
-      int n = 4;
+      uint32_t m = 3;
+      uint32_t n = 4;
       matf A(m, n);
-      for (int i = 1; i <= 12; ++i)
+      for (uint32_t i = 1; i <= 12; ++i)
         A[(i - 1) % 3][(i - 1) / 3] = float(i);
       matf A_copy(A);
 
@@ -288,12 +288,12 @@ namespace jtk
       bool res = svd(A, sigma, V);
       TEST_ASSERT(res);
 
-      for (int r = 0; r < m; ++r)
+      for (uint32_t r = 0; r < m; ++r)
         {
-        for (int c = 0; c < n; ++c)
+        for (uint32_t c = 0; c < n; ++c)
           {
           float val = 0.f;
-          for (int k = 0; k < n; ++k)
+          for (uint32_t k = 0; k < n; ++k)
             {
             val += A[r][k] * sigma(k) * V[c][k];
             }
@@ -304,10 +304,10 @@ namespace jtk
 
     void pseudo_inverse_1()
       {
-      int m = 3;
-      int n = 3;
+      uint32_t m = 3;
+      uint32_t n = 3;
       mat A(m, n);
-      for (int i = 1; i <= 9; ++i)
+      for (uint32_t i = 1; i <= 9; ++i)
         A[(i - 1) / 3][(i - 1) % 3] = std::sqrt(double(i - 1));
       mat A_copy(A);
 
@@ -316,12 +316,12 @@ namespace jtk
       int p = pseudo_inverse(inv, A, 1e-5);
       TEST_EQ(3, p);
 
-      for (int r = 0; r < m; ++r)
+      for (uint32_t r = 0; r < m; ++r)
         {
-        for (int c = 0; c < m; ++c)
+        for (uint32_t c = 0; c < m; ++c)
           {
           double val = 0.0;
-          for (int k = 0; k < n; ++k)
+          for (uint32_t k = 0; k < n; ++k)
             {
             val += A_copy[r][k] * inv[k][c];
             }
@@ -333,8 +333,8 @@ namespace jtk
 
     void pseudo_inverse_2()
       {
-      int m = 8;
-      int n = 6;
+      uint32_t m = 8;
+      uint32_t n = 6;
       mat A(m, n);
 
       A[0][0] = 64;
@@ -395,12 +395,12 @@ namespace jtk
       bool res = svd(A, sigma, V);
       TEST_ASSERT(res);
 
-      for (int r = 0; r < m; ++r)
+      for (uint32_t r = 0; r < m; ++r)
         {
-        for (int c = 0; c < n; ++c)
+        for (uint32_t c = 0; c < n; ++c)
           {
           double val = 0.0;
-          for (int k = 0; k < n; ++k)
+          for (uint32_t k = 0; k < n; ++k)
             {
             val += A[r][k] * sigma(k) * V[c][k];
             }
@@ -416,19 +416,19 @@ namespace jtk
       double b[8] = { 260.0, 260.0, 260.0, 260.0, 260.0, 260.0, 260.0, 260.0 };
 
       double x[6];
-      for (int j = 0; j < 6; ++j)
+      for (uint32_t j = 0; j < 6; ++j)
         {
         x[j] = 0.0;
-        for (int i = 0; i < 8; ++i)
+        for (uint32_t i = 0; i < 8; ++i)
           x[j] += inv[j][i] * b[i];
         }
 
       double n2 = 0.0;
       double error[8];
-      for (int i = 0; i < 8; ++i)
+      for (uint32_t i = 0; i < 8; ++i)
         {
         error[i] = -b[i];
-        for (int j = 0; j < 6; ++j)
+        for (uint32_t j = 0; j < 6; ++j)
           error[i] += A_copy[i][j] * x[j];
         n2 += error[i] * error[i];
         }
@@ -437,8 +437,8 @@ namespace jtk
 
     void pseudo_inverse_3()
       {
-      int m = 6;
-      int n = 8;
+      uint32_t m = 6;
+      uint32_t n = 8;
       mat A(m, n);
 
       A[0][0] = 64;
@@ -499,12 +499,12 @@ namespace jtk
       bool res = svd(A, sigma, V);
       TEST_ASSERT(res);
 
-      for (int r = 0; r < m; ++r)
+      for (uint32_t r = 0; r < m; ++r)
         {
-        for (int c = 0; c < n; ++c)
+        for (uint32_t c = 0; c < n; ++c)
           {
           double val = 0.0;
-          for (int k = 0; k < n; ++k)
+          for (uint32_t k = 0; k < n; ++k)
             {
             val += A[r][k] * sigma(k) * V[c][k];
             }
@@ -519,19 +519,19 @@ namespace jtk
       double b[6] = { 260.0, 260.0, 260.0, 260.0, 260.0, 260.0 };
 
       double x[8];
-      for (int j = 0; j < 8; ++j)
+      for (uint32_t j = 0; j < 8; ++j)
         {
         x[j] = 0.0;
-        for (int i = 0; i < 6; ++i)
+        for (uint32_t i = 0; i < 6; ++i)
           x[j] += inv[j][i] * b[i];
         }
 
       double n2 = 0.0;
       double error[6];
-      for (int i = 0; i < 6; ++i)
+      for (uint32_t i = 0; i < 6; ++i)
         {
         error[i] = -b[i];
-        for (int j = 0; j < 8; ++j)
+        for (uint32_t j = 0; j < 8; ++j)
           error[i] += A_copy[i][j] * x[j];
         n2 += error[i] * error[i];
         }
@@ -549,14 +549,14 @@ namespace jtk
       pts.push_back(p2);
       auto c = make_vec3(1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0);
       mat9 a(3, 3);
-      for (int i = 0; i < 3; ++i)
+      for (uint32_t i = 0; i < 3; ++i)
         {
-        for (int j = 0; j < 3; ++j)
+        for (uint32_t j = 0; j < 3; ++j)
           a[i][j] = 0.0;
         }
-      for (size_t k = 0; k < pts.size(); ++k)
-        for (int i = 0; i < 3; ++i)
-          for (int j = 0; j < 3; ++j)
+      for (uint32_t k = 0; k < pts.size(); ++k)
+        for (uint32_t i = 0; i < 3; ++i)
+          for (uint32_t j = 0; j < 3; ++j)
             a[i][j] += (pts[k](i) - c(i))*(pts[k](j) - c(j));
       mat3 w;
       mat9 v;
@@ -566,18 +566,18 @@ namespace jtk
       TEST_EQ_CLOSE(1.0, w(0), 1e-8);
       TEST_EQ_CLOSE(1.0, w(1), 1e-8);
       TEST_EQ_CLOSE(0.0, w(2), 1e-8);
-      for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 3; ++j)
+      for (uint32_t i = 0; i < 3; ++i)
+        for (uint32_t j = 0; j < 3; ++j)
           TEST_EQ_CLOSE(a[i][j], v[i][j], 1e-8);
       }
 
 
     void svd_2_array()
       {
-      int m = 4;
-      int n = 3;
+      uint32_t m = 4;
+      uint32_t n = 3;
       matf12 A(m, n);
-      for (int i = 1; i <= 12; ++i)
+      for (uint32_t i = 1; i <= 12; ++i)
         A[(i - 1) / 3][(i - 1) % 3] = float(i);
       matf12 A_copy(A);
 
@@ -587,12 +587,12 @@ namespace jtk
       bool res = svd(A, sigma, V);
       TEST_ASSERT(res);
 
-      for (int r = 0; r < m; ++r)
+      for (uint32_t r = 0; r < m; ++r)
         {
-        for (int c = 0; c < n; ++c)
+        for (uint32_t c = 0; c < n; ++c)
           {
           float val = 0.f;
-          for (int k = 0; k < n; ++k)
+          for (uint32_t k = 0; k < n; ++k)
             {
             val += A[r][k] * sigma(k) * V[c][k];
             }
@@ -603,10 +603,10 @@ namespace jtk
 
     void svd_3_array()
       {
-      int m = 3;
-      int n = 4;
+      uint32_t m = 3;
+      uint32_t n = 4;
       matf12 A(m, n);
-      for (int i = 1; i <= 12; ++i)
+      for (uint32_t i = 1; i <= 12; ++i)
         A[(i - 1) % 3][(i - 1) / 3] = float(i);
       matf12 A_copy(A);
 
@@ -616,12 +616,12 @@ namespace jtk
       bool res = svd(A, sigma, V);
       TEST_ASSERT(res);
 
-      for (int r = 0; r < m; ++r)
+      for (uint32_t r = 0; r < m; ++r)
         {
-        for (int c = 0; c < n; ++c)
+        for (uint32_t c = 0; c < n; ++c)
           {
           float val = 0.f;
-          for (int k = 0; k < n; ++k)
+          for (uint32_t k = 0; k < n; ++k)
             {
             val += A[r][k] * sigma(k) * V[c][k];
             }
@@ -632,10 +632,10 @@ namespace jtk
 
     void pseudo_inverse_1_array()
       {
-      int m = 3;
-      int n = 3;
+      uint32_t m = 3;
+      uint32_t n = 3;
       mat9 A(m, n);
-      for (int i = 1; i <= 9; ++i)
+      for (uint32_t i = 1; i <= 9; ++i)
         A[(i - 1) / 3][(i - 1) % 3] = std::sqrt(double(i - 1));
       mat9 A_copy(A);
 
@@ -644,12 +644,12 @@ namespace jtk
       int res = pseudo_inverse(inv, A, 1e-5);
       TEST_EQ(3, res);
 
-      for (int r = 0; r < m; ++r)
+      for (uint32_t r = 0; r < m; ++r)
         {
-        for (int c = 0; c < m; ++c)
+        for (uint32_t c = 0; c < m; ++c)
           {
           double val = 0.0;
-          for (int k = 0; k < n; ++k)
+          for (uint32_t k = 0; k < n; ++k)
             {
             val += A_copy[r][k] * inv[k][c];
             }
@@ -660,8 +660,8 @@ namespace jtk
 
     void pseudo_inverse_2_array()
       {
-      int m = 8;
-      int n = 6;
+      uint32_t m = 8;
+      uint32_t n = 6;
       mat48 A(m, n);
 
       A[0][0] = 64;
@@ -722,12 +722,12 @@ namespace jtk
       bool res = svd(A, sigma, V);
       TEST_ASSERT(res);
 
-      for (int r = 0; r < m; ++r)
+      for (uint32_t r = 0; r < m; ++r)
         {
-        for (int c = 0; c < n; ++c)
+        for (uint32_t c = 0; c < n; ++c)
           {
           double val = 0.0;
-          for (int k = 0; k < n; ++k)
+          for (uint32_t k = 0; k < n; ++k)
             {
             val += A[r][k] * sigma(k) * V[c][k];
             }
@@ -743,19 +743,19 @@ namespace jtk
       double b[8] = { 260.0, 260.0, 260.0, 260.0, 260.0, 260.0, 260.0, 260.0 };
 
       double x[6];
-      for (int j = 0; j < 6; ++j)
+      for (uint32_t j = 0; j < 6; ++j)
         {
         x[j] = 0.0;
-        for (int i = 0; i < 8; ++i)
+        for (uint32_t i = 0; i < 8; ++i)
           x[j] += inv[j][i] * b[i];
         }
 
       double n2 = 0.0;
       double error[8];
-      for (int i = 0; i < 8; ++i)
+      for (uint32_t i = 0; i < 8; ++i)
         {
         error[i] = -b[i];
-        for (int j = 0; j < 6; ++j)
+        for (uint32_t j = 0; j < 6; ++j)
           error[i] += A_copy[i][j] * x[j];
         n2 += error[i] * error[i];
         }
@@ -764,8 +764,8 @@ namespace jtk
 
     void pseudo_inverse_3_array()
       {
-      int m = 6;
-      int n = 8;
+      uint32_t m = 6;
+      uint32_t n = 8;
       mat64 A(m, n);
 
       A[0][0] = 64;
@@ -826,12 +826,12 @@ namespace jtk
       bool res = svd(A, sigma, V);
       TEST_ASSERT(res);
 
-      for (int r = 0; r < m; ++r)
+      for (uint32_t r = 0; r < m; ++r)
         {
-        for (int c = 0; c < n; ++c)
+        for (uint32_t c = 0; c < n; ++c)
           {
           double val = 0.0;
-          for (int k = 0; k < n; ++k)
+          for (uint32_t k = 0; k < n; ++k)
             {
             val += A[r][k] * sigma(k) * V[c][k];
             }
@@ -846,19 +846,19 @@ namespace jtk
       double b[6] = { 260.0, 260.0, 260.0, 260.0, 260.0, 260.0 };
 
       double x[8];
-      for (int j = 0; j < 8; ++j)
+      for (uint32_t j = 0; j < 8; ++j)
         {
         x[j] = 0.0;
-        for (int i = 0; i < 6; ++i)
+        for (uint32_t i = 0; i < 6; ++i)
           x[j] += inv[j][i] * b[i];
         }
 
       double n2 = 0.0;
       double error[6];
-      for (int i = 0; i < 6; ++i)
+      for (uint32_t i = 0; i < 6; ++i)
         {
         error[i] = -b[i];
-        for (int j = 0; j < 8; ++j)
+        for (uint32_t j = 0; j < 8; ++j)
           error[i] += A_copy[i][j] * x[j];
         n2 += error[i] * error[i];
         }
@@ -1679,10 +1679,10 @@ namespace jtk
     void lsd_test()
       {
       mat A(4, 3);
-      for (int i = 1; i <= 12; ++i)
+      for (uint32_t i = 1; i <= 12; ++i)
         A[(i - 1) / 3][(i - 1) % 3] = double(i);
       mat b(4);
-      for (int i = 0; i < 4; ++i)
+      for (uint32_t i = 0; i < 4; ++i)
         b(i) = double(3 * i + 2);
       lsd(A, b, 1e-12);
       TEST_EQ(3, b.rows());
@@ -1695,10 +1695,10 @@ namespace jtk
     void lsd_test_array()
       {
       mat12 A(4, 3);
-      for (int i = 1; i <= 12; ++i)
+      for (uint32_t i = 1; i <= 12; ++i)
         A[(i - 1) / 3][(i - 1) % 3] = double(i);
       mat4 b(4);
-      for (int i = 0; i < 4; ++i)
+      for (uint32_t i = 0; i < 4; ++i)
         b(i) = double(3 * i + 2);
       lsd(A, b, 1e-12);
       TEST_EQ(3, b.rows());
@@ -2054,8 +2054,8 @@ namespace jtk
       m = identity(2, 3);
       TEST_EQ(2, m.rows());
       TEST_EQ(3, m.cols());
-      for (int i = 0; i < 2; ++i)
-        for (int j = 0; j < 3; ++j)
+      for (uint32_t i = 0; i < 2; ++i)
+        for (uint32_t j = 0; j < 3; ++j)
           TEST_EQ(i == j ? 1.0 : 0.0, m(i, j));
 
       mat16 m16 = zeros(3, 4);
@@ -2073,8 +2073,8 @@ namespace jtk
       m16 = identity(2, 3);
       TEST_EQ(2, m16.rows());
       TEST_EQ(3, m16.cols());
-      for (int i = 0; i < 2; ++i)
-        for (int j = 0; j < 3; ++j)
+      for (uint32_t i = 0; i < 2; ++i)
+        for (uint32_t j = 0; j < 3; ++j)
           TEST_EQ(i == j ? 1.0 : 0.0, m16(i, j));
       }
 
@@ -2095,8 +2095,8 @@ namespace jtk
       m = identity<float>(2, 3);
       TEST_EQ(2, m.rows());
       TEST_EQ(3, m.cols());
-      for (int i = 0; i < 2; ++i)
-        for (int j = 0; j < 3; ++j)
+      for (uint32_t i = 0; i < 2; ++i)
+        for (uint32_t j = 0; j < 3; ++j)
           TEST_EQ(i == j ? 1.0 : 0.0, m(i, j));
 
       matf16 m16 = zeros<float>(3, 4);
@@ -2114,8 +2114,8 @@ namespace jtk
       m16 = identity<float>(2, 3);
       TEST_EQ(2, m16.rows());
       TEST_EQ(3, m16.cols());
-      for (int i = 0; i < 2; ++i)
-        for (int j = 0; j < 3; ++j)
+      for (uint32_t i = 0; i < 2; ++i)
+        for (uint32_t j = 0; j < 3; ++j)
           TEST_EQ(i == j ? 1.0 : 0.0, m16(i, j));
       }
 
@@ -2124,7 +2124,7 @@ namespace jtk
       mat m(2, 2);
       m << 3, 4, 3, 6;
       mat m2 = m;
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       double d;
       ludcmp(m, permutations, d);
       TEST_EQ(0, permutations[0]);
@@ -2147,7 +2147,7 @@ namespace jtk
       mat m(2, 2);
       m << 4, 3, 6, 3;
       mat m2 = m;
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       double d;
       ludcmp(m, permutations, d);
       TEST_EQ(1, permutations[0]);
@@ -2171,7 +2171,7 @@ namespace jtk
       m << 4, 3, 6, 3;
       mat v(2, 1);
       v << 10, 12;
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       double d;
       ludcmp(m, permutations, d);
       lubksb(v, m, permutations);
@@ -2216,7 +2216,7 @@ namespace jtk
       matf16 m(2, 2);
       m << 3, 4, 3, 6;
       matf16 m2 = m;
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       float d;
       ludcmp(m, permutations, d);
       TEST_EQ(0, permutations[0]);
@@ -2239,7 +2239,7 @@ namespace jtk
       matf16 m(2, 2);
       m << 4, 3, 6, 3;
       matf16 m2 = m;
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       float d;
       ludcmp(m, permutations, d);
       TEST_EQ(1, permutations[0]);
@@ -2263,7 +2263,7 @@ namespace jtk
       m << 4, 3, 6, 3;
       matf2 v(2, 1);
       v << 10, 12;
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       float d;
       ludcmp(m, permutations, d);
       lubksb(v, m, permutations);
@@ -2312,19 +2312,19 @@ namespace jtk
       cholesky(m);
 
       mat u(m.rows(), m.cols());
-      for (size_t i = 0; i < u.rows(); ++i)
-        for (size_t j = i; j < u.cols(); ++j)
+      for (uint32_t i = 0; i < u.rows(); ++i)
+        for (uint32_t j = i; j < u.cols(); ++j)
           u(i, j) = m(i, j);
       mat m2 = transpose(u)*u;
-      for (size_t i = 0; i < m.rows(); ++i)
-        for (size_t j = 0; j < m.cols(); ++j)
+      for (uint32_t i = 0; i < m.rows(); ++i)
+        for (uint32_t j = 0; j < m.cols(); ++j)
           TEST_EQ_CLOSE(old_m(i, j), m2(i, j), 0.00000001);
       }
 
     void cholesky2()
       {
       mat m = identity(5, 5)*2.0;
-      for (uint64_t i = 0; i < 5; ++i)
+      for (uint32_t i = 0; i < 5; ++i)
         {
         if (i > 0)
           m(i, i - 1) = -1.0;
@@ -2337,12 +2337,12 @@ namespace jtk
       cholesky(m);
 
       mat u(m.rows(), m.cols());
-      for (size_t i = 0; i < u.rows(); ++i)
-        for (size_t j = i; j < u.cols(); ++j)
+      for (uint32_t i = 0; i < u.rows(); ++i)
+        for (uint32_t j = i; j < u.cols(); ++j)
           u(i, j) = m(i, j);
       mat m2 = transpose(u)*u;
-      for (size_t i = 0; i < m.rows(); ++i)
-        for (size_t j = 0; j < m.cols(); ++j)
+      for (uint32_t i = 0; i < m.rows(); ++i)
+        for (uint32_t j = 0; j < m.cols(); ++j)
           TEST_EQ_CLOSE(old_m(i, j), m2(i, j), 0.00000001);
       }
 
@@ -2362,7 +2362,7 @@ namespace jtk
       b(2) = 3.0;
       back_substitution(x, b, u);
       mat c = u * x;
-      for (uint64_t i = 0; i < b.rows(); ++i)
+      for (uint32_t i = 0; i < b.rows(); ++i)
         TEST_EQ_CLOSE(b(i), c(i), 0.00000001);
       }
 
@@ -2382,7 +2382,7 @@ namespace jtk
       b(2) = 3.0;
       forward_substitution(x, b, l);
       mat c = l * x;
-      for (uint64_t i = 0; i < b.rows(); ++i)
+      for (uint32_t i = 0; i < b.rows(); ++i)
         TEST_EQ_CLOSE(b(i), c(i), 0.00000001);
       }
 
@@ -2422,19 +2422,19 @@ namespace jtk
       cholesky(m);
 
       matf16 u = zeros(m.rows(), m.cols());
-      for (size_t i = 0; i < u.rows(); ++i)
-        for (size_t j = i; j < u.cols(); ++j)
+      for (uint32_t i = 0; i < u.rows(); ++i)
+        for (uint32_t j = i; j < u.cols(); ++j)
           u(i, j) = m(i, j);
       matf16 m2 = transpose(u)*u;
-      for (size_t i = 0; i < m.rows(); ++i)
-        for (size_t j = 0; j < m.cols(); ++j)
+      for (uint32_t i = 0; i < m.rows(); ++i)
+        for (uint32_t j = 0; j < m.cols(); ++j)
           TEST_EQ_CLOSE(old_m(i, j), m2(i, j), 0.00001f);
       }
 
     void cholesky2_array()
       {
       matf25 m = identity(5, 5)*2.f;
-      for (uint64_t i = 0; i < 5; ++i)
+      for (uint32_t i = 0; i < 5; ++i)
         {
         if (i > 0)
           m(i, i - 1) = -1.0;
@@ -2447,12 +2447,12 @@ namespace jtk
       cholesky(m);
 
       matf25 u = zeros(m.rows(), m.cols());
-      for (size_t i = 0; i < u.rows(); ++i)
-        for (size_t j = i; j < u.cols(); ++j)
+      for (uint32_t i = 0; i < u.rows(); ++i)
+        for (uint32_t j = i; j < u.cols(); ++j)
           u(i, j) = m(i, j);
       matf25 m2 = transpose(u)*u;
-      for (size_t i = 0; i < m.rows(); ++i)
-        for (size_t j = 0; j < m.cols(); ++j)
+      for (uint32_t i = 0; i < m.rows(); ++i)
+        for (uint32_t j = 0; j < m.cols(); ++j)
           TEST_EQ_CLOSE(old_m(i, j), m2(i, j), 0.00001f);
       }
 
@@ -2472,7 +2472,7 @@ namespace jtk
       b(2) = 3.0;
       back_substitution(x, b, u);
       matf3 c = u * x;
-      for (uint64_t i = 0; i < b.rows(); ++i)
+      for (uint32_t i = 0; i < b.rows(); ++i)
         TEST_EQ_CLOSE(b(i), c(i), 0.00001f);
       }
 
@@ -2492,7 +2492,7 @@ namespace jtk
       b(2) = 3.0;
       forward_substitution(x, b, l);
       matf3 c = l * x;
-      for (uint64_t i = 0; i < b.rows(); ++i)
+      for (uint32_t i = 0; i < b.rows(); ++i)
         TEST_EQ_CLOSE(b(i), c(i), 0.00001f);
       }
 
@@ -2525,9 +2525,9 @@ namespace jtk
 
     void very_large_size_expression_uncomputed()
       {
-      auto matrix_expr = identity(0xffffffffffffffff, 0xffffffffffffffff)*3.0 - 1.0;
-      TEST_EQ(0xffffffffffffffff, matrix_expr.rows());
-      TEST_EQ(0xffffffffffffffff, matrix_expr.cols());
+      auto matrix_expr = identity(0xffffffff, 0xffffffff)*3.0 - 1.0;
+      TEST_EQ(0xffffffff, matrix_expr.rows());
+      TEST_EQ(0xffffffff, matrix_expr.cols());
       }
 
     void solve_qr()
@@ -2548,15 +2548,15 @@ namespace jtk
       m << 4, 12, -16, 12, 37, -43, -16, -43, 98;
       mat m2 = m;
       mat qt;
-      std::vector<uint64_t> p;
+      std::vector<uint32_t> p;
       qrdcmp(m, qt, p, false);
       mat res = transpose(qt)*m;
-      for (int i = 0; i < res.rows(); ++i)
-        for (int j = 0; j < res.cols(); ++j)
+      for (uint32_t i = 0; i < res.rows(); ++i)
+        for (uint32_t j = 0; j < res.cols(); ++j)
           TEST_EQ_CLOSE(m2(i, j), res(i, j), 1e-12);
       mat qqt = transpose(qt)*qt;
-      for (int i = 0; i < qqt.rows(); ++i)
-        for (int j = 0; j < qqt.cols(); ++j)
+      for (uint32_t i = 0; i < qqt.rows(); ++i)
+        for (uint32_t j = 0; j < qqt.cols(); ++j)
           TEST_EQ_CLOSE(i == j ? 1.0 : 0.0, qqt(i, j), 1e-12);
       }
 
@@ -2566,15 +2566,15 @@ namespace jtk
       m << 1, -1, 0, 1, -1, 2, 1, 1, 0, 1, 1, 0;
       mat m2 = m;
       mat qt;
-      std::vector<uint64_t> p;
+      std::vector<uint32_t> p;
       qrdcmp(m, qt, p, false);
       mat res = transpose(qt)*m;
-      for (int i = 0; i < res.rows(); ++i)
-        for (int j = 0; j < res.cols(); ++j)
+      for (uint32_t i = 0; i < res.rows(); ++i)
+        for (uint32_t j = 0; j < res.cols(); ++j)
           TEST_EQ_CLOSE(m2(i, j), res(i, j), 1e-12);
       mat qqt = transpose(qt)*qt;
-      for (int i = 0; i < qqt.rows(); ++i)
-        for (int j = 0; j < qqt.cols(); ++j)
+      for (uint32_t i = 0; i < qqt.rows(); ++i)
+        for (uint32_t j = 0; j < qqt.cols(); ++j)
           TEST_EQ_CLOSE(i == j ? 1.0 : 0.0, qqt(i, j), 1e-12);
       }
 
@@ -2584,15 +2584,15 @@ namespace jtk
       m << 1, -1, 0, 1, -1, 2, 1, 1, 0, 1, 1, 0;
       mat m2 = m;
       mat qt;
-      std::vector<uint64_t> p;
+      std::vector<uint32_t> p;
       qrdcmp(m, qt, p, false);
       mat res = transpose(qt)*m;
-      for (int i = 0; i < res.rows(); ++i)
-        for (int j = 0; j < res.cols(); ++j)
+      for (uint32_t i = 0; i < res.rows(); ++i)
+        for (uint32_t j = 0; j < res.cols(); ++j)
           TEST_EQ_CLOSE(m2(i, j), res(i, j), 1e-12);
       mat qqt = transpose(qt)*qt;
-      for (int i = 0; i < qqt.rows(); ++i)
-        for (int j = 0; j < qqt.cols(); ++j)
+      for (uint32_t i = 0; i < qqt.rows(); ++i)
+        for (uint32_t j = 0; j < qqt.cols(); ++j)
           TEST_EQ_CLOSE(i == j ? 1.0 : 0.0, qqt(i, j), 1e-12);
       }
 
@@ -2612,10 +2612,10 @@ namespace jtk
     void solve_qr_test_least_squares_2()
       {
       mat A(4, 3);
-      for (int i = 1; i <= 12; ++i)
+      for (uint32_t i = 1; i <= 12; ++i)
         A[(i - 1) / 3][(i - 1) % 3] = double(i);
       mat b(4);
-      for (int i = 0; i < 4; ++i)
+      for (uint32_t i = 0; i < 4; ++i)
         b(i) = double(3 * i + 2);
       solve_qr(A, b);
       TEST_EQ_CLOSE(0.0, b(0), 1e-12);
@@ -2641,15 +2641,15 @@ namespace jtk
       m << 4, 12, -16, 12, 37, -43, -16, -43, 98;
       matf9 m2 = m;
       matf9 qt;
-      std::vector<uint64_t> p;
+      std::vector<uint32_t> p;
       qrdcmp(m, qt, p, false);
       matf16 res = transpose(qt)*m;
-      for (int i = 0; i < res.rows(); ++i)
-        for (int j = 0; j < res.cols(); ++j)
+      for (uint32_t i = 0; i < res.rows(); ++i)
+        for (uint32_t j = 0; j < res.cols(); ++j)
           TEST_EQ_CLOSE(m2(i, j), res(i, j), 1e-5);
       matf16 qqt = transpose(qt)*qt;
-      for (int i = 0; i < qqt.rows(); ++i)
-        for (int j = 0; j < qqt.cols(); ++j)
+      for (uint32_t i = 0; i < qqt.rows(); ++i)
+        for (uint32_t j = 0; j < qqt.cols(); ++j)
           TEST_EQ_CLOSE(i == j ? 1.0 : 0.0, qqt(i, j), 1e-5);
       }
 
@@ -2659,15 +2659,15 @@ namespace jtk
       m << 1, -1, 0, 1, -1, 2, 1, 1, 0, 1, 1, 0;
       matf16 m2 = m;
       matf16 qt;
-      std::vector<uint64_t> p;
+      std::vector<uint32_t> p;
       qrdcmp(m, qt, p, false);
       matf16 res = transpose(qt)*m;
-      for (int i = 0; i < res.rows(); ++i)
-        for (int j = 0; j < res.cols(); ++j)
+      for (uint32_t i = 0; i < res.rows(); ++i)
+        for (uint32_t j = 0; j < res.cols(); ++j)
           TEST_EQ_CLOSE(m2(i, j), res(i, j), 1e-5);
       matf16 qqt = transpose(qt)*qt;
-      for (int i = 0; i < qqt.rows(); ++i)
-        for (int j = 0; j < qqt.cols(); ++j)
+      for (uint32_t i = 0; i < qqt.rows(); ++i)
+        for (uint32_t j = 0; j < qqt.cols(); ++j)
           TEST_EQ_CLOSE(i == j ? 1.0 : 0.0, qqt(i, j), 1e-5);
       }
 
@@ -2677,15 +2677,15 @@ namespace jtk
       m << 1, -1, 0, 1, -1, 2, 1, 1, 0, 1, 1, 0;
       matf16 m2 = m;
       matf16 qt;
-      std::vector<uint64_t> p;
+      std::vector<uint32_t> p;
       qrdcmp(m, qt, p, false);
       matf16 res = transpose(qt)*m;
-      for (int i = 0; i < res.rows(); ++i)
-        for (int j = 0; j < res.cols(); ++j)
+      for (uint32_t i = 0; i < res.rows(); ++i)
+        for (uint32_t j = 0; j < res.cols(); ++j)
           TEST_EQ_CLOSE(m2(i, j), res(i, j), 1e-5);
       matf16 qqt = transpose(qt)*qt;
-      for (int i = 0; i < qqt.rows(); ++i)
-        for (int j = 0; j < qqt.cols(); ++j)
+      for (uint32_t i = 0; i < qqt.rows(); ++i)
+        for (uint32_t j = 0; j < qqt.cols(); ++j)
           TEST_EQ_CLOSE(i == j ? 1.0 : 0.0, qqt(i, j), 1e-5);
       }
 
@@ -2705,10 +2705,10 @@ namespace jtk
     void solve_qr_test_least_squares_2_array()
       {
       matf12 A(4, 3);
-      for (int i = 1; i <= 12; ++i)
+      for (uint32_t i = 1; i <= 12; ++i)
         A[(i - 1) / 3][(i - 1) % 3] = float(i);
       matf4 b(4);
-      for (int i = 0; i < 4; ++i)
+      for (uint32_t i = 0; i < 4; ++i)
         b(i) = float(3 * i + 2);
       solve_qr(A, b);
       TEST_EQ_CLOSE(0.f, b(0), 1e-5);
@@ -2760,22 +2760,22 @@ namespace jtk
 
     void qrfac()
       {
-      uint64_t m = 4;
-      uint64_t n = 3;
+      uint32_t m = 4;
+      uint32_t n = 3;
       mat a(m, n);
       a << 1, -1, 0, 1, -1, 2, 1, 1, 0, 1, 1, 0;
       mat a2 = a;
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       mat rdiag;
       mat acnorm;
       qrfac(a, true, permutations, rdiag, acnorm);
       mat P = zeros(n, n);
-      for (uint64_t j = 0; j < n; ++j)
+      for (uint32_t j = 0; j < n; ++j)
         P(permutations[j], j) = 1.0;
       mat qt(m, m);
       mat r = a;
-      uint64_t mn = m > n ? n : m;
-      uint64_t i, j, k;
+      uint32_t mn = m > n ? n : m;
+      uint32_t i, j, k;
       for (i = 0; i < m; ++i)
         {
         for (j = 0; j < m; ++j)
@@ -2825,22 +2825,22 @@ namespace jtk
 
     void qrfac2()
       {
-      uint64_t m = 3;
-      uint64_t n = 4;
+      uint32_t m = 3;
+      uint32_t n = 4;
       mat a(m, n);
       a << 1, -1, 0, 1, -1, 2, 1, 1, 0, 1, 1, 0;
       mat a2 = a;
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       mat rdiag;
       mat acnorm;
       qrfac(a, true, permutations, rdiag, acnorm);
       mat P = zeros(n, n);
-      for (uint64_t j = 0; j < n; ++j)
+      for (uint32_t j = 0; j < n; ++j)
         P(permutations[j], j) = 1.0;
       mat qt(m, m);
       mat r = a;
-      uint64_t mn = m > n ? n : m;
-      uint64_t i, j, k;
+      uint32_t mn = m > n ? n : m;
+      uint32_t i, j, k;
       for (i = 0; i < m; ++i)
         {
         for (j = 0; j < m; ++j)
@@ -2891,38 +2891,38 @@ namespace jtk
 
     void qrsolvtest()
       {
-      int m = 3;
-      int n = 3;
+      uint32_t m = 3;
+      uint32_t n = 3;
       mat a(3, 3);
       a << 4, 12, -16, 12, 37, -43, -16, -43, 98;
       mat b(3, 1);
       b << -20, -43, 192;
 
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       mat rdiag;
       mat acnorm;
       qrfac(a, true, permutations, rdiag, acnorm);
 
       mat r = a;
-      for (int i = 0; i < n; ++i)
+      for (uint32_t i = 0; i < n; ++i)
         {
         r(i, i) = rdiag(i);
-        for (int j = 0; j < i; ++j)
+        for (uint32_t j = 0; j < i; ++j)
           r(i, j) = 0.0;
         }
-      int mn = m > n ? n : m;
+      uint32_t mn = m > n ? n : m;
       mat qt = identity(m, m);
-      for (int k = 0; k < mn; ++k)
+      for (uint32_t k = 0; k < mn; ++k)
         {
         if (a(k, k) != 0.0)
           {
-          for (int j = 0; j < m; ++j)
+          for (uint32_t j = 0; j < m; ++j)
             {
             double sum = 0.0;
-            for (int i = k; i < m; ++i)
+            for (uint32_t i = k; i < m; ++i)
               sum += a(i, k) * qt(i, j);
             sum /= a(k, k);
-            for (int i = k; i < m; ++i)
+            for (uint32_t i = k; i < m; ++i)
               qt(i, j) -= sum * a(i, k);
             }
           }
@@ -2932,15 +2932,15 @@ namespace jtk
 
       mat qtb(3, 1);
 
-      for (int j = 0; j < n; ++j)
+      for (uint32_t j = 0; j < n; ++j)
         {
         if (a[j][j] != 0.0)
           {
           double sum = 0.0;
-          for (int i = j; i < m; ++i)
+          for (uint32_t i = j; i < m; ++i)
             sum += a[i][j] * b(i);
           double temp = -sum / a[j][j];
-          for (int i = j; i < m; ++i)
+          for (uint32_t i = j; i < m; ++i)
             b(i) += a[i][j] * temp;
           }
         qtb(j) = b(j);
@@ -2960,41 +2960,41 @@ namespace jtk
 
     void qrsolvtest2()
       {
-      int m = 4;
-      int n = 3;
+      uint32_t m = 4;
+      uint32_t n = 3;
       mat a(4, 3);
-      for (int i = 1; i <= 12; ++i)
+      for (uint32_t i = 1; i <= 12; ++i)
         a[(i - 1) / 3][(i - 1) % 3] = double(i);
       mat b(4);
-      for (int i = 0; i < 4; ++i)
+      for (uint32_t i = 0; i < 4; ++i)
         b(i) = double(3 * i + 2);
 
       mat a2(a);
       mat b2(b);
 
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       mat rdiag;
       mat acnorm;
       qrfac(a, true, permutations, rdiag, acnorm);
 
       mat r = zeros(n, n);
-      for (int i = 0; i < n; ++i)
+      for (uint32_t i = 0; i < n; ++i)
         {
         r(i, i) = rdiag(i);
-        for (int j = i + 1; j < n; ++j)
+        for (uint32_t j = i + 1; j < n; ++j)
           r(i, j) = a(i, j);
         }
       mat qtb(n, 1);
 
-      for (int j = 0; j < n; ++j)
+      for (uint32_t j = 0; j < n; ++j)
         {
         if (a[j][j] != 0.0)
           {
           double sum = 0.0;
-          for (int i = j; i < m; ++i)
+          for (uint32_t i = j; i < m; ++i)
             sum += a[i][j] * b(i);
           double temp = -sum / a[j][j];
-          for (int i = j; i < m; ++i)
+          for (uint32_t i = j; i < m; ++i)
             b(i) += a[i][j] * temp;
           }
         qtb(j) = b(j);
@@ -3013,8 +3013,8 @@ namespace jtk
 
     void qrsolvtest3()
       {
-      int m = 3;
-      int n = 2;
+      uint32_t m = 3;
+      uint32_t n = 2;
       mat a(3, 2);
       a << 2, 0, -1, 1, 0, 2;
       mat b(3, 1);
@@ -3023,29 +3023,29 @@ namespace jtk
       mat a2(a);
       mat b2(b);
 
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       mat rdiag;
       mat acnorm;
       qrfac(a, true, permutations, rdiag, acnorm);
 
       mat r = zeros(n, n);
-      for (int i = 0; i < n; ++i)
+      for (uint32_t i = 0; i < n; ++i)
         {
         r(i, i) = rdiag(i);
-        for (int j = i + 1; j < n; ++j)
+        for (uint32_t j = i + 1; j < n; ++j)
           r(i, j) = a(i, j);
         }
       mat qtb(n, 1);
 
-      for (int j = 0; j < n; ++j)
+      for (uint32_t j = 0; j < n; ++j)
         {
         if (a[j][j] != 0.0)
           {
           double sum = 0.0;
-          for (int i = j; i < m; ++i)
+          for (uint32_t i = j; i < m; ++i)
             sum += a[i][j] * b(i);
           double temp = -sum / a[j][j];
-          for (int i = j; i < m; ++i)
+          for (uint32_t i = j; i < m; ++i)
             b(i) += a[i][j] * temp;
           }
         qtb(j) = b(j);
@@ -3062,22 +3062,22 @@ namespace jtk
 
     void qrfac_array()
       {
-      uint64_t m = 4;
-      uint64_t n = 3;
+      uint32_t m = 4;
+      uint32_t n = 3;
       matf16 a(m, n);
       a << 1, -1, 0, 1, -1, 2, 1, 1, 0, 1, 1, 0;
       matf16 a2 = a;
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       matf3 rdiag;
       matf3 acnorm;
       qrfac(a, true, permutations, rdiag, acnorm);
       matf16 P = zeros(n, n);
-      for (uint64_t j = 0; j < n; ++j)
+      for (uint32_t j = 0; j < n; ++j)
         P(permutations[j], j) = 1.0;
       matf16 qt(m, m);
       matf16 r = a;
-      uint64_t mn = m > n ? n : m;
-      uint64_t i, j, k;
+      uint32_t mn = m > n ? n : m;
+      uint32_t i, j, k;
       for (i = 0; i < m; ++i)
         {
         for (j = 0; j < m; ++j)
@@ -3127,22 +3127,22 @@ namespace jtk
 
     void qrfac2_array()
       {
-      uint64_t m = 3;
-      uint64_t n = 4;
+      uint32_t m = 3;
+      uint32_t n = 4;
       matf16 a(m, n);
       a << 1, -1, 0, 1, -1, 2, 1, 1, 0, 1, 1, 0;
       matf16 a2 = a;
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       matf4 rdiag;
       matf4 acnorm;
       qrfac(a, true, permutations, rdiag, acnorm);
       matf16 P = zeros(n, n);
-      for (uint64_t j = 0; j < n; ++j)
+      for (uint32_t j = 0; j < n; ++j)
         P(permutations[j], j) = 1.f;
       matf16 qt(m, m);
       matf16 r = a;
-      uint64_t mn = m > n ? n : m;
-      uint64_t i, j, k;
+      uint32_t mn = m > n ? n : m;
+      uint32_t i, j, k;
       for (i = 0; i < m; ++i)
         {
         for (j = 0; j < m; ++j)
@@ -3192,38 +3192,38 @@ namespace jtk
 
     void qrsolvtest_array()
       {
-      int m = 3;
-      int n = 3;
+      uint32_t m = 3;
+      uint32_t n = 3;
       matf16 a(3, 3);
       a << 4, 12, -16, 12, 37, -43, -16, -43, 98;
       matf3 b(3, 1);
       b << -20, -43, 192;
 
-      std::vector<uint64_t> permutations;
+      std::vector<uint32_t> permutations;
       matf3 rdiag;
       matf3 acnorm;
       qrfac(a, true, permutations, rdiag, acnorm);
 
       matf16 r = a;
-      for (int i = 0; i < n; ++i)
+      for (uint32_t i = 0; i < n; ++i)
         {
         r(i, i) = rdiag(i);
-        for (int j = 0; j < i; ++j)
+        for (uint32_t j = 0; j < i; ++j)
           r(i, j) = 0.f;
         }
-      int mn = m > n ? n : m;
+      uint32_t mn = m > n ? n : m;
       matf16 qt = identity(m, m);
-      for (int k = 0; k < mn; ++k)
+      for (uint32_t k = 0; k < mn; ++k)
         {
         if (a(k, k) != 0.f)
           {
-          for (int j = 0; j < m; ++j)
+          for (uint32_t j = 0; j < m; ++j)
             {
             float sum = 0.f;
-            for (int i = k; i < m; ++i)
+            for (uint32_t i = k; i < m; ++i)
               sum += a(i, k) * qt(i, j);
             sum /= a(k, k);
-            for (int i = k; i < m; ++i)
+            for (uint32_t i = k; i < m; ++i)
               qt(i, j) -= sum * a(i, k);
             }
           }
@@ -3233,15 +3233,15 @@ namespace jtk
 
       matf3 qtb(3, 1);
 
-      for (int j = 0; j < n; ++j)
+      for (uint32_t j = 0; j < n; ++j)
         {
         if (a[j][j] != 0.f)
           {
           float sum = 0.f;
-          for (int i = j; i < m; ++i)
+          for (uint32_t i = j; i < m; ++i)
             sum += a[i][j] * b(i);
           float temp = -sum / a[j][j];
-          for (int i = j; i < m; ++i)
+          for (uint32_t i = j; i < m; ++i)
             b(i) += a[i][j] * temp;
           }
         qtb(j) = b(j);
@@ -3328,9 +3328,9 @@ namespace jtk
     bool error_functional(const mat& solution, mat& f, void* data)
       {
       // y(x) = a * cos (b*x) + b * sin(a * x)    
-      int m = 20;
+      uint32_t m = 20;
       f.resize(m, 1);
-      for (int i = 0; i < m; ++i)
+      for (uint32_t i = 0; i < m; ++i)
         {
         double a = *((double*)data);
         double b = *(((double*)data) + 1);
@@ -3351,7 +3351,7 @@ namespace jtk
       std::vector<double> coeff;
       coeff.push_back(2.0);
       coeff.push_back(3.0);
-      uint64_t info, nfev;
+      uint32_t info, nfev;
       mat solution, fvec;
       solution = ones(2, 1);
       lmdif0(error_functional, solution, fvec, info, nfev, (void*)coeff.data());
@@ -3365,9 +3365,9 @@ namespace jtk
     bool error_functional_array(const matf2& solution, matf20& f, void* data)
       {
       // y(x) = a * cos (b*x) + b * sin(a * x)    
-      int m = 20;
+      uint32_t m = 20;
       f.resize(m, 1);
-      for (int i = 0; i < m; ++i)
+      for (uint32_t i = 0; i < m; ++i)
         {
         float a = *((float*)data);
         float b = *(((float*)data) + 1);
@@ -3388,7 +3388,7 @@ namespace jtk
       std::vector<float> coeff;
       coeff.push_back(2.0);
       coeff.push_back(3.0);
-      uint64_t info, nfev;
+      uint32_t info, nfev;
       matf2 solution;
       matf20 fvec;
       solution = ones(2, 1);
@@ -3793,9 +3793,9 @@ namespace jtk
     void tracetest()
       {
       matrix<double> m(5, 5);
-      for (int i = 0; i < 5; ++i)
+      for (uint32_t i = 0; i < 5; ++i)
         {
-        for (int j = 0; j < 5; ++j)
+        for (uint32_t j = 0; j < 5; ++j)
           {
           m(i, j) = (double)(i * 5 + j);
           }
@@ -3818,7 +3818,7 @@ namespace jtk
       matrix<double> m_concat(10, 3);
       m_concat << m_up, m_mid, m_down;
       auto it = m_concat.begin();
-      for (int i = 1; i < 31; ++i)
+      for (uint32_t i = 1; i < 31; ++i)
         {
         TEST_EQ(*it++, i);
         }
@@ -3850,16 +3850,16 @@ namespace jtk
       matrix<double> m_concat(3, 10);
       m_concat << m_left, m_mid, m_right;
       auto it = m_concat.begin();
-      for (int r = 0; r < 3; ++r)
+      for (uint32_t r = 0; r < 3; ++r)
         {
-        for (int c = 0; c < 3; ++c)
+        for (uint32_t c = 0; c < 3; ++c)
           {
           TEST_EQ(m_concat(r, c), m_left(r, c));
           TEST_EQ(m_concat(r, c + 3), m_mid(r, c));
           TEST_EQ(m_concat(r, c + 7), m_right(r, c));
           }
         }
-      for (int r = 0; r < 3; ++r)
+      for (uint32_t r = 0; r < 3; ++r)
         {
         TEST_EQ(m_concat(r, 6), m_mid(r, 3));
         }
@@ -3883,7 +3883,7 @@ namespace jtk
       {
       sparse_vector_fixture() : vector_1(5), vector_2(5), vector_3(10), vector_4(5)
         {
-        size_t i;
+        uint32_t i;
         for (i = 0; i < 5; ++i)
           {
           vector_1.put(i) = static_cast<double>(i);
@@ -3906,7 +3906,7 @@ namespace jtk
     void sparse_vector_construction()
       {
       sparse_vector<double> v(5);
-      size_t i;
+      uint32_t i;
       for (i = 0; i < 5; ++i)
         v.put(i) = static_cast<double>(i);
       for (i = 0; i < 5; ++i)
@@ -3918,13 +3918,13 @@ namespace jtk
     void sparse_vector_sparsity_optimization()
       {
       sparse_vector<double> v(5);
-      size_t i;
+      uint32_t i;
       for (i = 0; i < 5; ++i)
         v.put(i) = 0.0;
       v.put(0) = 1.0;
-      TEST_EQ(v.entries_stored(), static_cast<size_t>(5));
+      TEST_EQ(v.entries_stored(), static_cast<uint32_t>(5));
       sparse_vector<double> v2 = v;
-      TEST_EQ(v2.entries_stored(), static_cast<size_t>(1));
+      TEST_EQ(v2.entries_stored(), static_cast<uint32_t>(1));
       TEST_EQ(v2.get(0), 1.0);
       }
 
@@ -3959,10 +3959,10 @@ namespace jtk
       void test()
         {
         vector_3 = vector_1;
-        size_t i;
+        uint32_t i;
         for (i = 0; i < 5; ++i)
           TEST_EQ(vector_3.get(i), i);
-        TEST_EQ(vector_3.size(), static_cast<size_t>(5));
+        TEST_EQ(vector_3.size(), static_cast<uint32_t>(5));
         }
       };
 
@@ -3971,7 +3971,7 @@ namespace jtk
       void test()
         {
         vector_1 *= 2.0;
-        size_t i;
+        uint32_t i;
         for (i = 0; i < 5; ++i)
           TEST_EQ(vector_1.get(i), 2.0*i);
         vector_1 /= 2.0;
@@ -3985,7 +3985,7 @@ namespace jtk
       void test()
         {
         vector_1 += vector_2;
-        size_t i;
+        uint32_t i;
         for (i = 0; i < 5; ++i)
           TEST_EQ(vector_1.get(i), 3.0*i);
         vector_1 -= vector_2;
@@ -4014,7 +4014,7 @@ namespace jtk
       {
       sparse_array_fixture() : vector_1(5), vector_2(5), vector_3(10), vector_4(5)
         {
-        size_t i;
+        uint32_t i;
         for (i = 0; i < 5; ++i)
           {
           vector_1.put(i) = static_cast<double>(i);
@@ -4037,7 +4037,7 @@ namespace jtk
     void sparse_array_construction()
       {
       sparse_array<double, 8> v(5);
-      size_t i;     
+      uint32_t i;     
       v.put(3) = 3.0;
       v.put(2) = 2.0;
       v.put(4) = 4.0;
@@ -4052,13 +4052,13 @@ namespace jtk
     void sparse_array_sparsity_optimization()
       {
       sparse_array<double, 10> v(5);
-      size_t i;
+      uint32_t i;
       for (i = 0; i < 5; ++i)
         v.put(i) = 0.0;
       v.put(0) = 1.0;
-      TEST_EQ(v.entries_stored(), static_cast<size_t>(10));
+      TEST_EQ(v.entries_stored(), static_cast<uint32_t>(10));
       sparse_array<double, 10> v2 = v;
-      TEST_EQ(v2.entries_stored(), static_cast<size_t>(10));
+      TEST_EQ(v2.entries_stored(), static_cast<uint32_t>(10));
       TEST_EQ(v2.get(0), 1.0);
       }
 
@@ -4093,10 +4093,10 @@ namespace jtk
       void test()
         {
         vector_3 = vector_1;
-        size_t i;
+        uint32_t i;
         for (i = 0; i < 5; ++i)
           TEST_EQ(vector_3.get(i), i);
-        TEST_EQ(vector_3.size(), static_cast<size_t>(5));
+        TEST_EQ(vector_3.size(), static_cast<uint32_t>(5));
         }
       };
 
@@ -4105,7 +4105,7 @@ namespace jtk
       void test()
         {
         vector_1 *= 2.0;
-        size_t i;
+        uint32_t i;
         for (i = 0; i < 5; ++i)
           TEST_EQ(vector_1.get(i), 2.0*i);
         vector_1 /= 2.0;
@@ -4119,7 +4119,7 @@ namespace jtk
       void test()
         {
         vector_1 += vector_2;
-        size_t i;
+        uint32_t i;
         for (i = 0; i < 5; ++i)
           TEST_EQ(vector_1.get(i), 3.0*i);
         vector_1 -= vector_2;
@@ -4148,7 +4148,7 @@ namespace jtk
       {
       fixture_sparse_matrix() : matrix_1(3, 3), matrix_2(3, 3), matrix_3(4, 1), matrix_4(1, 2)
         {
-        size_t i, j;
+        uint32_t i, j;
         for (i = 0; i < 3; ++i)
           for (j = 0; j < 3; ++j)
             {
@@ -4185,18 +4185,18 @@ namespace jtk
         }
       };
 
-    struct sparse_matrix_size_test : public fixture_sparse_matrix
+    struct sparse_matrix_uint32_test : public fixture_sparse_matrix
       {
       void test()
         {
-        TEST_EQ(matrix_1.rows(), static_cast<size_t>(3));
-        TEST_EQ(matrix_1.cols(), static_cast<size_t>(3));
+        TEST_EQ(matrix_1.rows(), static_cast<uint32_t>(3));
+        TEST_EQ(matrix_1.cols(), static_cast<uint32_t>(3));
 
-        TEST_EQ(matrix_3.rows(), static_cast<size_t>(4));
-        TEST_EQ(matrix_3.cols(), static_cast<size_t>(1));
+        TEST_EQ(matrix_3.rows(), static_cast<uint32_t>(4));
+        TEST_EQ(matrix_3.cols(), static_cast<uint32_t>(1));
 
-        TEST_EQ(matrix_4.rows(), static_cast<size_t>(1));
-        TEST_EQ(matrix_4.cols(), static_cast<size_t>(2));
+        TEST_EQ(matrix_4.rows(), static_cast<uint32_t>(1));
+        TEST_EQ(matrix_4.cols(), static_cast<uint32_t>(2));
         }
       };
 
@@ -4225,8 +4225,8 @@ namespace jtk
             TEST_EQ(matrix_2.get(i, j), static_cast<double>(i * 3 + j));
             TEST_EQ(matrix_4.get(i, j), static_cast<double>(i * 3 + j) * 2);
             }
-        TEST_EQ(matrix_1.rows(), static_cast<size_t>(1));
-        TEST_EQ(matrix_1.cols(), static_cast<size_t>(2));
+        TEST_EQ(matrix_1.rows(), static_cast<uint32_t>(1));
+        TEST_EQ(matrix_1.cols(), static_cast<uint32_t>(2));
         }
       };
 
@@ -4254,21 +4254,21 @@ namespace jtk
             {
             TEST_EQ(matrix_2.get(i, j), static_cast<double>(i * 3 + j) * 2);
             }
-        TEST_EQ(matrix_1.rows(), static_cast<size_t>(1));
-        TEST_EQ(matrix_1.cols(), static_cast<size_t>(2));
+        TEST_EQ(matrix_1.rows(), static_cast<uint32_t>(1));
+        TEST_EQ(matrix_1.cols(), static_cast<uint32_t>(2));
 
-        TEST_EQ(matrix_4.rows(), static_cast<size_t>(1));
-        TEST_EQ(matrix_4.cols(), static_cast<size_t>(2));
+        TEST_EQ(matrix_4.rows(), static_cast<uint32_t>(1));
+        TEST_EQ(matrix_4.cols(), static_cast<uint32_t>(2));
         }
       };
 
-    struct sparse_matrix_resize_test : public fixture_sparse_matrix
+    struct sparse_matrix_reuint32_test : public fixture_sparse_matrix
       {
       void test()
         {
         matrix_1.resize(100, 500);
-        TEST_EQ(matrix_1.rows(), static_cast<size_t>(100));
-        TEST_EQ(matrix_1.cols(), static_cast<size_t>(500));
+        TEST_EQ(matrix_1.rows(), static_cast<uint32_t>(100));
+        TEST_EQ(matrix_1.cols(), static_cast<uint32_t>(500));
         }
       };
 
@@ -4300,7 +4300,7 @@ namespace jtk
       {
       fixture_sparse_matrix_operations() : mat_1(5, 5), mat_2(5, 5), smat_1(5, 5), smat_2(5, 5), mat_1col(5, 5)
         {
-        size_t i, j;
+        uint32_t i, j;
         for (i = 0; i < 5; ++i)
           for (j = 0; j < 5; ++j)
             {
@@ -4332,27 +4332,27 @@ namespace jtk
 
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*3.0);
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = smat_1 + (smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*4.0);
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = (smat_1 + smat_2) + smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*4.0);
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = (smat_1 + smat_2) + (smat_2 + smat_1);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*6.0);
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = smat_1 + smat_2 + smat_2 + smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*6.0);
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         }
       };
@@ -4365,27 +4365,27 @@ namespace jtk
         sparse_matrix<double> sm = smat_1 - smat_2;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), -static_cast<double>(i));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = smat_1 - (smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), -static_cast<double>(i*2.0));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = (smat_1 + smat_2) - smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*2.0);
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = (smat_1 + smat_2) - (smat_2 - smat_1);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), i*2.0);
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = smat_1 - smat_2 - smat_2 - smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), -static_cast<double>(i*4.0));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         }
       };
@@ -4398,12 +4398,12 @@ namespace jtk
         sparse_matrix<double> sm = -smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), -static_cast<double>(i));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = -(smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), -static_cast<double>(3.0*i));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
         }
       };
 
@@ -4415,22 +4415,22 @@ namespace jtk
         sparse_matrix<double> sm = smat_1 * 2.0;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 2.0*static_cast<double>(i));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = 2.0 * smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 2.0*static_cast<double>(i));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = (smat_1 + smat_2)*2.0;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 6.0*static_cast<double>(i));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = 2.0*(smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 6.0*static_cast<double>(i));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
         }
       };
 
@@ -4442,22 +4442,22 @@ namespace jtk
         sparse_matrix<double> sm = 2.0 / smat_1;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 2.0 / static_cast<double>(i));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(5));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(5));
 
         sm = smat_1 / 2.0;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), static_cast<double>(i) / 2.0);
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = (smat_1 + smat_2) / 2.0;
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 3.0*static_cast<double>(i) / 2.0);
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
         sm = 2.0 / (smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 2.0 / (3.0*static_cast<double>(i)));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(5));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(5));
         }
       };
 
@@ -4469,12 +4469,12 @@ namespace jtk
         sparse_matrix<double> sm = transpose(smat_1);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), static_cast<double>(i));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(5));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(5));
 
         sm = transpose(smat_1 + smat_2);
         for (i = 0; i < 5; ++i)
           TEST_EQ(sm.get(i, i), 3.0*static_cast<double>(i));
-        TEST_EQ(sm.entries_stored(), static_cast<size_t>(4));
+        TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
         }
       };
 
@@ -4486,7 +4486,7 @@ namespace jtk
       sm1.put(1, 0) = -1.0;
       sm1.put(1, 1) = 3.0;
       sm1.put(1, 2) = 1.0;
-      TEST_EQ(sm1.entries_stored(), static_cast<size_t>(5));
+      TEST_EQ(sm1.entries_stored(), static_cast<uint32_t>(5));
 
       sparse_matrix<double> sm2(3, 2);
       sm2.put(0, 0) = 3.0;
@@ -4494,40 +4494,40 @@ namespace jtk
       sm2.put(1, 0) = 2.0;
       sm2.put(1, 1) = 1.0;
       sm2.put(2, 0) = 1.0;
-      TEST_EQ(sm2.entries_stored(), static_cast<size_t>(5));
+      TEST_EQ(sm2.entries_stored(), static_cast<uint32_t>(5));
 
       sparse_matrix<double> sm = sm1 * sm2;
       TEST_EQ(sm.get(0, 0), 5.0);
       TEST_EQ(sm.get(0, 1), 1.0);
       TEST_EQ(sm.get(1, 0), 4.0);
       TEST_EQ(sm.get(1, 1), 2.0);
-      TEST_EQ(sm.rows(), static_cast<uint64_t>(2));
-      TEST_EQ(sm.cols(), static_cast<uint64_t>(2));
-      TEST_EQ(sm.entries_stored(), static_cast<uint64_t>(4));
+      TEST_EQ(sm.rows(), static_cast<uint32_t>(2));
+      TEST_EQ(sm.cols(), static_cast<uint32_t>(2));
+      TEST_EQ(sm.entries_stored(), static_cast<uint32_t>(4));
 
       sm = (sm1 + sm1)*sm2;
       TEST_EQ(sm.get(0, 0), 2.0*5.0);
       TEST_EQ(sm.get(0, 1), 2.0*1.0);
       TEST_EQ(sm.get(1, 0), 2.0*4.0);
       TEST_EQ(sm.get(1, 1), 2.0*2.0);
-      TEST_EQ(sm.rows(), static_cast<size_t>(2));
-      TEST_EQ(sm.cols(), static_cast<size_t>(2));
+      TEST_EQ(sm.rows(), static_cast<uint32_t>(2));
+      TEST_EQ(sm.cols(), static_cast<uint32_t>(2));
 
       sm = sm1 * (sm2 + sm2);
       TEST_EQ(sm.get(0, 0), 2.0*5.0);
       TEST_EQ(sm.get(0, 1), 2.0*1.0);
       TEST_EQ(sm.get(1, 0), 2.0*4.0);
       TEST_EQ(sm.get(1, 1), 2.0*2.0);
-      TEST_EQ(sm.rows(), static_cast<size_t>(2));
-      TEST_EQ(sm.cols(), static_cast<size_t>(2));
+      TEST_EQ(sm.rows(), static_cast<uint32_t>(2));
+      TEST_EQ(sm.cols(), static_cast<uint32_t>(2));
 
       sm = (2.0*sm1)*(sm2 + sm2);
       TEST_EQ(sm.get(0, 0), 4.0*5.0);
       TEST_EQ(sm.get(0, 1), 4.0*1.0);
       TEST_EQ(sm.get(1, 0), 4.0*4.0);
       TEST_EQ(sm.get(1, 1), 4.0*2.0);
-      TEST_EQ(sm.rows(), static_cast<size_t>(2));
-      TEST_EQ(sm.cols(), static_cast<size_t>(2));
+      TEST_EQ(sm.rows(), static_cast<uint32_t>(2));
+      TEST_EQ(sm.cols(), static_cast<uint32_t>(2));
       }
 
     void sparse_matrix_multiply_2()
@@ -4565,26 +4565,26 @@ namespace jtk
       mat x = sm1 * v1;
       TEST_EQ(x(0), 5.0);
       TEST_EQ(x(1), 4.0);
-      TEST_EQ(x.rows(), static_cast<size_t>(2));
-      TEST_EQ(x.cols(), static_cast<size_t>(1));
+      TEST_EQ(x.rows(), static_cast<uint32_t>(2));
+      TEST_EQ(x.cols(), static_cast<uint32_t>(1));
 
       x = (sm1 + sm1) * v1;
       TEST_EQ(x(0), 10.0);
       TEST_EQ(x(1), 8.0);
-      TEST_EQ(x.rows(), static_cast<size_t>(2));
-      TEST_EQ(x.cols(), static_cast<size_t>(1));
+      TEST_EQ(x.rows(), static_cast<uint32_t>(2));
+      TEST_EQ(x.cols(), static_cast<uint32_t>(1));
 
       x = sm1 * (v1 + v1);
       TEST_EQ(x(0), 10.0);
       TEST_EQ(x(1), 8.0);
-      TEST_EQ(x.rows(), static_cast<size_t>(2));
-      TEST_EQ(x.cols(), static_cast<size_t>(1));
+      TEST_EQ(x.rows(), static_cast<uint32_t>(2));
+      TEST_EQ(x.cols(), static_cast<uint32_t>(1));
 
       x = (sm1 + sm1) * (v1 + v1);
       TEST_EQ(x(0), 20.0);
       TEST_EQ(x(1), 16.0);
-      TEST_EQ(x.rows(), static_cast<size_t>(2));
-      TEST_EQ(x.cols(), static_cast<size_t>(1));
+      TEST_EQ(x.rows(), static_cast<uint32_t>(2));
+      TEST_EQ(x.cols(), static_cast<uint32_t>(1));
       }
 
     void sparse_norm_tests()
@@ -4626,7 +4626,7 @@ namespace jtk
     void sparse_block_matrix()
       {
       sparse_matrix<double> m(4, 4);
-      for (int i = 0; i < 16; ++i)
+      for (uint32_t i = 0; i < 16; ++i)
         m.put(i / 4, i % 4) = i + 1;
 
       sparse_matrix<double> b = block(m, 1, 1, 2, 2);
@@ -4661,9 +4661,9 @@ namespace jtk
     void sparse_trace_test()
       {
       sparse_matrix<double> m(5, 5);
-      for (int i = 0; i < 5; ++i)
+      for (uint32_t i = 0; i < 5; ++i)
         {
-        for (int j = 0; j < 5; ++j)
+        for (uint32_t j = 0; j < 5; ++j)
           {
           m.put(i, j) = (double)(i * 5 + j);
           }
@@ -4680,9 +4680,9 @@ namespace jtk
       sparse_matrix<double> m = zeros(3, 4);
       TEST_EQ(3, m.rows());
       TEST_EQ(4, m.cols());
-      for (int r = 0; r < m.rows(); ++r)
+      for (uint32_t r = 0; r < m.rows(); ++r)
         {
-        for (int c = 0; c < m.cols(); ++c)
+        for (uint32_t c = 0; c < m.cols(); ++c)
           TEST_EQ(0.f, m(r, c));
         }
       TEST_EQ(0, m.entries_stored());
@@ -4690,17 +4690,17 @@ namespace jtk
       m = ones(5, 7);
       TEST_EQ(5, m.rows());
       TEST_EQ(7, m.cols());
-      for (int r = 0; r < m.rows(); ++r)
+      for (uint32_t r = 0; r < m.rows(); ++r)
         {
-        for (int c = 0; c < m.cols(); ++c)
+        for (uint32_t c = 0; c < m.cols(); ++c)
           TEST_EQ(1.f, m(r, c));
         }
       
       m = identity(2, 3);
       TEST_EQ(2, m.rows());
       TEST_EQ(3, m.cols());
-      for (int i = 0; i < 2; ++i)
-        for (int j = 0; j < 3; ++j)
+      for (uint32_t i = 0; i < 2; ++i)
+        for (uint32_t j = 0; j < 3; ++j)
           TEST_EQ(i == j ? 1.0 : 0.0, m(i, j));      
       TEST_EQ(2, m.entries_stored());
       }
@@ -4709,13 +4709,13 @@ namespace jtk
       {
       sparse_matrix<double> m = identity(3, 4);
       matrix<double> d = m;
-      for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 4; ++j)
+      for (uint32_t i = 0; i < 3; ++i)
+        for (uint32_t j = 0; j < 4; ++j)
           TEST_EQ(i == j ? 1.0 : 0.0, d(i, j));
 
       m = d;
-      for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 4; ++j)
+      for (uint32_t i = 0; i < 3; ++i)
+        for (uint32_t j = 0; j < 4; ++j)
           TEST_EQ(i == j ? 1.0 : 0.0, m(i, j));
       TEST_EQ(3, m.entries_stored());
       }
@@ -4723,25 +4723,27 @@ namespace jtk
     void conjugate_gradient_tests()
       {
       smat A(10, 10);
-      for (int i = 1; i <= 10; ++i)
+      for (uint32_t i = 1; i <= 10; ++i)
         A.put(i - 1, i - 1) = (double)i;
       mat b(10);
-      for (int i = 1; i <= 10; ++i)
+      for (uint32_t i = 1; i <= 10; ++i)
         b(i - 1) = (double)i;
+
+      symmetric_sparse_matrix_wrapper<double> Awrap(A);
 
       mat x;
       mat x0 = zeros(10, 1);
       double residu;
-      uint64_t iter;
-      conjugate_gradient(x, residu, iter, A, b, x0, 0.00001);
+      uint32_t iter;
+      conjugate_gradient(x, residu, iter, Awrap, b, x0, 0.00001);
 
-      for (int i = 0; i < 10; ++i)
+      for (uint32_t i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0, x(i), 0.00001);
       TEST_EQ(1, iter);
 
       b = ones(10, 1);
-      conjugate_gradient(x, residu, iter, A, b, x0, 0.00001);
-      for (int i = 0; i < 10; ++i)
+      conjugate_gradient(x, residu, iter, Awrap, b, x0, 0.00001);
+      for (uint32_t i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0 / ((double)(i + 1)), x(i), 0.00001);
       TEST_EQ(1, iter);
       }
@@ -4750,30 +4752,32 @@ namespace jtk
       {
       smatf A(10, 10);
 
-      for (int i = 1; i <= 10; ++i)
+      for (uint32_t i = 1; i <= 10; ++i)
         {
         A.put(i - 1, i - 1) = (float)i;
         }
 
+      symmetric_sparse_matrix_wrapper<float> Awrap(A);
+
       DiagonalPreconditioner P(A);
 
       matf b(10);
-      for (int i = 1; i <= 10; ++i)
+      for (uint32_t i = 1; i <= 10; ++i)
         b(i - 1) = (float)i;
 
       matf x;
       matf x0 = zeros<float>(10, 1);
       float residu;
-      uint64_t iter;
-      preconditioned_conjugate_gradient(x, residu, iter, A, P, b, x0, 0.00001f);
+      uint32_t iter;
+      preconditioned_conjugate_gradient(x, residu, iter, Awrap, P, b, x0, 0.00001f);
 
-      for (int i = 0; i < 10; ++i)
+      for (uint32_t i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.f, x(i), 0.00001f);
       TEST_EQ(1, iter);
 
       b = ones<float>(10, 1);
-      preconditioned_conjugate_gradient(x, residu, iter, A, P, b, x0, 0.00001f);
-      for (int i = 0; i < 10; ++i)
+      preconditioned_conjugate_gradient(x, residu, iter, Awrap, P, b, x0, 0.00001f);
+      for (uint32_t i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.f / ((float)(i + 1)), x(i), 0.00001f);
       TEST_EQ(1, iter);
       }
@@ -4781,25 +4785,25 @@ namespace jtk
     void bicgstab_tests()
       {
       smat A(10, 10);
-      for (int i = 1; i <= 10; ++i)
+      for (uint32_t i = 1; i <= 10; ++i)
         A.put(i - 1, i - 1) = (double)i;
       mat b(10);
-      for (int i = 1; i <= 10; ++i)
+      for (uint32_t i = 1; i <= 10; ++i)
         b(i - 1) = (double)i;
 
       mat x;
       mat x0 = zeros(10, 1);
       double residu;
-      uint64_t iter;
+      uint32_t iter;
       bicgstab(x, residu, iter, A, b, x0, 0.000001);
 
-      for (int i = 0; i < 10; ++i)
+      for (uint32_t i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0, x(i), 0.00001);
       TEST_EQ(1, iter);
       
       b = ones(10, 1);
       bicgstab(x, residu, iter, A, b, x0, 0.000001);
-      for (int i = 0; i < 10; ++i)
+      for (uint32_t i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0 / ((double)(i + 1)), x(i), 0.00001);
       TEST_EQ(1, iter);      
       }
@@ -4807,28 +4811,28 @@ namespace jtk
     void bipcgstab_tests()
       {
       smat A(10, 10);
-      for (int i = 1; i <= 10; ++i)
+      for (uint32_t i = 1; i <= 10; ++i)
         {
         A.put(i - 1, i - 1) = (double)i;
         }
       DiagonalPreconditioner P(A);
       mat b(10);
-      for (int i = 1; i <= 10; ++i)
+      for (uint32_t i = 1; i <= 10; ++i)
         b(i - 1) = (double)i;
 
       mat x;
       mat x0 = zeros(10, 1);
       double residu;
-      uint64_t iter;
+      uint32_t iter;
       bipcgstab(x, residu, iter, A, P, b, x0, 0.000001);
 
-      for (int i = 0; i < 10; ++i)
+      for (uint32_t i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0, x(i), 0.00001);
       TEST_EQ(1, iter);
 
       b = ones(10, 1);
       bipcgstab(x, residu, iter, A, P, b, x0, 0.000001);
-      for (int i = 0; i < 10; ++i)
+      for (uint32_t i = 0; i < 10; ++i)
         TEST_EQ_CLOSE(1.0 / ((double)(i + 1)), x(i), 0.00001);
       TEST_EQ(1, iter);
       }    
@@ -4843,10 +4847,10 @@ namespace jtk
 
       Solving poisson with linear FEM using Galerkin method, (equals same system as differences method)
       */
-      int n = 100;
+      uint32_t n = 100;
       float h = 1.f / (float)(n+1);
       smatf A(n, n);
-      for (int i = 0; i < n; ++i)
+      for (uint32_t i = 0; i < n; ++i)
         {
         A.put(i, i) = 2.f/(h*h);
         if (i > 0)
@@ -4854,18 +4858,19 @@ namespace jtk
         if (i < n - 1)
           A.put(i, i + 1) = -1.f/(h*h);
         }
+      symmetric_sparse_matrix_wrapper<float> Awrap(A);
       matf b(n);
-      for (int i = 0; i < n; ++i)
+      for (uint32_t i = 0; i < n; ++i)
         {
         b(i) = 2.f; //-u"(x)
         }
       float tol = std::numeric_limits<float>::epsilon();
       float residu;
-      uint64_t iter;
+      uint32_t iter;
       matf sol;
       matf x0 = zeros<float>(n,1);
-      conjugate_gradient(sol, residu, iter, A, b, x0, tol);
-      for (int i = 0; i < n; ++i)
+      conjugate_gradient(sol, residu, iter, Awrap, b, x0, tol);
+      for (uint32_t i = 0; i < n; ++i)
         {
         double x = (double)(i+1) / (double)(n + 1);
         double u = x * (1 - x); // we know the exact solution u(x)
@@ -5064,10 +5069,10 @@ void run_all_mat_tests()
   sparse_array_equality().test();
 
   sparse_matrix_getput_test().test();
-  sparse_matrix_size_test().test();
+  sparse_matrix_uint32_test().test();
   sparse_matrix_swap_test().test();
   sparse_matrix_assignment_test().test();
-  sparse_matrix_resize_test().test();
+  sparse_matrix_reuint32_test().test();
   sparse_matrix_iterator_test().test();
   sparse_matrix_add_test().test();
   sparse_matrix_subtract_test().test();

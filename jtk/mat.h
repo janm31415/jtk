@@ -5,7 +5,7 @@
 //
 // Author    :  Jan Maes                                            
 // Version   :  1.5
-// Date      :  04 September 2020
+// Date      :  08 September 2020
 // License   :  MIT License
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -24,8 +24,9 @@ V1.3: 30 April 2020
   - concatenation of matrices with << operator in horizontal or vertical direction
 V1.4: 30 June 2020
   - adding zeros, ones, identity in templatized form, e.g. zeros<float>(m, n).
-V1.5: 04 September 2020
+V1.5: 08 September 2020
   - adding sparse matrices.
+  - iterative solvers (conjugate gradient and bicgstab + preconditioned versions)
 */
 
 
@@ -63,6 +64,8 @@ namespace jtk
 
   /*
   the sparse matrix class. template parameter T should be a numeric type such as float or double.
+  template parameter Container should be jtk::sparse_vector<T> for dynamic allocation or jtk::sparse_array<T, size>
+  with size the maximum number of non-zero elements per row.
   */
   template <class T, class Container>
   class sparse_matrix;
@@ -104,7 +107,7 @@ namespace jtk
   or invert a matrix.
   */
   template <class T, class Container>
-  void ludcmp(matrix<T, Container>& a, std::vector<uint64_t>& permutations, T& d);
+  void ludcmp(matrix<T, Container>& a, std::vector<uint32_t>& permutations, T& d);
 
   /*
   lubksb solves the set of n linear equations a.x = b. here a is input, not as the matrix
@@ -116,7 +119,7 @@ namespace jtk
   in matrix inversion.
   */
   template <class T, class Container, class Container2>
-  void lubksb(matrix<T, Container2>& b, const matrix<T, Container>& a, const std::vector<uint64_t>& permutations);
+  void lubksb(matrix<T, Container2>& b, const matrix<T, Container>& a, const std::vector<uint32_t>& permutations);
 
   /*
   this method solves a*x = b using lu decomposition.
@@ -174,7 +177,7 @@ namespace jtk
   permutations[j]-th column of the identity matrix. this method calls qrfac.
   */
   template <class T, class Container>
-  void qrdcmp(matrix<T, Container>& A, matrix<T, Container>& QT, std::vector<uint64_t>& permutations, bool pivot);
+  void qrdcmp(matrix<T, Container>& A, matrix<T, Container>& QT, std::vector<uint32_t>& permutations, bool pivot);
 
   /*
   this method solves a*x = b using qr decomposition with pivoting.
@@ -210,7 +213,7 @@ namespace jtk
   n which contains the norms of the corresponding columns of the input matrix a.
   */
   template <class T, class Container, class Container2>
-  void qrfac(matrix<T, Container>& a, bool pivot, std::vector<uint64_t>& permutations,
+  void qrfac(matrix<T, Container>& a, bool pivot, std::vector<uint32_t>& permutations,
     matrix<T, Container2>& rdiag, matrix<T, Container2>& acnorm);
 
   /*
@@ -228,7 +231,7 @@ namespace jtk
   pT*(aT*a + d*d)*p = sT*s
   */
   template <class T, class Container, class Container2>
-  void qrsolv(matrix<T, Container>& r, const std::vector<uint64_t>& permutations, const matrix<T, Container2>& diag,
+  void qrsolv(matrix<T, Container>& r, const std::vector<uint32_t>& permutations, const matrix<T, Container2>& diag,
     const matrix<T, Container2>& qtb, matrix<T, Container2>& x, matrix<T, Container2>& sdiag);
 
   /*
@@ -318,8 +321,8 @@ namespace jtk
   */
   template <class T, class Container_n, class Container_m>
   void lmdif(bool(*f)(const matrix<T, Container_n>&, matrix<T, Container_m>&, void*), matrix<T, Container_n>& x, matrix<T, Container_m>& fvec, T ftol,
-    T xtol, T gtol, uint64_t maxfev, T epsfcn, matrix<T, Container_n>& diag,
-    uint64_t mode, T factor, uint64_t& info, uint64_t& nfev, void* user_data = nullptr);
+    T xtol, T gtol, uint32_t maxfev, T epsfcn, matrix<T, Container_n>& diag,
+    uint32_t mode, T factor, uint32_t& info, uint32_t& nfev, void* user_data = nullptr);
 
   /*
   levenberg-marquardt optimization.
@@ -330,7 +333,7 @@ namespace jtk
   this method calls lmdif.
   */
   template <class T, class Container_n, class Container_m>
-  void lmdif0(bool(*f)(const matrix<T, Container_n>&, matrix<T, Container_m>&, void*), matrix<T, Container_n>& x, matrix<T, Container_m>& fvec, uint64_t& info, uint64_t& nfev, void* user_data = nullptr);
+  void lmdif0(bool(*f)(const matrix<T, Container_n>&, matrix<T, Container_m>&, void*), matrix<T, Container_n>& x, matrix<T, Container_m>& fvec, uint32_t& info, uint32_t& nfev, void* user_data = nullptr);
 
   /*
   householder reduction of a symmetric matrix a. on output, a is replaced
@@ -398,13 +401,13 @@ namespace jtk
     template <class T, class Container>
     struct resize
       {
-      void operator()(Container&, uint64_t) {}
+      void operator()(Container&, uint32_t) {}
       };
 
     template <class T>
     struct resize<T, std::vector<T>>
       {
-      void operator()(std::vector<T>& c, uint64_t size)
+      void operator()(std::vector<T>& c, uint32_t size)
         {
         c.resize(size, (T)0);
         }
@@ -470,15 +473,15 @@ namespace jtk
         _it = _m->begin();
         auto tmp_it = _it;
         auto tgt_it = first_matrix.begin();
-        for (int r = 0; r < _m->rows() - 1; ++r)
+        for (uint32_t r = 0; r < _m->rows() - 1; ++r)
           {
-          for (int c = 0; c < first_matrix.cols(); ++c)
+          for (uint32_t c = 0; c < first_matrix.cols(); ++c)
             {
             *tmp_it++ = *tgt_it++;
             }
           tmp_it += _m->cols() - first_matrix.cols();
           }
-        for (int c = 0; c < first_matrix.cols(); ++c)
+        for (uint32_t c = 0; c < first_matrix.cols(); ++c)
           {
           *tmp_it++ = *tgt_it++;
           }
@@ -499,15 +502,15 @@ namespace jtk
         {
         auto tmp_it = _it;
         auto tgt_it = i.begin();
-        for (int r = 0; r < _m->rows() - 1; ++r)
+        for (uint32_t r = 0; r < _m->rows() - 1; ++r)
           {
-          for (int c = 0; c < i.cols(); ++c)
+          for (uint32_t c = 0; c < i.cols(); ++c)
             {
             *tmp_it++ = *tgt_it++;
             }
           tmp_it += _m->cols() - i.cols();
           }
-        for (int c = 0; c < i.cols(); ++c)
+        for (uint32_t c = 0; c < i.cols(); ++c)
           {
           *tmp_it++ = *tgt_it++;
           }
@@ -620,7 +623,7 @@ namespace jtk
     public:
       using value_type = typename Op::value_type;
 
-      BinExprOp(const A& a, const B& b, uint64_t rows, uint64_t cols, bool eval_before_assigning) : _a(a), _b(b), _rows(rows), _cols(cols),
+      BinExprOp(const A& a, const B& b, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _b(b), _rows(rows), _cols(cols),
         _evaluate_before_assigning(eval_before_assigning)
         {
         }
@@ -635,26 +638,26 @@ namespace jtk
         ++_a; ++_b;
         }
 
-      BinExprOp& operator += (const uint64_t offset)
+      BinExprOp& operator += (const uint32_t offset)
         {
         _a += offset;
         _b += offset;
         return *this;
         }
 
-      BinExprOp operator + (const uint64_t offset) const
+      BinExprOp operator + (const uint32_t offset) const
         {
         BinExprOp tmp = *this;
         tmp += offset;
         return tmp;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -667,7 +670,7 @@ namespace jtk
     private:
       A _a;
       B _b;
-      uint64_t _rows, _cols;
+      uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
     };
 
@@ -677,7 +680,7 @@ namespace jtk
     public:
       using value_type = typename Op::value_type;
 
-      BinExprSparseOp(const A& a, const B& b, uint64_t rows, uint64_t cols, bool eval_before_assigning) : _a(a), _b(b), _rows(rows), _cols(cols),
+      BinExprSparseOp(const A& a, const B& b, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _b(b), _rows(rows), _cols(cols),
         _evaluate_before_assigning(eval_before_assigning)
         {
         _set_entry_1();
@@ -725,7 +728,7 @@ namespace jtk
         return out;
         }
 
-      BinExprSparseOp row(uint64_t idx) const
+      BinExprSparseOp row(uint32_t idx) const
         {
         BinExprSparseOp out(*this);
         out._a = out._a.row(idx);
@@ -737,12 +740,12 @@ namespace jtk
         return out;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -752,7 +755,7 @@ namespace jtk
         return _evaluate_before_assigning;
         }
 
-      uint64_t first_entry() const
+      uint32_t first_entry() const
         {
         if (iterator_1_smaller_than_iterator_2())
           return _first_entry_1;
@@ -760,7 +763,7 @@ namespace jtk
           return _first_entry_2;
         }
 
-      uint64_t second_entry() const
+      uint32_t second_entry() const
         {
         if (iterator_1_smaller_than_iterator_2())
           return _second_entry_1;
@@ -784,8 +787,8 @@ namespace jtk
         {
         if (_a == _a.end())
           {
-          _first_entry_1 = static_cast<size_t>(-1);
-          _second_entry_1 = static_cast<size_t>(-1);
+          _first_entry_1 = static_cast<uint32_t>(-1);
+          _second_entry_1 = static_cast<uint32_t>(-1);
           }
         else
           {
@@ -798,8 +801,8 @@ namespace jtk
         {
         if (_b == _b.end())
           {
-          _first_entry_2 = static_cast<size_t>(-1);
-          _second_entry_2 = static_cast<size_t>(-1);
+          _first_entry_2 = static_cast<uint32_t>(-1);
+          _second_entry_2 = static_cast<uint32_t>(-1);
           }
         else
           {
@@ -840,8 +843,8 @@ namespace jtk
     private:
       A _a;
       B _b;
-      uint64_t _rows, _cols;
-      uint64_t _first_entry_1, _first_entry_2, _second_entry_1, _second_entry_2;
+      uint32_t _rows, _cols;
+      uint32_t _first_entry_1, _first_entry_2, _second_entry_1, _second_entry_2;
       bool _evaluate_before_assigning;
     };
 
@@ -851,19 +854,19 @@ namespace jtk
     public:
       using value_type = typename gettype<typename ::jtk::implementation_details::get_value_type<A>::value_type, typename ::jtk::implementation_details::get_value_type<B>::value_type>::ty;
 
-      MatMatMul(const A& a, const B& b, uint64_t rows, uint64_t cols, uint64_t mid_dim) : _a(a), _b(b), _rows(rows), _cols(cols), _mid_dim(mid_dim),
+      MatMatMul(const A& a, const B& b, uint32_t rows, uint32_t cols, uint32_t mid_dim) : _a(a), _b(b), _rows(rows), _cols(cols), _mid_dim(mid_dim),
         _index(0), _evaluate_before_assigning(true)
         {
         }
 
       value_type operator * () const
         {
-        const uint64_t r = _index / _cols;
-        const uint64_t c = _index % _cols;
+        const uint32_t r = _index / _cols;
+        const uint32_t c = _index % _cols;
         auto a_it = _a + r * _mid_dim;
         auto b_it = _b + c;
         value_type res = (value_type)(*a_it) * (value_type)(*b_it);
-        for (uint64_t k = 1; k < _mid_dim; ++k)
+        for (uint32_t k = 1; k < _mid_dim; ++k)
           {
           ++a_it;
           b_it += _cols;
@@ -877,25 +880,25 @@ namespace jtk
         ++_index;
         }
 
-      MatMatMul& operator += (const uint64_t offset)
+      MatMatMul& operator += (const uint32_t offset)
         {
         _index += offset;
         return *this;
         }
 
-      MatMatMul operator + (const uint64_t offset) const
+      MatMatMul operator + (const uint32_t offset) const
         {
         MatMatMul tmp = *this;
         tmp += offset;
         return tmp;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -908,8 +911,8 @@ namespace jtk
     private:
       A _a;
       B _b;
-      uint64_t _rows, _cols, _mid_dim;
-      uint64_t _index;
+      uint32_t _rows, _cols, _mid_dim;
+      uint32_t _index;
       bool _evaluate_before_assigning;
     };
 
@@ -919,15 +922,15 @@ namespace jtk
     public:
       using value_type = typename gettype<typename ::jtk::implementation_details::get_value_type<A>::value_type, typename ::jtk::implementation_details::get_value_type<B>::value_type>::ty;
 
-      SparseMatMatMul(const A& a, const B& b, uint64_t rows, uint64_t cols, uint64_t mid_dim) : _a(a), _b(b), _rows(rows), _cols(cols), _mid_dim(mid_dim),
+      SparseMatMatMul(const A& a, const B& b, uint32_t rows, uint32_t cols, uint32_t mid_dim) : _a(a), _b(b), _rows(rows), _cols(cols), _mid_dim(mid_dim),
         _index(0), _evaluate_before_assigning(true)
         {
         }
 
       value_type operator * () const
         {
-        const uint64_t r = _index / _cols;
-        const uint64_t c = _index % _cols;
+        const uint32_t r = _index / _cols;
+        const uint32_t c = _index % _cols;
         value_type res = (value_type)0;
         auto a_it = _a.row(r);
         for (; a_it.first_entry() == r; ++a_it)
@@ -942,25 +945,25 @@ namespace jtk
         ++_index;
         }
 
-      SparseMatMatMul& operator += (const uint64_t offset)
+      SparseMatMatMul& operator += (const uint32_t offset)
         {
         _index += offset;
         return *this;
         }
 
-      SparseMatMatMul operator + (const uint64_t offset) const
+      SparseMatMatMul operator + (const uint32_t offset) const
         {
         MatMatMul tmp = *this;
         tmp += offset;
         return tmp;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -973,8 +976,8 @@ namespace jtk
     private:
       A _a;
       B _b;
-      uint64_t _rows, _cols, _mid_dim;
-      uint64_t _index;
+      uint32_t _rows, _cols, _mid_dim;
+      uint32_t _index;
       bool _evaluate_before_assigning;
     };
 
@@ -984,15 +987,15 @@ namespace jtk
     public:
       using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
 
-      Transpose(const A& a, uint64_t rows, uint64_t cols) : _a(a), _rows(rows), _cols(cols), _index(0), _evaluate_before_assigning(true)
+      Transpose(const A& a, uint32_t rows, uint32_t cols) : _a(a), _rows(rows), _cols(cols), _index(0), _evaluate_before_assigning(true)
         {
         }
 
       value_type operator * () const
         {
-        const uint64_t r = _index / _cols;
-        const uint64_t c = _index % _cols;
-        uint64_t offset = c * _rows + r;
+        const uint32_t r = _index / _cols;
+        const uint32_t c = _index % _cols;
+        uint32_t offset = c * _rows + r;
         return *(_a + offset);
         }
 
@@ -1001,25 +1004,25 @@ namespace jtk
         ++_index;
         }
 
-      Transpose& operator += (const uint64_t offset)
+      Transpose& operator += (const uint32_t offset)
         {
         _index += offset;
         return *this;
         }
 
-      Transpose operator + (const uint64_t offset) const
+      Transpose operator + (const uint32_t offset) const
         {
         Transpose tmp = *this;
         tmp += offset;
         return tmp;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -1031,8 +1034,8 @@ namespace jtk
 
     private:
       A _a;
-      uint64_t _rows, _cols;
-      uint64_t _index;
+      uint32_t _rows, _cols;
+      uint32_t _index;
       bool _evaluate_before_assigning;
     };
 
@@ -1042,9 +1045,9 @@ namespace jtk
     public:
       using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
 
-      Diagonal(const A& a, uint64_t rows, uint64_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning)
+      Diagonal(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning)
         {
-        _dim = std::min<uint64_t>(_rows, _cols);
+        _dim = std::min<uint32_t>(_rows, _cols);
         }
 
       value_type operator * () const
@@ -1057,25 +1060,25 @@ namespace jtk
         _a += (_cols + 1);
         }
 
-      Diagonal& operator += (const uint64_t offset)
+      Diagonal& operator += (const uint32_t offset)
         {
         _a += (_cols + 1)*offset;
         return *this;
         }
 
-      Diagonal operator + (const uint64_t offset) const
+      Diagonal operator + (const uint32_t offset) const
         {
         Diagonal tmp = *this;
         tmp += offset;
         return tmp;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _dim;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return 1;
         }
@@ -1087,8 +1090,8 @@ namespace jtk
 
     private:
       A _a;
-      uint64_t _rows, _cols;
-      uint64_t _dim;
+      uint32_t _rows, _cols;
+      uint32_t _dim;
       bool _evaluate_before_assigning;
     };
 
@@ -1098,9 +1101,9 @@ namespace jtk
     public:
       using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
 
-      DiagonalSparse(const A& a, uint64_t rows, uint64_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _index(0), _evaluate_before_assigning(eval_before_assigning)
+      DiagonalSparse(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _index(0), _evaluate_before_assigning(eval_before_assigning)
         {
-        _dim = std::min<uint64_t>(_rows, _cols);
+        _dim = std::min<uint32_t>(_rows, _cols);
         }
 
       value_type operator * () const
@@ -1120,25 +1123,25 @@ namespace jtk
         ++_index;
         }
 
-      DiagonalSparse& operator += (const uint64_t offset)
+      DiagonalSparse& operator += (const uint32_t offset)
         {
         _index += offset;
         return *this;
         }
 
-      DiagonalSparse operator + (const uint64_t offset) const
+      DiagonalSparse operator + (const uint32_t offset) const
         {
         Diagonal tmp = *this;
         tmp += offset;
         return tmp;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _dim;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return 1;
         }
@@ -1150,9 +1153,9 @@ namespace jtk
 
     private:
       A _a;
-      uint64_t _rows, _cols;
-      uint64_t _dim;
-      uint64_t _index;
+      uint32_t _rows, _cols;
+      uint32_t _dim;
+      uint32_t _index;
       bool _evaluate_before_assigning;
     };
 
@@ -1162,12 +1165,12 @@ namespace jtk
     public:
       using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
 
-      Block(const A& a, uint64_t pos_r, uint64_t pos_c, uint64_t rows, uint64_t cols, uint64_t a_rows, uint64_t a_cols, bool eval_before_assigning) : _a(a), _pos_r(pos_r),
+      Block(const A& a, uint32_t pos_r, uint32_t pos_c, uint32_t rows, uint32_t cols, uint32_t a_rows, uint32_t a_cols, bool eval_before_assigning) : _a(a), _pos_r(pos_r),
         _pos_c(pos_c), _rows(rows), _cols(cols), _a_rows(a_rows), _a_cols(a_cols), _evaluate_before_assigning(eval_before_assigning)
         {
         _current_r = _pos_r;
         _current_c = _pos_c;
-        const uint64_t index = _current_r * _a_cols + _current_c;
+        const uint32_t index = _current_r * _a_cols + _current_c;
         if (rows && cols) // block is not empty
           _a += index;
         }
@@ -1190,10 +1193,10 @@ namespace jtk
           ++_a;
         }
 
-      Block& operator += (const uint64_t offset)
+      Block& operator += (const uint32_t offset)
         {
-        uint64_t next_rows = offset / _cols;
-        uint64_t remainder = offset % _cols;
+        uint32_t next_rows = offset / _cols;
+        uint32_t remainder = offset % _cols;
         _a += next_rows * _a_cols;
         _current_r += next_rows;
         _current_c += remainder;
@@ -1208,19 +1211,19 @@ namespace jtk
         return *this;
         }
 
-      Block operator + (const uint64_t offset) const
+      Block operator + (const uint32_t offset) const
         {
         Block tmp = *this;
         tmp += offset;
         return tmp;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -1232,10 +1235,10 @@ namespace jtk
 
     private:
       A _a;
-      uint64_t _pos_r, _pos_c;
-      uint64_t _rows, _cols;
-      uint64_t _a_rows, _a_cols;
-      uint64_t _current_r, _current_c;
+      uint32_t _pos_r, _pos_c;
+      uint32_t _rows, _cols;
+      uint32_t _a_rows, _a_cols;
+      uint32_t _current_r, _current_c;
       bool _evaluate_before_assigning;
     };
 
@@ -1245,7 +1248,7 @@ namespace jtk
     public:
       using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
 
-      BlockSparse(const A& a, uint64_t pos_r, uint64_t pos_c, uint64_t rows, uint64_t cols, bool eval_before_assigning) : _a(a), _pos_r(pos_r),
+      BlockSparse(const A& a, uint32_t pos_r, uint32_t pos_c, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _pos_r(pos_r),
         _pos_c(pos_c), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning)
         {
         _find_next_entry();
@@ -1262,12 +1265,12 @@ namespace jtk
         _find_next_entry();
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -1284,19 +1287,19 @@ namespace jtk
         return out;
         }
 
-      BlockSparse row(uint64_t idx) const
+      BlockSparse row(uint32_t idx) const
         {
         BlockSparse out(*this);
         out._a = out._a.row(idx);
         return out;
         }
 
-      uint64_t first_entry() const
+      uint32_t first_entry() const
         {
         return _a.first_entry() - _pos_r;
         }
 
-      uint64_t second_entry() const
+      uint32_t second_entry() const
         {
         return _a.second_entry() - _pos_c;
         }
@@ -1322,8 +1325,8 @@ namespace jtk
 
     private:
       A _a;
-      uint64_t _pos_r, _pos_c;
-      uint64_t _rows, _cols;
+      uint32_t _pos_r, _pos_c;
+      uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
     };
 
@@ -1333,7 +1336,7 @@ namespace jtk
     public:
       using value_type = T;
 
-      Constant(T value, uint64_t rows, uint64_t cols) : _value(value), _rows(rows), _cols(cols), _evaluate_before_assigning(false)
+      Constant(T value, uint32_t rows, uint32_t cols) : _value(value), _rows(rows), _cols(cols), _evaluate_before_assigning(false)
         {
         }
 
@@ -1346,22 +1349,22 @@ namespace jtk
         {
         }
 
-      Constant& operator += (const uint64_t)
+      Constant& operator += (const uint32_t)
         {
         return *this;
         }
 
-      Constant operator + (const uint64_t) const
+      Constant operator + (const uint32_t) const
         {
         return *this;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -1373,7 +1376,7 @@ namespace jtk
 
     private:
       T _value;
-      uint64_t _rows, _cols;
+      uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
     };
 
@@ -1384,14 +1387,14 @@ namespace jtk
     public:
       using value_type = T;
 
-      Identity(uint64_t rows, uint64_t cols) : _rows(rows), _cols(cols), _index(0), _evaluate_before_assigning(false)
+      Identity(uint32_t rows, uint32_t cols) : _rows(rows), _cols(cols), _index(0), _evaluate_before_assigning(false)
         {
         }
 
       value_type operator * () const
         {
-        const uint64_t r = _index / _cols;
-        const uint64_t c = _index % _cols;
+        const uint32_t r = _index / _cols;
+        const uint32_t c = _index % _cols;
         return r == c ? (value_type)1 : (value_type)0;
         }
 
@@ -1400,25 +1403,25 @@ namespace jtk
         ++_index;
         }
 
-      Identity& operator += (const uint64_t offset)
+      Identity& operator += (const uint32_t offset)
         {
         _index += offset;
         return *this;
         }
 
-      Identity operator + (const uint64_t offset) const
+      Identity operator + (const uint32_t offset) const
         {
         Identity tmp = *this;
         tmp += offset;
         return tmp;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -1429,8 +1432,8 @@ namespace jtk
         }
 
     private:
-      uint64_t _rows, _cols;
-      uint64_t _index;
+      uint32_t _rows, _cols;
+      uint32_t _index;
       bool _evaluate_before_assigning;
     };
 
@@ -1440,7 +1443,7 @@ namespace jtk
     public:
       using value_type = typename Op::value_type;
 
-      UnExprOp(const A& a, uint64_t rows, uint64_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning)
+      UnExprOp(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning)
         {
         }
 
@@ -1454,25 +1457,25 @@ namespace jtk
         ++_a;
         }
 
-      UnExprOp& operator += (const uint64_t offset)
+      UnExprOp& operator += (const uint32_t offset)
         {
         _a += offset;
         return *this;
         }
 
-      UnExprOp operator + (const uint64_t offset) const
+      UnExprOp operator + (const uint32_t offset) const
         {
         UnExprOp tmp = *this;
         tmp += offset;
         return tmp;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -1484,7 +1487,7 @@ namespace jtk
 
     private:
       A _a;
-      uint64_t _rows, _cols;
+      uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
     };
 
@@ -1494,7 +1497,7 @@ namespace jtk
     public:
       using value_type = typename Op::value_type;
 
-      UnExprSparseOp(const A& a, uint64_t rows, uint64_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning)
+      UnExprSparseOp(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning)
         {
         }
 
@@ -1510,12 +1513,12 @@ namespace jtk
         ++_a;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -1532,19 +1535,19 @@ namespace jtk
         return out;
         }
 
-      UnExprSparseOp row(uint64_t idx) const
+      UnExprSparseOp row(uint32_t idx) const
         {
         UnExprSparseOp out(*this);
         out._a = out._a.row(idx);
         return out;
         }
 
-      uint64_t first_entry() const
+      uint32_t first_entry() const
         {
         return _a.first_entry();
         }
 
-      uint64_t second_entry() const
+      uint32_t second_entry() const
         {
         return _a.second_entry();
         }
@@ -1561,7 +1564,7 @@ namespace jtk
 
     private:
       A _a;
-      uint64_t _rows, _cols;
+      uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
     };
 
@@ -1571,7 +1574,7 @@ namespace jtk
     public:
       using value_type = typename Op::value_type;
 
-      BinExprSparseScalarOp(const A& a, value_type scalar, uint64_t rows, uint64_t cols, bool evaluate_before_assigning) : _a(a), _scalar(scalar), _rows(rows), _cols(cols), _evaluate_before_assigning(evaluate_before_assigning)
+      BinExprSparseScalarOp(const A& a, value_type scalar, uint32_t rows, uint32_t cols, bool evaluate_before_assigning) : _a(a), _scalar(scalar), _rows(rows), _cols(cols), _evaluate_before_assigning(evaluate_before_assigning)
         {
         }
 
@@ -1587,12 +1590,12 @@ namespace jtk
         ++_a;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -1609,19 +1612,19 @@ namespace jtk
         return out;
         }
 
-      BinExprSparseScalarOp row(uint64_t idx) const
+      BinExprSparseScalarOp row(uint32_t idx) const
         {
         BinExprSparseScalarOp out(*this);
         out._a = out._a.row(idx);
         return out;
         }
 
-      uint64_t first_entry() const
+      uint32_t first_entry() const
         {
         return _a.first_entry();
         }
 
-      uint64_t second_entry() const
+      uint32_t second_entry() const
         {
         return _a.second_entry();
         }
@@ -1639,7 +1642,7 @@ namespace jtk
     private:
       A _a;
       value_type _scalar;
-      uint64_t _rows, _cols;
+      uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
     };
 
@@ -1662,25 +1665,25 @@ namespace jtk
         ++_expr_op;
         }
 
-      Expr& operator += (const uint64_t offset)
+      Expr& operator += (const uint32_t offset)
         {
         _expr_op += offset;
         return *this;
         }
 
-      Expr operator + (const uint64_t offset) const
+      Expr operator + (const uint32_t offset) const
         {
         Expr tmp = *this;
         tmp += offset;
         return tmp;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _expr_op.rows();
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _expr_op.cols();
         }
@@ -1714,12 +1717,12 @@ namespace jtk
         ++_expr_op;
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _expr_op.rows();
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _expr_op.cols();
         }
@@ -1736,19 +1739,19 @@ namespace jtk
         return out;
         }
 
-      SparseExpr row(uint64_t idx) const
+      SparseExpr row(uint32_t idx) const
         {
         SparseExpr out(*this);
         out._expr_op = out._expr_op.row(idx);
         return out;
         }
 
-      uint64_t first_entry() const
+      uint32_t first_entry() const
         {
         return _expr_op.first_entry();
         }
 
-      uint64_t second_entry() const
+      uint32_t second_entry() const
         {
         return _expr_op.second_entry();
         }
@@ -1821,13 +1824,13 @@ namespace jtk
         {
         }
 
-      matrix(uint64_t rows, uint64_t cols) : _rows(rows), _cols(cols)
+      matrix(uint32_t rows, uint32_t cols) : _rows(rows), _cols(cols)
         {
         ::jtk::implementation_details::resize<T, Container> r;
         r(_entries, _rows*_cols);
         }
 
-      matrix(uint64_t rows) : _rows(rows), _cols(1)
+      matrix(uint32_t rows) : _rows(rows), _cols(1)
         {
         ::jtk::implementation_details::resize<T, Container> r;
         r(_entries, _rows);
@@ -1904,9 +1907,9 @@ namespace jtk
         {
         matrix temp(result.rows(), result.cols());
         auto it = temp._entries.begin();
-        uint64_t sz = result.rows()*result.cols();
+        uint32_t sz = result.rows()*result.cols();
         *it = (T)*result;
-        for (uint64_t i = 1; i < sz; ++i)
+        for (uint32_t i = 1; i < sz; ++i)
           {
           ++result;
           ++it;
@@ -1920,9 +1923,9 @@ namespace jtk
         {
         resize(result.rows(), result.cols());
         auto it = _entries.begin();
-        uint64_t sz = result.rows()*result.cols();
+        uint32_t sz = result.rows()*result.cols();
         *it = (T)*result;
-        for (uint64_t i = 1; i < sz; ++i)
+        for (uint32_t i = 1; i < sz; ++i)
           {
           ++result;
           ++it;
@@ -1972,9 +1975,9 @@ namespace jtk
         {
         matrix temp(result.rows(), result.cols());
         auto it = temp._entries.begin();
-        for (uint64_t r = 0; r < rows(); ++r)
+        for (uint32_t r = 0; r < rows(); ++r)
           {
-          for (uint64_t c = 0; c < cols(); ++c)
+          for (uint32_t c = 0; c < cols(); ++c)
             {
             if (r == result.first_entry() && c == result.second_entry())
               {
@@ -1994,9 +1997,9 @@ namespace jtk
         {
         resize(result.rows(), result.cols());
         auto it = _entries.begin();
-        for (uint64_t r = 0; r < rows(); ++r)
+        for (uint32_t r = 0; r < rows(); ++r)
           {
-          for (uint64_t c = 0; c < cols(); ++c)
+          for (uint32_t c = 0; c < cols(); ++c)
             {
             if (r == result.first_entry() && c == result.second_entry())
               {
@@ -2041,9 +2044,9 @@ namespace jtk
         assert(result.cols() == _cols);
         matrix temp(*this);
         auto it = temp._entries.begin();
-        const uint64_t sz = _rows * _cols;
+        const uint32_t sz = _rows * _cols;
         *it += (T)*result;
-        for (uint64_t i = 1; i < sz; ++i)
+        for (uint32_t i = 1; i < sz; ++i)
           {
           ++it;
           ++result;
@@ -2058,9 +2061,9 @@ namespace jtk
         assert(result.rows() == _rows);
         assert(result.cols() == _cols);
         auto it = _entries.begin();
-        const uint64_t sz = _rows * _cols;
+        const uint32_t sz = _rows * _cols;
         *it += (T)*result;
-        for (uint64_t i = 1; i < sz; ++i)
+        for (uint32_t i = 1; i < sz; ++i)
           {
           ++it;
           ++result;
@@ -2099,9 +2102,9 @@ namespace jtk
         assert(result.cols() == _cols);
         matrix temp(*this);
         auto it = temp._entries.begin();
-        const uint64_t sz = _rows * _cols;
+        const uint32_t sz = _rows * _cols;
         *it -= (T)*result;
-        for (uint64_t i = 1; i < sz; ++i)
+        for (uint32_t i = 1; i < sz; ++i)
           {
           ++it;
           ++result;
@@ -2116,9 +2119,9 @@ namespace jtk
         assert(result.rows() == _rows);
         assert(result.cols() == _cols);
         auto it = _entries.begin();
-        const uint64_t sz = _rows * _cols;
+        const uint32_t sz = _rows * _cols;
         *it -= (T)*result;
-        for (uint64_t i = 1; i < sz; ++i)
+        for (uint32_t i = 1; i < sz; ++i)
           {
           ++it;
           ++result;
@@ -2155,12 +2158,12 @@ namespace jtk
         return _rows == 0 && _cols == 0;
         }
 
-      uint64_t capacity() const
+      uint32_t capacity() const
         {
-        return _entries.max_size();
+        return (uint32_t)_entries.max_size();
         }
 
-      void resize(uint64_t rows, uint64_t cols)
+      void resize(uint32_t rows, uint32_t cols)
         {
         assert(rows*cols <= capacity());
         _rows = rows;
@@ -2169,32 +2172,32 @@ namespace jtk
         r(_entries, _rows*_cols);
         }
 
-      const_reference operator()(uint64_t r, uint64_t c) const
+      const_reference operator()(uint32_t r, uint32_t c) const
         {
         return _entries[r * _cols + c];
         }
 
-      reference operator()(uint64_t r, uint64_t c)
+      reference operator()(uint32_t r, uint32_t c)
         {
         return _entries[r * _cols + c];
         }
 
-      const_reference operator()(uint64_t r) const
+      const_reference operator()(uint32_t r) const
         {
         return _entries[r * _cols];
         }
 
-      reference operator()(uint64_t r)
+      reference operator()(uint32_t r)
         {
         return _entries[r * _cols];
         }
 
-      const_pointer operator[](uint64_t row) const
+      const_pointer operator[](uint32_t row) const
         {
         return _entries.data() + row * _cols;
         }
 
-      pointer operator[](uint64_t row)
+      pointer operator[](uint32_t row)
         {
         return _entries.data() + row * _cols;
         }
@@ -2209,12 +2212,12 @@ namespace jtk
         return _entries.data();
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -2253,7 +2256,7 @@ namespace jtk
       friend std::ostream& operator << (std::ostream&, const matrix<T2, Container2>&);
 
     private:
-      uint64_t _rows, _cols;
+      uint32_t _rows, _cols;
       Container _entries;
     };
 
@@ -2270,7 +2273,7 @@ namespace jtk
     public:
       typedef T value_type;
       typedef T& reference;
-      typedef uint64_t difference_type;
+      typedef uint32_t difference_type;
       typedef T* pointer;
       typedef std::random_access_iterator_tag iterator_category;
 
@@ -2330,7 +2333,7 @@ namespace jtk
         return _iter->second;
         }
 
-      uint64_t entry() const
+      uint32_t entry() const
         {
         return _iter->first;
         }
@@ -2407,7 +2410,7 @@ namespace jtk
 
     private:
       sparse_vector<T>* _vector;
-      typename std::vector<std::pair<uint64_t, T>>::iterator _iter;
+      typename std::vector<std::pair<uint32_t, T>>::iterator _iter;
     };
 
   template <class T>
@@ -2416,7 +2419,7 @@ namespace jtk
     public:
       typedef T value_type;
       typedef const T& reference;
-      typedef uint64_t difference_type;
+      typedef uint32_t difference_type;
       typedef const T* pointer;
       typedef std::random_access_iterator_tag iterator_category;
 
@@ -2476,7 +2479,7 @@ namespace jtk
         return _iter->second;
         }
 
-      uint64_t entry() const
+      uint32_t entry() const
         {
         return _iter->first;
         }
@@ -2553,7 +2556,7 @@ namespace jtk
 
     private:
       const sparse_vector<T>* _vector;
-      typename std::vector<std::pair<uint64_t, T>>::const_iterator _iter;
+      typename std::vector<std::pair<uint32_t, T>>::const_iterator _iter;
     };
 
   template <class T>
@@ -2564,17 +2567,17 @@ namespace jtk
 
     struct compare
       {
-      inline bool operator () (const std::pair<uint64_t, T>& lhs, const std::pair<uint64_t, T>& rhs) const
+      inline bool operator () (const std::pair<uint32_t, T>& lhs, const std::pair<uint32_t, T>& rhs) const
         {
         return lhs.first < rhs.first;
         }
 
-      inline bool operator () (const std::pair<uint64_t, T>& lhs, uint64_t value) const
+      inline bool operator () (const std::pair<uint32_t, T>& lhs, uint32_t value) const
         {
         return lhs.first < value;
         }
 
-      inline bool operator () (uint64_t value, const std::pair<uint64_t, T>& rhs) const
+      inline bool operator () (uint32_t value, const std::pair<uint32_t, T>& rhs) const
         {
         return value < rhs.first;
         }
@@ -2591,7 +2594,7 @@ namespace jtk
 
       sparse_vector() : _size(0), _zero((T)0) {}
 
-      sparse_vector(uint64_t size) : _size(size), _zero((T)0) {}
+      sparse_vector(uint32_t size) : _size(size), _zero((T)0) {}
 
       void swap(sparse_vector<T>& other)
         {
@@ -2646,7 +2649,7 @@ namespace jtk
         return *this;
         }
 
-      reference put(uint64_t idx)
+      reference put(uint32_t idx)
         {
         auto iter = std::lower_bound(_container.begin(), _container.end(), idx, compare());
         if (iter != _container.end())
@@ -2657,18 +2660,18 @@ namespace jtk
             }
           else
             {
-            iter = _container.insert(iter, std::pair<uint64_t, T>(idx, static_cast<T>(0)));
+            iter = _container.insert(iter, std::pair<uint32_t, T>(idx, static_cast<T>(0)));
             return iter->second;
             }
           }
         else
           {
-          _container.push_back(std::pair<uint64_t, T>(idx, static_cast<T>(0)));
+          _container.push_back(std::pair<uint32_t, T>(idx, static_cast<T>(0)));
           return _container.back().second;
           }
         }
 
-      const_reference get(uint64_t idx) const
+      const_reference get(uint32_t idx) const
         {
         const auto iter = std::lower_bound(_container.begin(), _container.end(), idx, compare());
         return (iter != _container.end() && iter->first == idx ? iter->second : _zero);
@@ -2694,7 +2697,7 @@ namespace jtk
         return const_iterator(this).end();
         }
 
-      void resize(uint64_t size)
+      void resize(uint32_t size)
         {
         _size = size;
         }
@@ -2733,14 +2736,14 @@ namespace jtk
           *iter /= coeff;
         }
 
-      uint64_t size() const
+      uint32_t size() const
         {
         return _size;
         }
 
-      uint64_t entries_stored() const
+      uint32_t entries_stored() const
         {
-        return (uint64_t)_container.size();
+        return (uint32_t)_container.size();
         }
 
       void clear()
@@ -2759,8 +2762,8 @@ namespace jtk
         }
 
     private:
-      std::vector<std::pair<uint64_t, T>> _container;
-      uint64_t _size;
+      std::vector<std::pair<uint32_t, T>> _container;
+      uint32_t _size;
       T _zero;
     };
 
@@ -2777,7 +2780,7 @@ namespace jtk
     public:
       typedef T value_type;
       typedef T& reference;
-      typedef uint64_t difference_type;
+      typedef uint32_t difference_type;
       typedef T* pointer;
       typedef std::random_access_iterator_tag iterator_category;
 
@@ -2837,7 +2840,7 @@ namespace jtk
         return _iter->second;
         }
 
-      uint64_t entry() const
+      uint32_t entry() const
         {
         return _iter->first;
         }
@@ -2914,7 +2917,7 @@ namespace jtk
 
     private:
       sparse_array<T, N>* _vector;
-      typename std::array<std::pair<uint64_t, T>, N>::iterator _iter;
+      typename std::array<std::pair<uint32_t, T>, N>::iterator _iter;
     };
 
   template <class T, int N>
@@ -2923,7 +2926,7 @@ namespace jtk
     public:
       typedef T value_type;
       typedef const T& reference;
-      typedef uint64_t difference_type;
+      typedef uint32_t difference_type;
       typedef const T* pointer;
       typedef std::random_access_iterator_tag iterator_category;
 
@@ -2983,7 +2986,7 @@ namespace jtk
         return _iter->second;
         }
 
-      uint64_t entry() const
+      uint32_t entry() const
         {
         return _iter->first;
         }
@@ -3060,7 +3063,7 @@ namespace jtk
 
     private:
       const sparse_array<T, N>* _vector;
-      typename std::array<std::pair<uint64_t, T>, N>::const_iterator _iter;
+      typename std::array<std::pair<uint32_t, T>, N>::const_iterator _iter;
     };
 
   template <class T, int N>
@@ -3071,17 +3074,17 @@ namespace jtk
 
     struct compare
       {
-      inline bool operator () (const std::pair<uint64_t, T>& lhs, const std::pair<uint64_t, T>& rhs) const
+      inline bool operator () (const std::pair<uint32_t, T>& lhs, const std::pair<uint32_t, T>& rhs) const
         {
         return lhs.first < rhs.first;
         }
 
-      inline bool operator () (const std::pair<uint64_t, T>& lhs, uint64_t value) const
+      inline bool operator () (const std::pair<uint32_t, T>& lhs, uint32_t value) const
         {
         return lhs.first < value;
         }
 
-      inline bool operator () (uint64_t value, const std::pair<uint64_t, T>& rhs) const
+      inline bool operator () (uint32_t value, const std::pair<uint32_t, T>& rhs) const
         {
         return value < rhs.first;
         }
@@ -3098,7 +3101,7 @@ namespace jtk
 
       sparse_array() : _size(0), _array_size_used(0), _zero((T)0) {}
 
-      sparse_array(uint64_t size) : _size(size), _array_size_used(0), _zero((T)0) {}
+      sparse_array(uint32_t size) : _size(size), _array_size_used(0), _zero((T)0) {}
 
       void swap(sparse_array<T, N>& other)
         {
@@ -3154,8 +3157,30 @@ namespace jtk
         return *this;
         }
 
-      reference put(uint64_t idx)
+      reference put(uint32_t idx)
         {
+        /*
+        for (int i = 0; i < _array_size_used; ++i)
+          {
+          if (_container[i].first == idx)
+            return _container[i].second;
+          else if (_container[i].first > idx)
+            {
+            for (uint32_t j = _array_size_used; j > i; --j)
+              {
+              _container[j] = _container[j - 1];
+              }
+            _container[i].first = idx;
+            _container[i].second = static_cast<T>(0);
+            ++_array_size_used;
+            return _container[i].second;
+            }
+          }
+        _container[_array_size_used].first = idx;
+        _container[_array_size_used].second = static_cast<T>(0);
+        ++_array_size_used;
+        return _container[_array_size_used - 1].second;
+        */        
         const auto iter_end = _container.begin() + _array_size_used;
         auto iter = std::lower_bound(_container.begin(), iter_end, idx, compare());
         if (iter != iter_end)
@@ -3165,9 +3190,9 @@ namespace jtk
             return iter->second;
             }
           else
-            {            
-            uint64_t pos = iter - _container.begin();
-            for (uint64_t i = _array_size_used; i > pos; --i)
+            {
+            uint32_t pos = (uint32_t)(iter - _container.begin());
+            for (uint32_t i = _array_size_used; i > pos; --i)
               {
               _container[i] = _container[i - 1];
               }
@@ -3183,14 +3208,24 @@ namespace jtk
           _container[_array_size_used].second = static_cast<T>(0);
           ++_array_size_used;
           return _container[_array_size_used - 1].second;
-          }
+          }        
         }
 
-      const_reference get(uint64_t idx) const
+      const_reference get(uint32_t idx) const
         {
+        /*
+        for (int i = 0; i < _array_size_used; ++i)
+          {
+          if (_container[i].first == idx)
+            return _container[i].second;
+          else if (_container[i].first > idx)
+            return _zero;
+          }
+        return _zero;
+        */        
         const auto iter_end = _container.begin() + _array_size_used;
         const auto iter = std::lower_bound(_container.begin(), iter_end, idx, compare());
-        return (iter != iter_end && iter->first == idx ? iter->second : _zero);
+        return (iter != iter_end && iter->first == idx ? iter->second : _zero);        
         }
 
       iterator begin()
@@ -3213,7 +3248,7 @@ namespace jtk
         return const_iterator(this).end();
         }
 
-      void resize(uint64_t size)
+      void resize(uint32_t size)
         {
         _size = size;
         }
@@ -3252,14 +3287,14 @@ namespace jtk
           *iter /= coeff;
         }
 
-      uint64_t size() const
+      uint32_t size() const
         {
         return _size;
         }
 
-      uint64_t entries_stored() const
+      uint32_t entries_stored() const
         {
-        return (uint64_t)_container.size();
+        return (uint32_t)_container.size();
         }
 
       void clear()
@@ -3278,9 +3313,9 @@ namespace jtk
         }
 
     private:
-      std::array<std::pair<uint64_t, T>, N> _container;
-      uint64_t _size;
-      uint64_t _array_size_used;
+      std::array<std::pair<uint32_t, T>, N> _container;
+      uint32_t _size;
+      uint32_t _array_size_used;
       T _zero;
     };
 
@@ -3294,7 +3329,7 @@ namespace jtk
     public:
       typedef T value_type;
       typedef T& reference;
-      typedef uint64_t difference_type;
+      typedef uint32_t difference_type;
       typedef T* pointer;
       typedef std::forward_iterator_tag iterator_category;
 
@@ -3334,7 +3369,7 @@ namespace jtk
         return output_iterator;
         }
 
-      sparse_matrix_iterator row(uint64_t idx) const
+      sparse_matrix_iterator row(uint32_t idx) const
         {
         sparse_matrix_iterator output_iterator(*this);
         output_iterator._row = idx;
@@ -3363,12 +3398,12 @@ namespace jtk
         return *_iter;
         }
 
-      uint64_t first_entry() const
+      uint32_t first_entry() const
         {
         return _row;
         }
 
-      uint64_t second_entry() const
+      uint32_t second_entry() const
         {
         return _iter.entry();
         }
@@ -3414,7 +3449,7 @@ namespace jtk
 
     private:
       sparse_matrix<T, Container>* _matrix;
-      uint64_t _row;
+      uint32_t _row;
       typename Container::iterator _iter;
     };
 
@@ -3424,7 +3459,7 @@ namespace jtk
     public:
       typedef T value_type;
       typedef const T& reference;
-      typedef uint64_t difference_type;
+      typedef uint32_t difference_type;
       typedef const T* pointer;
       typedef std::forward_iterator_tag iterator_category;
 
@@ -3464,7 +3499,7 @@ namespace jtk
         return output_iterator;
         }
 
-      sparse_matrix_const_iterator row(uint64_t idx) const
+      sparse_matrix_const_iterator row(uint32_t idx) const
         {
         sparse_matrix_const_iterator output_iterator(*this);
         output_iterator._row = idx;
@@ -3493,12 +3528,12 @@ namespace jtk
         return *_iter;
         }
 
-      uint64_t first_entry() const
+      uint32_t first_entry() const
         {
         return _row;
         }
 
-      uint64_t second_entry() const
+      uint32_t second_entry() const
         {
         return _iter.entry();
         }
@@ -3544,7 +3579,7 @@ namespace jtk
 
     private:
       const sparse_matrix<T, Container>* _matrix;
-      uint64_t _row;
+      uint32_t _row;
       typename Container::const_iterator _iter;
     };
 
@@ -3567,7 +3602,7 @@ namespace jtk
         {
         }
 
-      sparse_matrix(uint64_t rows, uint64_t cols) : _rows(rows), _cols(cols), _entries(rows, Container(cols))
+      sparse_matrix(uint32_t rows, uint32_t cols) : _rows(rows), _cols(cols), _entries(rows, Container(cols))
         {
         }
 
@@ -3709,9 +3744,9 @@ namespace jtk
       void assign_alias(Expr<ExprOp> result)
         {
         sparse_matrix temp(result.rows(), result.cols());
-        for (uint64_t r = 0; r < result.rows(); ++r)
+        for (uint32_t r = 0; r < result.rows(); ++r)
           {
-          for (uint64_t c = 0; c < result.cols(); ++c)
+          for (uint32_t c = 0; c < result.cols(); ++c)
             {
             T value = (T)*result;
             if (value)
@@ -3728,9 +3763,9 @@ namespace jtk
         resize(result.rows(), result.cols());
         for (auto& row : _entries)
           row.clear();
-        for (uint64_t r = 0; r < result.rows(); ++r)
+        for (uint32_t r = 0; r < result.rows(); ++r)
           {
-          for (uint64_t c = 0; c < result.cols(); ++c)
+          for (uint32_t c = 0; c < result.cols(); ++c)
             {
             T value = (T)*result;
             if (value)
@@ -3745,15 +3780,15 @@ namespace jtk
         return _rows == 0 && _cols == 0;
         }
 
-      uint64_t entries_stored() const
+      uint32_t entries_stored() const
         {
-        uint64_t output = 0;
+        uint32_t output = 0;
         for (const auto& row : _entries)
           output += row.entries_stored();
         return output;
         }
 
-      void resize(uint64_t rows, uint64_t cols)
+      void resize(uint32_t rows, uint32_t cols)
         {
         _rows = rows;
         _cols = cols;
@@ -3762,27 +3797,27 @@ namespace jtk
           row.resize(cols);
         }
 
-      const_reference operator()(uint64_t r, uint64_t c) const
+      const_reference operator()(uint32_t r, uint32_t c) const
         {
         return _entries[r].get(c);
         }
 
-      const_reference get(uint64_t r, uint64_t c) const
+      const_reference get(uint32_t r, uint32_t c) const
         {
         return _entries[r].get(c);
         }
 
-      reference put(uint64_t r, uint64_t c)
+      reference put(uint32_t r, uint32_t c)
         {
         return _entries[r].put(c);
         }
 
-      uint64_t rows() const
+      uint32_t rows() const
         {
         return _rows;
         }
 
-      uint64_t cols() const
+      uint32_t cols() const
         {
         return _cols;
         }
@@ -3817,18 +3852,18 @@ namespace jtk
         return const_iterator(this).end();
         }
 
-      Container& row(uint64_t idx)
+      Container& row(uint32_t idx)
         {
         return _entries[idx];
         }
 
-      const Container& row(uint64_t idx) const
+      const Container& row(uint32_t idx) const
         {
         return _entries[idx];
         }
 
     private:
-      uint64_t _rows, _cols;
+      uint32_t _rows, _cols;
       std::vector<Container> _entries;
     };
 
@@ -3904,8 +3939,8 @@ namespace jtk
       return false;
     if (*left != *right)
       return false;
-    const uint64_t sz = left.rows()*left.cols();
-    for (uint64_t i = 1; i < sz; ++i)
+    const uint32_t sz = left.rows()*left.cols();
+    for (uint32_t i = 1; i < sz; ++i)
       {
       ++left;
       ++right;
@@ -3936,9 +3971,9 @@ namespace jtk
     auto ff = os.flags();
     int width = 0;
     auto it = m.begin();
-    for (uint64_t r = 0; r < m.rows(); ++r)
+    for (uint32_t r = 0; r < m.rows(); ++r)
       {
-      for (uint64_t c = 0; c < m.cols(); ++c)
+      for (uint32_t c = 0; c < m.cols(); ++c)
         {
         std::stringstream sstr;
         sstr << std::setprecision(p);
@@ -3950,12 +3985,12 @@ namespace jtk
       }
 
     it = m.begin();
-    for (uint64_t r = 0; r < m.rows(); ++r)
+    for (uint32_t r = 0; r < m.rows(); ++r)
       {
       os.width(width);
       os << *it;
       ++it;
-      for (uint64_t c = 1; c < m.cols(); ++c)
+      for (uint32_t c = 1; c < m.cols(); ++c)
         {
         os << " ";
         os.width(width);
@@ -4723,18 +4758,18 @@ namespace jtk
   sparse_matrix<T, Container> operator * (const sparse_matrix<T, Container>& a, const sparse_matrix<T2, Container2>& b)
     {
     sparse_matrix<T, Container> out(a.rows(), b.cols());
-    for (uint64_t i = 0; i < a.rows(); ++i)
+    for (uint32_t i = 0; i < a.rows(); ++i)
       {
       auto it = a.row(i).begin();
       auto it_end = it.end();
       for (; it != it_end; ++it)
         {
-        uint64_t k = it.entry();
+        uint32_t k = it.entry();
         auto it2 = b.row(k).begin();
         auto it2_end = it2.end();
         for (; it2 != it2_end; ++it2)
           {
-          uint64_t j = it2.entry();
+          uint32_t j = it2.entry();
           out.put(i, j) += *it*(T)(*it2);
           }
         }
@@ -4747,18 +4782,18 @@ namespace jtk
     {
     sparse_matrix<typename ExprOp1::value_type> out(a.rows(), b.cols());
     sparse_matrix<typename ExprOp1::value_type> a1 = a;
-    for (uint64_t i = 0; i < a1.rows(); ++i)
+    for (uint32_t i = 0; i < a1.rows(); ++i)
       {
       auto it = a1.row(i).begin();
       auto it_end = it.end();
       for (; it != it_end; ++it)
         {
-        uint64_t k = it.entry();
+        uint32_t k = it.entry();
         auto it2 = b.row(k).begin();
         auto it2_end = it2.end();
         for (; it2 != it2_end; ++it2)
           {
-          uint64_t j = it2.entry();
+          uint32_t j = it2.entry();
           out.put(i, j) += *it*(typename ExprOp1::value_type)(*it2);
           }
         }
@@ -4771,18 +4806,18 @@ namespace jtk
     {
     sparse_matrix<T, Container> out(a.rows(), b.cols());
     sparse_matrix<typename ExprOp1::value_type> bb = b;
-    for (uint64_t i = 0; i < a.rows(); ++i)
+    for (uint32_t i = 0; i < a.rows(); ++i)
       {
       auto it = a.row(i).begin();
       auto it_end = it.end();
       for (; it != it_end; ++it)
         {
-        uint64_t k = it.entry();
+        uint32_t k = it.entry();
         auto it2 = bb.row(k).begin();
         auto it2_end = it2.end();
         for (; it2 != it2_end; ++it2)
           {
-          uint64_t j = it2.entry();
+          uint32_t j = it2.entry();
           out.put(i, j) += *it*(T)(*it2);
           }
         }
@@ -4796,18 +4831,18 @@ namespace jtk
     sparse_matrix<typename ExprOp1::value_type> out(a.rows(), b.cols());
     sparse_matrix<typename ExprOp1::value_type> a1 = a;
     sparse_matrix<typename ExprOp2::value_type> bb = b;
-    for (uint64_t i = 0; i < a1.rows(); ++i)
+    for (uint32_t i = 0; i < a1.rows(); ++i)
       {
       auto it = a1.row(i).begin();
       auto it_end = it.end();
       for (; it != it_end; ++it)
         {
-        uint64_t k = it.entry();
+        uint32_t k = it.entry();
         auto it2 = bb.row(k).begin();
         auto it2_end = it2.end();
         for (; it2 != it2_end; ++it2)
           {
-          uint64_t j = it2.entry();
+          uint32_t j = it2.entry();
           out.put(i, j) += *it*(typename ExprOp1::value_type)(*it2);
           }
         }
@@ -4820,9 +4855,9 @@ namespace jtk
   matrix<T, Container2> operator *  (const sparse_matrix<T, Container>& a, const matrix<T2, Container2>& b)
     {
     matrix<T, Container2> out(a.rows(), b.cols());
-    for (uint64_t i = 0; i < a.rows(); ++i)
+    for (uint32_t i = 0; i < a.rows(); ++i)
       {
-      for (uint64_t j = 0; j < b.cols(); ++j)
+      for (uint32_t j = 0; j < b.cols(); ++j)
         {
         T val = (T)0;
         auto it = a.row(i).begin();
@@ -4909,10 +4944,10 @@ namespace jtk
     /*
     const float* ita = a.data();
     const float* itb = b.data();
-    uint64_t len = a.rows()*a.cols();
-    uint64_t len4 = len / 4;
+    uint32_t len = a.rows()*a.cols();
+    uint32_t len4 = len / 4;
     __m128d sum = _mm_setzero_pd();
-    for (uint64_t i = 0; i < len4; ++i)
+    for (uint32_t i = 0; i < len4; ++i)
       {
       __m128 v1 = _mm_loadu_ps(ita + (i << 2));
       __m128 v2 = _mm_loadu_ps(itb + (i << 2));
@@ -4925,7 +4960,7 @@ namespace jtk
     double buffer[2];
     _mm_storeu_pd(buffer, sum);
     double totalsum = buffer[0] + buffer[1];
-    for (uint64_t i = len4 * 4; i < len; ++i)
+    for (uint32_t i = len4 * 4; i < len; ++i)
       {
       float v1 = *(ita + i);
       float v2 = *(itb + i);
@@ -4936,17 +4971,17 @@ namespace jtk
     */
     const float* ita = a.data();
     const float* itb = b.data();
-    uint64_t len = a.rows()*a.cols();
-    uint64_t len4 = len / 4;
+    uint32_t len = a.rows()*a.cols();
+    uint32_t len4 = len / 4;
     double sum = 0.0;
-    for (uint64_t i = 0; i < len4; ++i)
+    for (uint32_t i = 0; i < len4; ++i)
       {
       __m128 v1 = _mm_loadu_ps(ita + (i << 2));
       __m128 v2 = _mm_loadu_ps(itb + (i << 2));
       __m128 d = _mm_dp_ps(v1, v2, 0xf1);
       sum += (double)_mm_cvtss_f32(d);
       }
-    for (uint64_t i = len4 * 4; i < len; ++i)
+    for (uint32_t i = len4 * 4; i < len; ++i)
       {
       float v1 = *(ita + i);
       float v2 = *(itb + i);
@@ -4961,10 +4996,10 @@ namespace jtk
     {
     const double* ita = a.data();
     const double* itb = b.data();
-    uint64_t len = a.rows()*a.cols();
-    uint64_t len2 = len / 2;
+    uint32_t len = a.rows()*a.cols();
+    uint32_t len2 = len / 2;
     __m128d sum = _mm_setzero_pd();
-    for (uint64_t i = 0; i < len2; ++i)
+    for (uint32_t i = 0; i < len2; ++i)
       {
       __m128d v1 = _mm_loadu_pd(ita + (i << 1));
       __m128d v2 = _mm_loadu_pd(itb + (i << 1));
@@ -4974,7 +5009,7 @@ namespace jtk
     double buffer[2];
     _mm_storeu_pd(buffer, sum);
     double totalsum = buffer[0] + buffer[1];
-    for (uint64_t i = len2 * 2; i < len; ++i)
+    for (uint32_t i = len2 * 2; i < len; ++i)
       {
       double v1 = *(ita + i);
       double v2 = *(itb + i);
@@ -5082,7 +5117,7 @@ namespace jtk
   template <class T, class Container >
   Expr<
     Block<
-    typename matrix<T, Container>::const_iterator > > block(const matrix<T, Container>& a, uint64_t i, uint64_t j, uint64_t rows, uint64_t cols)
+    typename matrix<T, Container>::const_iterator > > block(const matrix<T, Container>& a, uint32_t i, uint32_t j, uint32_t rows, uint32_t cols)
     {
     typedef Block< typename matrix<T, Container>::const_iterator > ExprT;
     return Expr<ExprT>(ExprT(a.begin(), i, j, rows, cols, a.rows(), a.cols(), false));
@@ -5091,7 +5126,7 @@ namespace jtk
   template <class ExprOp>
   Expr<
     Block<
-    Expr<ExprOp> > > block(const Expr<ExprOp>& a, uint64_t i, uint64_t j, uint64_t rows, uint64_t cols)
+    Expr<ExprOp> > > block(const Expr<ExprOp>& a, uint32_t i, uint32_t j, uint32_t rows, uint32_t cols)
     {
     typedef Block< Expr<ExprOp> > ExprT;
     return Expr<ExprT>(ExprT(a, i, j, rows, cols, a.rows(), a.cols(), a.evaluate_before_assigning()));
@@ -5100,7 +5135,7 @@ namespace jtk
   template <class T, class Container>
   SparseExpr<
     BlockSparse<
-    typename sparse_matrix<T, Container>::const_iterator > > block(const sparse_matrix<T, Container>& a, uint64_t i, uint64_t j, uint64_t rows, uint64_t cols)
+    typename sparse_matrix<T, Container>::const_iterator > > block(const sparse_matrix<T, Container>& a, uint32_t i, uint32_t j, uint32_t rows, uint32_t cols)
     {
     typedef BlockSparse< typename sparse_matrix<T, Container>::const_iterator > ExprT;
     return SparseExpr<ExprT>(ExprT(a.begin(), i, j, rows, cols, false));
@@ -5109,7 +5144,7 @@ namespace jtk
   template <class ExprOp>
   SparseExpr<
     BlockSparse<
-    SparseExpr<ExprOp> > > block(const SparseExpr<ExprOp>& a, uint64_t i, uint64_t j, uint64_t rows, uint64_t cols)
+    SparseExpr<ExprOp> > > block(const SparseExpr<ExprOp>& a, uint32_t i, uint32_t j, uint32_t rows, uint32_t cols)
     {
     typedef BlockSparse< SparseExpr<ExprOp> > ExprT;
     return SparseExpr<ExprT>(ExprT(a, i, j, rows, cols, a.evaluate_before_assigning()));
@@ -5119,35 +5154,35 @@ namespace jtk
   // Matrix initializers (zeros, ones, identity)
   ///////////////////////////////////////////////////////////////////////////////
 
-  inline Expr<Constant<double> > zeros(uint64_t rows, uint64_t cols)
+  inline Expr<Constant<double> > zeros(uint32_t rows, uint32_t cols)
     {
     return Expr<Constant<double> >(Constant<double>(0.0, rows, cols));
     }
 
   template <class T>
-  inline Expr<Constant<T> > zeros(uint64_t rows, uint64_t cols)
+  inline Expr<Constant<T> > zeros(uint32_t rows, uint32_t cols)
     {
     return Expr<Constant<T> >(Constant<T>((T)0, rows, cols));
     }
 
-  inline Expr<Constant<double> > ones(uint64_t rows, uint64_t cols)
+  inline Expr<Constant<double> > ones(uint32_t rows, uint32_t cols)
     {
     return Expr<Constant<double> >(Constant<double>(1.0, rows, cols));
     }
 
   template <class T>
-  inline Expr<Constant<T> > ones(uint64_t rows, uint64_t cols)
+  inline Expr<Constant<T> > ones(uint32_t rows, uint32_t cols)
     {
     return Expr<Constant<T> >(Constant<T>((T)1, rows, cols));
     }
 
-  inline Expr<Identity<double> > identity(uint64_t rows, uint64_t cols)
+  inline Expr<Identity<double> > identity(uint32_t rows, uint32_t cols)
     {
     return Expr<Identity<double> >(Identity<double>(rows, cols));
     }
 
   template <class T>
-  inline Expr<Identity<T> > identity(uint64_t rows, uint64_t cols)
+  inline Expr<Identity<T> > identity(uint32_t rows, uint32_t cols)
     {
     return Expr<Identity<T> >(Identity<T>(rows, cols));
     }
@@ -5169,16 +5204,16 @@ namespace jtk
   float norm_sqr(const matrix<float, Container>& a)
     {
     const float* ita = a.data();
-    uint64_t len = a.rows()*a.cols();
-    uint64_t len4 = len / 4;
+    uint32_t len = a.rows()*a.cols();
+    uint32_t len4 = len / 4;
     double sum = 0.0;
-    for (uint64_t i = 0; i < len4; ++i)
+    for (uint32_t i = 0; i < len4; ++i)
       {
       __m128 v1 = _mm_loadu_ps(ita + (i << 2));
       __m128 d = _mm_dp_ps(v1, v1, 0xf1);
       sum += (double)_mm_cvtss_f32(d);
       }
-    for (uint64_t i = len4 * 4; i < len; ++i)
+    for (uint32_t i = len4 * 4; i < len; ++i)
       {
       float v1 = *(ita + i);
       float d = v1 * v1;
@@ -5191,10 +5226,10 @@ namespace jtk
   double norm_sqr(const matrix<double, Container>& a)
     {
     const double* ita = a.data();
-    uint64_t len = a.rows()*a.cols();
-    uint64_t len2 = len / 2;
+    uint32_t len = a.rows()*a.cols();
+    uint32_t len2 = len / 2;
     __m128d sum = _mm_setzero_pd();
-    for (uint64_t i = 0; i < len2; ++i)
+    for (uint32_t i = 0; i < len2; ++i)
       {
       __m128d v1 = _mm_loadu_pd(ita + (i << 1));
       __m128d d = _mm_mul_pd(v1, v1);
@@ -5203,7 +5238,7 @@ namespace jtk
     double buffer[2];
     _mm_storeu_pd(buffer, sum);
     double totalsum = buffer[0] + buffer[1];
-    for (uint64_t i = len2 * 2; i < len; ++i)
+    for (uint32_t i = len2 * 2; i < len; ++i)
       {
       double v1 = *(ita + i);
       double d = v1 * v1;
@@ -5215,12 +5250,12 @@ namespace jtk
   template <class ExprOp>
   double norm_sqr(Expr<ExprOp> expr)
     {
-    uint64_t sz = expr.rows()*expr.cols();
+    uint32_t sz = expr.rows()*expr.cols();
     if (sz == 0)
       return 0.0;
     auto value = *expr;
     double sum = (double)value*value;
-    for (uint64_t i = 1; i < sz; ++i)
+    for (uint32_t i = 1; i < sz; ++i)
       {
       ++expr;
       value = *expr;
@@ -5284,9 +5319,9 @@ namespace jtk
   T trace(const matrix<T, Container>& a)
     {
     auto it = diagonal(a);
-    uint64_t sz = std::min(a.rows(), a.cols());
+    uint32_t sz = std::min(a.rows(), a.cols());
     double sum = (double)*it;
-    for (uint64_t i = 1; i < sz; ++i)
+    for (uint32_t i = 1; i < sz; ++i)
       {
       ++it;
       sum += (double)*it;
@@ -5298,9 +5333,9 @@ namespace jtk
   double trace(Expr<ExprOp> expr)
     {
     auto it = diagonal(expr);
-    uint64_t sz = std::min(expr.rows(), expr.cols());
+    uint32_t sz = std::min(expr.rows(), expr.cols());
     double sum = *it;
-    for (uint64_t i = 1; i < sz; ++i)
+    for (uint32_t i = 1; i < sz; ++i)
       {
       ++it;
       sum += (double)*it;
@@ -5312,9 +5347,9 @@ namespace jtk
   T trace(const sparse_matrix<T, Container>& a)
     {
     auto it = diagonal(a);
-    uint64_t sz = std::min(a.rows(), a.cols());
+    uint32_t sz = std::min(a.rows(), a.cols());
     double sum = (double)*it;
-    for (uint64_t i = 1; i < sz; ++i)
+    for (uint32_t i = 1; i < sz; ++i)
       {
       ++it;
       sum += (double)*it;
@@ -5326,14 +5361,53 @@ namespace jtk
   double trace(SparseExpr<ExprOp> expr)
     {
     auto it = diagonal(expr);
-    uint64_t sz = std::min(expr.rows(), expr.cols());
+    uint32_t sz = std::min(expr.rows(), expr.cols());
     double sum = *it;
-    for (uint64_t i = 1; i < sz; ++i)
+    for (uint32_t i = 1; i < sz; ++i)
       {
       ++it;
       sum += (double)*it;
       }
     return sum;
+    }
+
+  ///////////////////////////////////////////////////////////////////////////////
+  // Symmetric
+  ///////////////////////////////////////////////////////////////////////////////
+
+  template <class T, class Container >
+  bool is_symmetric(const matrix<T, Container>& a)
+    {
+    if (a.rows() != a.cols())
+      return false;
+    for (uint32_t r = 0; r < a.rows(); ++r)
+      {
+      for (uint32_t c = 0; c < r; ++c)
+        {
+        if (a(r, c) != a(c, r))
+          return false;
+        }
+      }
+    return true;
+    }
+
+  template <class T, class Container >
+  bool is_symmetric(const sparse_matrix<T, Container>& a)
+    {
+    if (a.rows() != a.cols())
+      return false;
+    for (uint32_t i = 0; i < a.rows(); ++i)
+      {
+      auto it = a.row(i).begin();
+      const auto it_end = it.end();
+
+      for (; (it != it_end); ++it)
+        {
+        if ((it.entry() != i) && (*it != a(it.entry(), i)))
+          return false;
+        }
+      }
+    return true;
     }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -5352,7 +5426,7 @@ namespace jtk
       }
 
     template <class Matrix_mxn>
-    void swap_cols(int m, Matrix_mxn& A, size_t i, size_t j)
+    void swap_cols(int m, Matrix_mxn& A, uint32_t i, uint32_t j)
       {
       for (int row = 0; row < m; ++row)
         std::swap(A[row][i], A[row][j]);
@@ -5639,7 +5713,7 @@ namespace jtk
   int pseudo_inverse(matrix<T, Container>& inv, matrix<T, Container>& a, T tol)
     {
     using namespace ::jtk::svd_details;
-    int p = 0;
+    uint32_t p = 0;
     matrix<T, Container> w, v;
     bool res = svd(a, w, v);
     if (res)
@@ -5649,12 +5723,12 @@ namespace jtk
       inv.resize(n, m);
       while ((p < n) && (std::abs(w(p)) > tol))
         ++p;
-      for (int r = 0; r < n; ++r)
+      for (uint32_t r = 0; r < n; ++r)
         {
-        for (int c = 0; c < m; ++c)
+        for (uint32_t c = 0; c < m; ++c)
           {
           T val = (T)0;
-          for (int k = 0; k < p; ++k)
+          for (uint32_t k = 0; k < p; ++k)
             val += v[r][k] * a[c][k] / w(k);
           inv[r][c] = val;
           }
@@ -5675,7 +5749,7 @@ namespace jtk
     svd(A, sigma, V);
     matrix < T, Container2 > res;
     res.noalias() = transpose(A)*b;
-    for (uint64_t i = 0; i < res.rows(); ++i)
+    for (uint32_t i = 0; i < res.rows(); ++i)
       {
       if (std::abs(sigma(i)) < tol)
         res(i) = (T)0;
@@ -5690,11 +5764,11 @@ namespace jtk
   ///////////////////////////////////////////////////////////////////////////////
 
   template <class T, class Container>
-  void ludcmp(matrix<T, Container>& A, std::vector<uint64_t>& permutations, T& d)
+  void ludcmp(matrix<T, Container>& A, std::vector<uint32_t>& permutations, T& d)
     {
     assert(A.rows() == A.cols());
-    uint64_t n = A.rows();
-    uint64_t i, imax = 0, j, k;
+    uint32_t n = A.rows();
+    uint32_t i, imax = 0, j, k;
     T big, dum, sum, temp;
     std::vector<T> vv;
     vv.resize(n);
@@ -5761,19 +5835,19 @@ namespace jtk
     }
 
   template <class T, class Container, class Container2>
-  void lubksb(matrix<T, Container2>& b, const matrix<T, Container>& A, const std::vector<uint64_t>& permutations)
+  void lubksb(matrix<T, Container2>& b, const matrix<T, Container>& A, const std::vector<uint32_t>& permutations)
     {
     assert(A.rows() == A.cols());
-    uint64_t i, ii = 0xffffffffffffffff, ip, j;
+    uint32_t i, ii = 0xffffffff, ip, j;
     T sum;
-    uint64_t n = A.rows();
+    uint32_t n = A.rows();
 
     for (i = 0; i < n; ++i)
       {
       ip = permutations[i];
       sum = b(ip);
       b(ip) = b(i);
-      if (ii < 0xffffffffffffffff)
+      if (ii < 0xffffffff)
         for (j = ii; j < i; ++j)
           sum -= A(i, j)*b(j);
       else if (sum)
@@ -5792,7 +5866,7 @@ namespace jtk
   template <class T, class Container, class Container2>
   void solve(matrix<T, Container>& A, matrix<T, Container2>& b)
     {
-    std::vector<uint64_t> permutations;
+    std::vector<uint32_t> permutations;
     T d;
     ludcmp(A, permutations, d);
     lubksb(b, A, permutations);
@@ -5803,15 +5877,15 @@ namespace jtk
     {
     matrix<T, Container> m(A);
     Ainv.resize(A.rows(), A.cols());
-    std::vector<uint64_t> permutations;
+    std::vector<uint32_t> permutations;
     T d;
     ludcmp(m, permutations, d);
-    for (uint64_t j = 0; j < A.cols(); ++j)
+    for (uint32_t j = 0; j < A.cols(); ++j)
       {
       matrix<T, Container> col = zeros(A.rows(), 1);
       col(j) = 1;
       lubksb(col, m, permutations);
-      for (uint64_t i = 0; i < A.rows(); ++i)
+      for (uint32_t i = 0; i < A.rows(); ++i)
         Ainv(i, j) = col(i);
       }
     }
@@ -5820,10 +5894,10 @@ namespace jtk
   T determinant(const matrix<T, Container>& A)
     {
     matrix<T, Container> m(A);
-    std::vector<uint64_t> permutations;
+    std::vector<uint32_t> permutations;
     T d;
     ludcmp(m, permutations, d);
-    for (uint64_t j = 0; j < A.cols(); ++j)
+    for (uint32_t j = 0; j < A.cols(); ++j)
       d *= m(j, j);
     return d;
     }
@@ -5836,12 +5910,12 @@ namespace jtk
     {
     // Divides a row by its diagonal element
     template <class T, class Container>
-    void _rdiv(matrix<T, Container>& A, uint64_t r)
+    void _rdiv(matrix<T, Container>& A, uint32_t r)
       {
       T* it = A[r] + r;
       T denom = static_cast<T>(std::sqrt(*it));
       *it /= denom;
-      for (uint64_t i = r + 1; i < A.cols(); ++i)
+      for (uint32_t i = r + 1; i < A.cols(); ++i)
         {
         ++it;
         *it /= denom;
@@ -5851,14 +5925,14 @@ namespace jtk
     // Replaces row r1 by
     // row r1 = row r1 - A(r2,r1)/A(r2,r2)*row r2
     template <class T, class Container>
-    void _rmod(matrix<T, Container>& A, uint64_t r1, uint64_t r2)
+    void _rmod(matrix<T, Container>& A, uint32_t r1, uint32_t r2)
       {
       T factor = A(r2, r1) / A(r2, r2);
       if (factor == (T)0)
         return;
       T* it1 = A[r1] + r1;
       T* it2 = A[r2] + r1;
-      for (uint64_t i = r1; i < A.cols(); ++i)
+      for (uint32_t i = r1; i < A.cols(); ++i)
         {
         *it1 -= factor * (*it2);
         ++it1;
@@ -5872,9 +5946,9 @@ namespace jtk
     {
     assert(A.rows() == A.cols());
     using namespace ::jtk::cholesky_details;
-    for (uint64_t k = 0; k < A.rows(); ++k)
+    for (uint32_t k = 0; k < A.rows(); ++k)
       {
-      for (uint64_t j = k + 1; j < A.rows(); ++j)
+      for (uint32_t j = k + 1; j < A.rows(); ++j)
         {
         _rmod(A, j, k);
         }
@@ -5887,9 +5961,9 @@ namespace jtk
     {
     assert(A.rows() == A.cols());
     x.resize(A.rows(), 1);
-    for (uint64_t j = A.rows(); j > 0; --j)
+    for (uint32_t j = A.rows(); j > 0; --j)
       {
-      uint64_t ind = j - 1;
+      uint32_t ind = j - 1;
       T val = b(ind);
       auto it = A[ind] + ind;
       const auto it_end = A[ind] + A.cols();
@@ -5910,7 +5984,7 @@ namespace jtk
     {
     assert(A.rows() == A.cols());
     x.resize(A.rows(), 1);
-    for (uint64_t j = 0; j < A.rows(); ++j)
+    for (uint32_t j = 0; j < A.rows(); ++j)
       {
       T val = b(j);
       T diag = A(j, j);
@@ -5942,40 +6016,40 @@ namespace jtk
   ///////////////////////////////////////////////////////////////////////////////
 
   template <class T, class Container>
-  void qrdcmp(matrix<T, Container>& a, matrix<T, Container>& qt, std::vector<uint64_t>& permutations, bool pivot)
+  void qrdcmp(matrix<T, Container>& a, matrix<T, Container>& qt, std::vector<uint32_t>& permutations, bool pivot)
     {
-    uint64_t m(a.rows());
-    uint64_t n(a.cols());
-    uint64_t mn = m > n ? n : m;
+    uint32_t m(a.rows());
+    uint32_t n(a.cols());
+    uint32_t mn = m > n ? n : m;
     matrix<T, Container> rdiag;
     matrix<T, Container> acnorm;
     qrfac(a, pivot, permutations, rdiag, acnorm);
     qt = identity(m, m);
-    for (uint64_t k = 0; k < mn; ++k)
+    for (uint32_t k = 0; k < mn; ++k)
       {
       if (a(k, k) != 0.0)
         {
-        for (uint64_t j = 0; j < m; ++j)
+        for (uint32_t j = 0; j < m; ++j)
           {
           T sum = (T)0;
-          for (uint64_t i = k; i < m; ++i)
+          for (uint32_t i = k; i < m; ++i)
             sum += a(i, k) * qt(i, j);
           sum /= a(k, k);
-          for (uint64_t i = k; i < m; ++i)
+          for (uint32_t i = k; i < m; ++i)
             qt(i, j) -= sum * a(i, k);
           }
         }
       }
 
-    for (uint64_t i = 0; i < mn; ++i)
+    for (uint32_t i = 0; i < mn; ++i)
       {
       a(i, i) = rdiag(i);
-      for (uint64_t j = 0; j < i; ++j)
+      for (uint32_t j = 0; j < i; ++j)
         a(i, j) = (T)0;
       }
-    for (uint64_t i = mn; i < m; ++i)
+    for (uint32_t i = mn; i < m; ++i)
       {
-      for (uint64_t j = 0; j < n; ++j)
+      for (uint32_t j = 0; j < n; ++j)
         a(i, j) = (T)0;
       }
     }
@@ -5983,22 +6057,22 @@ namespace jtk
   template <class T, class Container, class Container2>
   void solve_qr(matrix<T, Container>& a, matrix<T, Container2>& b)
     {
-    std::vector<uint64_t> permutations;
+    std::vector<uint32_t> permutations;
     matrix<T, Container2> rdiag;
     matrix<T, Container2> acnorm;
     qrfac(a, true, permutations, rdiag, acnorm);
-    uint64_t m = a.rows();
-    uint64_t n = a.cols();
+    uint32_t m = a.rows();
+    uint32_t n = a.cols();
     matrix<T, Container2> qtb(n, 1);
-    for (uint64_t j = 0; j < n; ++j)
+    for (uint32_t j = 0; j < n; ++j)
       {
       if (a[j][j] != (T)0)
         {
         T sum = (T)0;
-        for (uint64_t i = j; i < m; ++i)
+        for (uint32_t i = j; i < m; ++i)
           sum += a[i][j] * b(i);
         T temp = -sum / a[j][j];
-        for (uint64_t i = j; i < m; ++i)
+        for (uint32_t i = j; i < m; ++i)
           b(i) += a[i][j] * temp;
         }
       a[j][j] = rdiag(j);
@@ -6010,11 +6084,11 @@ namespace jtk
     }
 
   template <class T, class Container, class Container2>
-  void qrfac(matrix<T, Container>& a, bool pivot, std::vector<uint64_t>& ipvt,
+  void qrfac(matrix<T, Container>& a, bool pivot, std::vector<uint32_t>& ipvt,
     matrix<T, Container2>& rdiag, matrix<T, Container2>& acnorm)
     {
-    uint64_t m = a.rows();
-    uint64_t n = a.cols();
+    uint32_t m = a.rows();
+    uint32_t n = a.cols();
 
     if (pivot)
       ipvt.resize(n);
@@ -6022,7 +6096,7 @@ namespace jtk
     acnorm.resize(n, 1);
     matrix<T, Container> wa(n, 1);
 
-    uint64_t i, j, jp1, k, kmax, minmn;
+    uint32_t i, j, jp1, k, kmax, minmn;
     T ajnorm, epsmch, sum, temp;
 
     /* get machine precision */
@@ -6098,13 +6172,13 @@ namespace jtk
     }
 
   template <class T, class Container, class Container2>
-  void qrsolv(matrix<T, Container>& r, const std::vector<uint64_t>& ipvt, const matrix<T, Container2>& diag,
+  void qrsolv(matrix<T, Container>& r, const std::vector<uint32_t>& ipvt, const matrix<T, Container2>& diag,
     const matrix<T, Container2>& qtb, matrix<T, Container2>& x, matrix<T, Container2>& sdiag)
     {
-    uint64_t i, j, jp1, k, kp1, l, nsing;
+    uint32_t i, j, jp1, k, kp1, l, nsing;
     T qtbpj, sum, temp, dsin, dcos, dtan, dcotan;
 
-    uint64_t n = r.cols();
+    uint32_t n = r.cols();
     matrix<T, Container2> wa(n, 1);
     x.resize(n, 1);
     sdiag.resize(n, 1);
@@ -6196,10 +6270,10 @@ namespace jtk
   template <class T, class Container_mn, class Container_n, class Container_m>
   bool fdjac(bool(*f)(const matrix<T, Container_n>&, matrix<T, Container_m>&, void*), matrix<T, Container_n>& x, matrix<T, Container_m>& fvec, matrix<T, Container_mn>& fjac, T epsfcn, void* user_data)
     {
-    uint64_t m = fvec.rows();
-    uint64_t n = x.rows();
+    uint32_t m = fvec.rows();
+    uint32_t n = x.rows();
     matrix<T, Container_m> wa(m, 1);
-    uint64_t i, j;
+    uint32_t i, j;
     T eps, epsmch, h, temp;
 
     fjac.resize(m, n);
@@ -6256,11 +6330,11 @@ namespace jtk
       };
 
     template <class T, class Container_mn, class Container_n>
-    void lmpar(matrix<T, Container_mn>& r, const std::vector<uint64_t>& ipvt, const matrix<T, Container_n>& diag, const matrix<T, Container_n>& qtb,
+    void lmpar(matrix<T, Container_mn>& r, const std::vector<uint32_t>& ipvt, const matrix<T, Container_n>& diag, const matrix<T, Container_n>& qtb,
       T delta, T& par, matrix<T, Container_n>& x, matrix<T, Container_n>& sdiag)
       {
-      uint64_t n = r.cols();
-      uint64_t i, iter, j, jp1, k, l, nsing;
+      uint32_t n = r.cols();
+      uint32_t i, iter, j, jp1, k, l, nsing;
       T dxnorm, dwarf, fp, gnorm, parc, parl, paru;
       T sum, temp;
 
@@ -6390,12 +6464,12 @@ namespace jtk
 
   template <class T, class Container_n, class Container_m>
   void lmdif(bool(*f)(const matrix<T, Container_n>&, matrix<T, Container_m>&, void*), matrix<T, Container_n>& x, matrix<T, Container_m>& fvec, T ftol,
-    T xtol, T gtol, uint64_t maxfev, T epsfcn, matrix<T, Container_n>& diag,
-    uint64_t mode, T factor, uint64_t& info, uint64_t& nfev, void* user_data)
+    T xtol, T gtol, uint32_t maxfev, T epsfcn, matrix<T, Container_n>& diag,
+    uint32_t mode, T factor, uint32_t& info, uint32_t& nfev, void* user_data)
     {
-    uint64_t n = x.rows();
+    uint32_t n = x.rows();
 
-    uint64_t i, iter, j, l, iflag;
+    uint32_t i, iter, j, l, iflag;
     T actred, delta, dirder, epsmch, fnorm, fnorm1, gnorm;
     T par, pnorm, prered, ratio, sum, temp, temp1, temp2, xnorm;
 
@@ -6426,7 +6500,7 @@ namespace jtk
       return;
       }
 
-    uint64_t m = fvec.rows();
+    uint32_t m = fvec.rows();
 
     if (m < n)
       {
@@ -6434,7 +6508,7 @@ namespace jtk
       return;
       }
 
-    std::vector<uint64_t> ipvt;
+    std::vector<uint32_t> ipvt;
     matrix<T, Container_n> qtf(n, 1), wa1(n, 1), wa2(n, 1), wa3(n, 1);
     matrix<T, Container_m> wa4(m, 1);
     matrix<T> fjac;
@@ -6618,13 +6692,13 @@ namespace jtk
     }
 
   template <class T, class Container_n, class Container_m>
-  void lmdif0(bool(*f)(const matrix<T, Container_n>&, matrix<T, Container_m>&, void*), matrix<T, Container_n>& x, matrix<T, Container_m>& fvec, uint64_t& info, uint64_t& nfev, void* user_data)
+  void lmdif0(bool(*f)(const matrix<T, Container_n>&, matrix<T, Container_m>&, void*), matrix<T, Container_n>& x, matrix<T, Container_m>& fvec, uint32_t& info, uint32_t& nfev, void* user_data)
     {
-    uint64_t j, maxfev;
-    uint64_t mode;
+    uint32_t j, maxfev;
+    uint32_t mode;
     T ftol, xtol, gtol, epsfcn, factor;
 
-    uint64_t n = x.rows();
+    uint32_t n = x.rows();
     matrix<T, Container_n> diag(n, 1);
 
     /* Set convergence tolerances */
@@ -6651,10 +6725,10 @@ namespace jtk
   template <class T, class Container>
   void tred2(matrix<T, Container>& diagonal, matrix<T, Container>& subdiagonal, matrix<T, Container>& a)
     {
-    size_t l, k, j, i;
+    uint32_t l, k, j, i;
     T scale, hh, h, g, f;
 
-    size_t n = a.cols();
+    uint32_t n = a.cols();
     diagonal.resize(n, 1);
     subdiagonal.resize(n, 1);
     for (i = n - 1; i > 0; --i)
@@ -6742,10 +6816,10 @@ namespace jtk
   template <class T, class Container>
   bool tqli(matrix<T, Container>& diagonal, matrix<T, Container>& a, matrix<T, Container>& subdiagonal)
     {
-    size_t n = diagonal.rows();
-    size_t m, iterations, l, i, k;
+    uint32_t n = diagonal.rows();
+    uint32_t m, iterations, l, i, k;
     T s, r, p, g, f, dd, c, b;
-    for (size_t count = 1; count < n; ++count)
+    for (uint32_t count = 1; count < n; ++count)
       {
       subdiagonal(count - 1) = subdiagonal(count);
       }
@@ -6821,8 +6895,8 @@ namespace jtk
     {
     assert(a.rows() == a.cols());
     constexpr double RADIX = 2.0;
-    uint64_t last, j, i;
-    uint64_t n = a.rows();
+    uint32_t last, j, i;
+    uint32_t n = a.rows();
     double s, r, g, f, c, sqrdx;
     sqrdx = RADIX * RADIX;
     last = 0;
@@ -6875,8 +6949,8 @@ namespace jtk
   void elmhes(matrix<T, Container>& a)
     {
     assert(a.rows() == a.cols());
-    uint64_t n = a.rows();
-    uint64_t m, j, i;
+    uint32_t n = a.rows();
+    uint32_t m, j, i;
     T y, x;
     for (m = 1; m < n - 1; ++m)
       {
@@ -6922,24 +6996,24 @@ namespace jtk
   bool hqr(matrix<T, Container>& a, matrix<T, Container>&  wr, matrix<T, Container>&  wi)
     {
     assert(a.rows() == a.cols());
-    uint64_t n = a.rows();
+    uint32_t n = a.rows();
     wr.resize(n, 1);
     wi.resize(n, 1);
-    int nn, m, l, k, j, its, i, mmin;
+    uint32_t nn, m, l, k, j, its, i, mmin;
     double z, y, x, w, v, u, t, s, r, q, p, anorm;
     p = q = r = (T)0;
     anorm = (T)0; //Compute matrix norm for possible use in locating single small subdiagonal element.
     for (i = 0; i < n; ++i)
-      for (j = std::max<int>(i - 1, 0); j < n; ++j)
+      for (j = i > 0 ? i-1 : 0; j < n; ++j)
         anorm += std::abs(a[i][j]);
-    nn = (int)n;
+    nn = (int64_t)n;
     t = 0.0; //Gets changed only by an exceptional shift.
     while (nn >= 1)
       {
       //Begin search for next eigenvalue.
       its = 0;
       do {
-        for (l = nn - 1; l >= 1; --l)
+        for (l = nn > 0 ? nn - 1 : 0 ; l >= 1; --l)
           {
           //Begin iteration : look for single small subdiagonal element.
           s = fabs(a[l - 1][l - 1]) + fabs(a[l][l]);
@@ -7081,7 +7155,7 @@ namespace jtk
               }
             }
           }
-        } while (l < nn - 2);
+        } while (l < (nn > 1 ? nn - 2 : 0));
       }
     return true;
     }
@@ -7104,7 +7178,7 @@ namespace jtk
     {
     assert(b.cols() == 1);
     out.resize(a.rows(), 1);
-    for (uint64_t i = 0; i < a.rows(); ++i)
+    for (uint32_t i = 0; i < a.rows(); ++i)
       {
       T val = (T)0;
       auto it = a.row(i).begin();
@@ -7122,7 +7196,7 @@ namespace jtk
     {
     assert(b.cols() == 1);
     out.resize(a.rows(), 1);
-    for (uint64_t i = 0; i < a.rows(); ++i)
+    for (uint32_t i = 0; i < a.rows(); ++i)
       {
       T val = (T)0;
       const T bi = b(i);
@@ -7144,6 +7218,197 @@ namespace jtk
     }
 
   template <class T>
+  class symmetric_sparse_matrix_wrapper
+    {
+    public:
+      template <class Container>
+      explicit symmetric_sparse_matrix_wrapper(const sparse_matrix<T, Container>& A) : id(0), _rows(A.rows())
+        {
+        assert(is_symmetric(A));
+        uint32_t max_nonzero = 0;
+        for (uint32_t i = 0; i < A.rows(); ++i)
+          {
+          auto it = A.row(i).begin();
+          auto it_end = it.end();
+          uint32_t nz = 0;
+          for (; (it != it_end) && (it.entry() <= i); ++it)
+            ++nz;
+          max_nonzero = nz > max_nonzero ? nz : max_nonzero;
+          }
+        if (max_nonzero <= 40)
+          id = max_nonzero;
+        switch (id)
+          {
+          case 0: fill_lower(m, A); break;
+          case 1: fill_lower(m1, A); break;
+          case 2: fill_lower(m2, A); break;
+          case 3: fill_lower(m3, A); break;
+          case 4: fill_lower(m4, A); break;
+          case 5: fill_lower(m5, A); break;
+          case 6: fill_lower(m6, A); break;
+          case 7: fill_lower(m7, A); break;
+          case 8: fill_lower(m8, A); break;
+          case 9: fill_lower(m9, A); break;
+          case 10: fill_lower(m10, A); break;
+          case 11: fill_lower(m11, A); break;
+          case 12: fill_lower(m12, A); break;
+          case 13: fill_lower(m13, A); break;
+          case 14: fill_lower(m14, A); break;
+          case 15: fill_lower(m15, A); break;
+          case 16: fill_lower(m16, A); break;
+          case 17: fill_lower(m17, A); break;
+          case 18: fill_lower(m18, A); break;
+          case 19: fill_lower(m19, A); break;
+          case 20: fill_lower(m20, A); break;
+          default: fill_lower(m, A); break;
+          }
+        }
+
+      uint32_t rows() const
+        {
+        return _rows;
+        }
+
+      uint32_t cols() const
+        {
+        return _rows;
+        }
+
+      template <class Container, class Container2>
+      void fill_lower(sparse_matrix<T, Container>& out, const sparse_matrix<T, Container2>& in)
+        {
+        out.resize(in.rows(), in.cols());
+        auto it = in.begin();
+        const auto it_end = in.end();
+        for (; it != it_end; ++it)
+          {
+          if (it.first_entry() >= it.second_entry())
+            {
+            out.put(it.first_entry(), it.second_entry()) = *it;
+            }
+          }
+        }
+
+      template <class T, class Container>
+      void solve(matrix<T, Container>& out, const matrix<T, Container>& b) const
+        {
+        switch (id)
+          {
+          case 0: sparse_symmetric_matrix_vector_multiply(out, m, b); break;
+          case 1: sparse_symmetric_matrix_vector_multiply(out, m1, b); break;
+          case 2: sparse_symmetric_matrix_vector_multiply(out, m2, b); break;
+          case 3: sparse_symmetric_matrix_vector_multiply(out, m3, b); break;
+          case 4: sparse_symmetric_matrix_vector_multiply(out, m4, b); break;
+          case 5: sparse_symmetric_matrix_vector_multiply(out, m5, b); break;
+          case 6: sparse_symmetric_matrix_vector_multiply(out, m6, b); break;
+          case 7: sparse_symmetric_matrix_vector_multiply(out, m7, b); break;
+          case 8: sparse_symmetric_matrix_vector_multiply(out, m8, b); break;
+          case 9: sparse_symmetric_matrix_vector_multiply(out, m9, b); break;
+          case 10: sparse_symmetric_matrix_vector_multiply(out, m10, b); break;
+          case 11: sparse_symmetric_matrix_vector_multiply(out, m11, b); break;
+          case 12: sparse_symmetric_matrix_vector_multiply(out, m12, b); break;
+          case 13: sparse_symmetric_matrix_vector_multiply(out, m13, b); break;
+          case 14: sparse_symmetric_matrix_vector_multiply(out, m14, b); break;
+          case 15: sparse_symmetric_matrix_vector_multiply(out, m15, b); break;
+          case 16: sparse_symmetric_matrix_vector_multiply(out, m16, b); break;
+          case 17: sparse_symmetric_matrix_vector_multiply(out, m17, b); break;
+          case 18: sparse_symmetric_matrix_vector_multiply(out, m18, b); break;
+          case 19: sparse_symmetric_matrix_vector_multiply(out, m19, b); break;
+          case 20: sparse_symmetric_matrix_vector_multiply(out, m20, b); break;
+          default: sparse_symmetric_matrix_vector_multiply(out, m, b); break;
+          }
+        }
+
+      template <class Container>
+      matrix<T, Container> operator * (const matrix<T, Container>& v) const
+        {
+        matrix<T, Container> out;
+        switch (id)
+          {
+          case 0: out = m * v; break;
+          case 1: out = m1 * v; break;
+          case 2: out = m2 * v; break;
+          case 3: out = m3 * v; break;
+          case 4: out = m4 * v; break;
+          case 5: out = m5 * v; break;
+          case 6: out = m6 * v; break;
+          case 7: out = m7 * v; break;
+          case 8: out = m8 * v; break;
+          case 9: out = m9 * v; break;
+          case 10: out = m10 * v; break;
+          case 11: out = m11 * v; break;
+          case 12: out = m12 * v; break;
+          case 13: out = m13 * v; break;
+          case 14: out = m14 * v; break;
+          case 15: out = m15 * v; break;
+          case 16: out = m16 * v; break;
+          case 17: out = m17 * v; break;
+          case 18: out = m18 * v; break;
+          case 19: out = m19 * v; break;
+          case 20: out = m20 * v; break;
+          default: out = m * v; break;
+          }
+        return out;
+        }
+
+      matrix<T> diagonal() const
+        {
+        matrix<T> out;
+        switch (id)
+          {
+          case 0: out = jtk::diagonal(m); break;
+          case 1: out = jtk::diagonal(m1); break;
+          case 2: out = jtk::diagonal(m2); break;
+          case 3: out = jtk::diagonal(m3); break;
+          case 4: out = jtk::diagonal(m4); break;
+          case 5: out = jtk::diagonal(m5); break;
+          case 6: out = jtk::diagonal(m6); break;
+          case 7: out = jtk::diagonal(m7); break;
+          case 8: out = jtk::diagonal(m8); break;
+          case 9: out = jtk::diagonal(m9); break;
+          case 10: out = jtk::diagonal(m10); break;
+          case 11: out = jtk::diagonal(m11); break;
+          case 12: out = jtk::diagonal(m12); break;
+          case 13: out = jtk::diagonal(m13); break;
+          case 14: out = jtk::diagonal(m14); break;
+          case 15: out = jtk::diagonal(m15); break;
+          case 16: out = jtk::diagonal(m16); break;
+          case 17: out = jtk::diagonal(m17); break;
+          case 18: out = jtk::diagonal(m18); break;
+          case 19: out = jtk::diagonal(m19); break;
+          case 20: out = jtk::diagonal(m20); break;
+          default: out = jtk::diagonal(m); break;
+          }
+        return out;
+        }
+
+    private:
+      uint32_t id;
+      uint32_t _rows;
+      sparse_matrix<T> m;
+      sparse_matrix<T, sparse_array<T, 1>> m1;
+      sparse_matrix<T, sparse_array<T, 2>> m2;
+      sparse_matrix<T, sparse_array<T, 3>> m3;
+      sparse_matrix<T, sparse_array<T, 4>> m4;
+      sparse_matrix<T, sparse_array<T, 5>> m5;
+      sparse_matrix<T, sparse_array<T, 6>> m6;
+      sparse_matrix<T, sparse_array<T, 7>> m7;
+      sparse_matrix<T, sparse_array<T, 8>> m8;
+      sparse_matrix<T, sparse_array<T, 9>> m9;
+      sparse_matrix<T, sparse_array<T, 10>> m10;
+      sparse_matrix<T, sparse_array<T, 11>> m11;
+      sparse_matrix<T, sparse_array<T, 12>> m12;
+      sparse_matrix<T, sparse_array<T, 13>> m13;
+      sparse_matrix<T, sparse_array<T, 14>> m14;
+      sparse_matrix<T, sparse_array<T, 15>> m15;
+      sparse_matrix<T, sparse_array<T, 16>> m16;
+      sparse_matrix<T, sparse_array<T, 17>> m17;
+      sparse_matrix<T, sparse_array<T, 18>> m18;
+      sparse_matrix<T, sparse_array<T, 19>> m19;
+      sparse_matrix<T, sparse_array<T, 20>> m20;
+    };
+
+  template <class T>
   class DiagonalPreconditioner
     {
     public:
@@ -7151,6 +7416,13 @@ namespace jtk
       explicit DiagonalPreconditioner(const sparse_matrix<T, Container>& A)
         {
         invD = diagonal(A);
+        for (auto& v : invD)
+          v = (v == 0) ? 1 : (1 / v);
+        }
+
+      explicit DiagonalPreconditioner(const symmetric_sparse_matrix_wrapper<T>& A)
+        {
+        invD = A.diagonal();
         for (auto& v : invD)
           v = (v == 0) ? 1 : (1 / v);
         }
@@ -7174,11 +7446,11 @@ namespace jtk
       matrix<T> invD;
     };
 
-  template <class T, class Container, class Container2, class TPreconditioner>
+  template <class T, class Container, class TPreconditioner>
   void preconditioned_conjugate_gradient(matrix<T, Container>& out,
     T& residu,
-    uint64_t& iterations,
-    const sparse_matrix<T, Container2>& A,
+    uint32_t& iterations,
+    const symmetric_sparse_matrix_wrapper<T>& A,
     const TPreconditioner& P,
     const matrix<T, Container>& b,
     const matrix<T, Container>& x0,
@@ -7213,13 +7485,15 @@ namespace jtk
 
     timer t1, t2;
 
-    uint64_t i = 0;
+    uint32_t i = 0;
     for (; i < A.rows(); ++i)
       {
       t1.start();
       //tmp.noalias() = A * p;
       //sparse_matrix_vector_multiply(tmp, A, p);
-      sparse_symmetric_matrix_vector_multiply(tmp, A, p);
+      //sparse_symmetric_matrix_vector_multiply(tmp, A, p);
+      A.solve(tmp, p);
+
       double multime = t1.time_elapsed();
       //printf("A*x, time: %f\n", multime);
       time1 += multime;
@@ -7244,11 +7518,11 @@ namespace jtk
     residu = residualnorm / rhsnorm;
     }
 
-  template <class T, class Container, class Container2>
+  template <class T, class Container>
   void conjugate_gradient(matrix<T, Container>& out,
     T& residu,
-    uint64_t& iterations,
-    const sparse_matrix<T, Container2>& A,
+    uint32_t& iterations,
+    const symmetric_sparse_matrix_wrapper<T>& A,
     const matrix<T, Container>& b,
     const matrix<T, Container>& x0,
     T tolerance)
@@ -7260,7 +7534,7 @@ namespace jtk
   template <class T, class Container, class Container2, class TPreconditioner>
   void bipcgstab(matrix<T, Container>& out,
     T& residu,
-    uint64_t& iterations,
+    uint32_t& iterations,
     const sparse_matrix<T, Container2>& A,
     const TPreconditioner& P,
     const matrix<T, Container>& b,
@@ -7286,7 +7560,7 @@ namespace jtk
       return;
       }
 
-    for (uint64_t i = 0; i < A.rows(); ++i)
+    for (uint32_t i = 0; i < A.rows(); ++i)
       {
       rho_1 = transpose(r_) * r;
       if (rho_1(0) == (T)0)
@@ -7341,7 +7615,7 @@ namespace jtk
   template <class T, class Container, class Container2>
   void bicgstab(matrix<T, Container>& out,
     T& residu,
-    uint64_t& iterations,
+    uint32_t& iterations,
     const sparse_matrix<T, Container2>& A,
     const matrix<T, Container>& b,
     const matrix<T, Container>& x0,
