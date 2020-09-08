@@ -2256,8 +2256,8 @@ namespace jtk
       friend std::ostream& operator << (std::ostream&, const matrix<T2, Container2>&);
 
     private:
-      uint32_t _rows, _cols;
       Container _entries;
+      uint32_t _rows, _cols;      
     };
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -3863,8 +3863,8 @@ namespace jtk
         }
 
     private:
-      uint32_t _rows, _cols;
       std::vector<Container> _entries;
+      uint32_t _rows, _cols;      
     };
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -7382,9 +7382,7 @@ namespace jtk
         return out;
         }
 
-    private:
-      uint32_t id;
-      uint32_t _rows;
+    private:      
       sparse_matrix<T> m;
       sparse_matrix<T, sparse_array<T, 1>> m1;
       sparse_matrix<T, sparse_array<T, 2>> m2;
@@ -7406,6 +7404,8 @@ namespace jtk
       sparse_matrix<T, sparse_array<T, 18>> m18;
       sparse_matrix<T, sparse_array<T, 19>> m19;
       sparse_matrix<T, sparse_array<T, 20>> m20;
+      uint32_t id;
+      uint32_t _rows;
     };
 
   template <class T>
