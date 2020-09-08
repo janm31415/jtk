@@ -4010,6 +4010,140 @@ namespace jtk
         }
       };
 
+    struct sparse_array_fixture
+      {
+      sparse_array_fixture() : vector_1(5), vector_2(5), vector_3(10), vector_4(5)
+        {
+        size_t i;
+        for (i = 0; i < 5; ++i)
+          {
+          vector_1.put(i) = static_cast<double>(i);
+          vector_2.put(i) = static_cast<double>(i)*2.0;
+          vector_4.put(i) = static_cast<int>(i) * 4;
+          }
+        for (i = 0; i < 10; ++i)
+          {
+          vector_3.put(i) = static_cast<double>(i)*3.0;
+          }
+        }
+
+      sparse_array<double, 8> vector_1;
+      sparse_array<double, 8> vector_2;
+      sparse_array<double, 10> vector_3;
+      sparse_array<int, 6> vector_4;
+
+      };
+
+    void sparse_array_construction()
+      {
+      sparse_array<double, 8> v(5);
+      size_t i;     
+      v.put(3) = 3.0;
+      v.put(2) = 2.0;
+      v.put(4) = 4.0;
+      v.put(1) = 1.0;
+      v.put(0) = 0.0;      
+      for (i = 0; i < 5; ++i)
+        TEST_EQ(v.get(i), i);
+      sparse_array<double, 5> v2(0);
+      TEST_ASSERT(v2.begin() == v2.end());
+      }
+    
+    void sparse_array_sparsity_optimization()
+      {
+      sparse_array<double, 10> v(5);
+      size_t i;
+      for (i = 0; i < 5; ++i)
+        v.put(i) = 0.0;
+      v.put(0) = 1.0;
+      TEST_EQ(v.entries_stored(), static_cast<size_t>(10));
+      sparse_array<double, 10> v2 = v;
+      TEST_EQ(v2.entries_stored(), static_cast<size_t>(10));
+      TEST_EQ(v2.get(0), 1.0);
+      }
+
+    struct sparse_array_copy_constructor : public sparse_array_fixture
+      {
+      void test()
+        {
+        int i;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), i);
+        sparse_array<double, 10> newcontainer(vector_1);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(newcontainer.get(i), i);
+        }
+      };
+
+    struct sparse_array_swap : public sparse_array_fixture
+      {
+      void test()
+        {
+        vector_1.swap(vector_2);
+        int i;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_2.get(i), i);
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), i * 2);
+        }
+      };
+
+    struct sparse_array_assignment : public sparse_array_fixture
+      {
+      void test()
+        {
+        vector_3 = vector_1;
+        size_t i;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_3.get(i), i);
+        TEST_EQ(vector_3.size(), static_cast<size_t>(5));
+        }
+      };
+
+    struct sparse_array_mul_div : public sparse_array_fixture
+      {
+      void test()
+        {
+        vector_1 *= 2.0;
+        size_t i;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), 2.0*i);
+        vector_1 /= 2.0;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), i);
+        }
+      };
+
+    struct sparse_array_add : public sparse_array_fixture
+      {
+      void test()
+        {
+        vector_1 += vector_2;
+        size_t i;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), 3.0*i);
+        vector_1 -= vector_2;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), i);
+        vector_1 += vector_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), 2.0*i);
+        vector_1 -= vector_1;
+        vector_1 -= vector_1;
+        for (i = 0; i < 5; ++i)
+          TEST_EQ(vector_1.get(i), 0.0);
+        }
+      };
+
+    struct sparse_array_equality : public sparse_array_fixture
+      {
+      void test()
+        {
+        TEST_ASSERT(vector_1 == vector_1);
+        TEST_ASSERT(vector_1 != vector_2);
+        }
+      };
+      
     struct fixture_sparse_matrix
       {
       fixture_sparse_matrix() : matrix_1(3, 3), matrix_2(3, 3), matrix_3(4, 1), matrix_4(1, 2)
@@ -4919,6 +5053,16 @@ void run_all_mat_tests()
   sparse_vector_mul_div().test();
   sparse_vector_add().test();
   sparse_vector_equality().test();  
+
+  sparse_array_construction();
+  sparse_array_sparsity_optimization();
+  sparse_array_copy_constructor().test();
+  sparse_array_swap().test();
+  sparse_array_assignment().test();
+  sparse_array_mul_div().test();
+  sparse_array_add().test();
+  sparse_array_equality().test();
+
   sparse_matrix_getput_test().test();
   sparse_matrix_size_test().test();
   sparse_matrix_swap_test().test();

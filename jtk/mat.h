@@ -2627,9 +2627,9 @@ namespace jtk
       template <class T2>
       sparse_vector(const sparse_vector<T2>& other)
         {
-        sparse_vector tmp(other._size);
-        const_iterator iter_other = other.begin();
-        const_iterator end_other = other.end();
+        sparse_vector tmp(other.size());
+        auto iter_other = other.begin();
+        auto end_other = other.end();
         for (; iter_other != end_other; ++iter_other)
           {
           if (*iter_other != static_cast<T2>(0))
@@ -2761,6 +2761,526 @@ namespace jtk
     private:
       std::vector<std::pair<uint64_t, T>> _container;
       uint64_t _size;
+      T _zero;
+    };
+
+  ///////////////////////////////////////////////////////////////////////////////
+  // sparse array class
+  ///////////////////////////////////////////////////////////////////////////////
+
+  template <class T, int N>
+  class sparse_array;
+
+  template <class T, int N>
+  class sparse_array_iterator
+    {
+    public:
+      typedef T value_type;
+      typedef T& reference;
+      typedef uint64_t difference_type;
+      typedef T* pointer;
+      typedef std::random_access_iterator_tag iterator_category;
+
+      sparse_array_iterator() : _vector(nullptr) {}
+      sparse_array_iterator(sparse_array<T, N>* vector) : _vector(vector), _iter(vector->_container.begin()) {}
+      sparse_array_iterator(const sparse_array_iterator& other) : _vector(other._vector), _iter(other._iter) {}
+
+      void swap(sparse_array_iterator& other)
+        {
+        std::swap(_vector, other._vector);
+        std::swap(_iter, other._iter);
+        }
+
+      sparse_array_iterator& operator = (const sparse_array_iterator& other)
+        {
+        sparse_array_iterator temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      sparse_array_iterator end() const
+        {
+        sparse_array_iterator output_iterator(*this);
+        if (_vector)
+          output_iterator._iter = _vector->_container.begin() + _vector->_array_size_used;
+        return output_iterator;
+        }
+
+      sparse_array_iterator& operator++ ()
+        {
+        ++_iter;
+        return *this;
+        }
+
+      sparse_array_iterator operator++ (int)
+        {
+        sparse_array_iterator output_iterator(*this);
+        ++_iter;
+        return output_iterator;
+        }
+
+      sparse_array_iterator& operator-- ()
+        {
+        --_iter;
+        return *this;
+        }
+
+      sparse_array_iterator operator-- (int)
+        {
+        sparse_array_iterator output_iterator(*this);
+        --_iter;
+        return output_iterator;
+        }
+
+      reference operator * () const
+        {
+        return _iter->second;
+        }
+
+      uint64_t entry() const
+        {
+        return _iter->first;
+        }
+
+      sparse_array_iterator operator + (difference_type idx) const
+        {
+        sparse_array_iterator output(*this);
+        output._iter += idx;
+        return output;
+        }
+
+      sparse_array_iterator operator - (difference_type idx) const
+        {
+        sparse_array_iterator output(*this);
+        output._iter -= idx;
+        return output;
+        }
+
+      sparse_array_iterator& operator += (difference_type idx)
+        {
+        _iter += idx;
+        return *this;
+        }
+
+      sparse_array_iterator& operator -= (difference_type idx)
+        {
+        _iter -= idx;
+        return *this;
+        }
+
+      difference_type operator + (const sparse_array_iterator& other) const
+        {
+        return _iter + other._iter;
+        }
+
+      difference_type operator - (const sparse_array_iterator& other) const
+        {
+        return _iter - other._iter;
+        }
+
+      bool operator == (const sparse_array_iterator& other) const
+        {
+        return _iter == other._iter;
+        }
+
+      bool operator != (const sparse_array_iterator& other) const
+        {
+        return !(*this == other);
+        }
+
+      bool operator < (const sparse_array_iterator& other) const
+        {
+        if (_iter == end())
+          return false;
+        if (other._iter == other.end())
+          return true;
+        return _iter->first < other._iter->first;
+        }
+
+      bool operator <= (const sparse_array_iterator& other) const
+        {
+        return (*this == other || *this < other);
+        }
+
+      bool operator > (const sparse_array_iterator& other) const
+        {
+        return !(*this <= other);
+        }
+
+      bool operator >= (const sparse_array_iterator& other) const
+        {
+        return !(*this < other);
+        }
+
+    private:
+      sparse_array<T, N>* _vector;
+      typename std::array<std::pair<uint64_t, T>, N>::iterator _iter;
+    };
+
+  template <class T, int N>
+  class sparse_array_const_iterator
+    {
+    public:
+      typedef T value_type;
+      typedef const T& reference;
+      typedef uint64_t difference_type;
+      typedef const T* pointer;
+      typedef std::random_access_iterator_tag iterator_category;
+
+      sparse_array_const_iterator() : _vector(nullptr) {}
+      sparse_array_const_iterator(const sparse_array<T, N>* vector) : _vector(vector), _iter(vector->_container.begin()) {}
+      sparse_array_const_iterator(const sparse_array_const_iterator& other) : _vector(other._vector), _iter(other._iter) {}
+
+      void swap(sparse_array_const_iterator& other)
+        {
+        std::swap(_vector, other._vector);
+        std::swap(_iter, other._iter);
+        }
+
+      sparse_array_const_iterator& operator = (const sparse_array_const_iterator& other)
+        {
+        sparse_array_const_iterator temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      sparse_array_const_iterator end() const
+        {
+        sparse_array_const_iterator output_iterator(*this);
+        if (_vector)
+          output_iterator._iter = _vector->_container.begin() + _vector->_array_size_used;
+        return output_iterator;
+        }
+
+      sparse_array_const_iterator& operator++ ()
+        {
+        ++_iter;
+        return *this;
+        }
+
+      sparse_array_const_iterator operator++ (int)
+        {
+        sparse_array_const_iterator output_iterator(*this);
+        ++_iter;
+        return output_iterator;
+        }
+
+      sparse_array_const_iterator& operator-- ()
+        {
+        --_iter;
+        return *this;
+        }
+
+      sparse_array_const_iterator operator-- (int)
+        {
+        sparse_array_const_iterator output_iterator(*this);
+        --_iter;
+        return output_iterator;
+        }
+
+      reference operator * () const
+        {
+        return _iter->second;
+        }
+
+      uint64_t entry() const
+        {
+        return _iter->first;
+        }
+
+      sparse_array_const_iterator operator + (difference_type idx) const
+        {
+        sparse_array_const_iterator output(*this);
+        output._iter += idx;
+        return output;
+        }
+
+      sparse_array_const_iterator operator - (difference_type idx) const
+        {
+        sparse_array_const_iterator output(*this);
+        output._iter -= idx;
+        return output;
+        }
+
+      sparse_array_const_iterator& operator += (difference_type idx)
+        {
+        _iter += idx;
+        return *this;
+        }
+
+      sparse_array_const_iterator& operator -= (difference_type idx)
+        {
+        _iter -= idx;
+        return *this;
+        }
+
+      difference_type operator + (const sparse_array_const_iterator& other) const
+        {
+        return _iter + other._iter;
+        }
+
+      difference_type operator - (const sparse_array_const_iterator& other) const
+        {
+        return _iter - other._iter;
+        }
+
+      bool operator == (const sparse_array_const_iterator& other) const
+        {
+        return _iter == other._iter;
+        }
+
+      bool operator != (const sparse_array_const_iterator& other) const
+        {
+        return !(*this == other);
+        }
+
+      bool operator < (const sparse_array_const_iterator& other) const
+        {
+        if (_iter == end())
+          return false;
+        if (other._iter == other.end())
+          return true;
+        return _iter->first < other._iter->first;
+        }
+
+      bool operator <= (const sparse_array_const_iterator& other) const
+        {
+        return (*this == other || *this < other);
+        }
+
+      bool operator > (const sparse_array_const_iterator& other) const
+        {
+        return !(*this <= other);
+        }
+
+      bool operator >= (const sparse_array_const_iterator& other) const
+        {
+        return !(*this < other);
+        }
+
+    private:
+      const sparse_array<T, N>* _vector;
+      typename std::array<std::pair<uint64_t, T>, N>::const_iterator _iter;
+    };
+
+  template <class T, int N>
+  class sparse_array
+    {
+    template <class T2, int N2> friend class sparse_array_iterator;
+    template <class T2, int N2> friend class sparse_array_const_iterator;
+
+    struct compare
+      {
+      inline bool operator () (const std::pair<uint64_t, T>& lhs, const std::pair<uint64_t, T>& rhs) const
+        {
+        return lhs.first < rhs.first;
+        }
+
+      inline bool operator () (const std::pair<uint64_t, T>& lhs, uint64_t value) const
+        {
+        return lhs.first < value;
+        }
+
+      inline bool operator () (uint64_t value, const std::pair<uint64_t, T>& rhs) const
+        {
+        return value < rhs.first;
+        }
+      };
+
+    public:
+      using value_type = T;
+      using pointer = T * ;
+      using reference = T & ;
+      using const_pointer = const T *;
+      using const_reference = const T &;
+      using iterator = sparse_array_iterator<T, N>;
+      using const_iterator = sparse_array_const_iterator<T, N>;
+
+      sparse_array() : _size(0), _array_size_used(0), _zero((T)0) {}
+
+      sparse_array(uint64_t size) : _size(size), _array_size_used(0), _zero((T)0) {}
+
+      void swap(sparse_array<T, N>& other)
+        {
+        std::swap(_container, other._container);
+        std::swap(_size, other._size);
+        std::swap(_array_size_used, other._array_size_used);
+        std::swap(_zero, other._zero);
+        }
+
+      sparse_array(const sparse_array& other)
+        {
+        sparse_array tmp(other._size);
+        const_iterator iter_other = other.begin();
+        const_iterator end_other = other.end();
+        for (; iter_other != end_other; ++iter_other)
+          {
+          if (*iter_other != static_cast<T>(0))
+            tmp.put(iter_other.entry()) = *iter_other;
+          }
+        swap(tmp);
+        }
+
+      sparse_array(sparse_array&&) = default;
+
+      sparse_array& operator = (const sparse_array& other)
+        {
+        sparse_array temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      sparse_array& operator = (sparse_array&&) = default;
+
+      template <class T2, int N2>
+      sparse_array(const sparse_array<T2, N2>& other)
+        {
+        sparse_array tmp(other.size());
+        auto iter_other = other.begin();
+        auto end_other = other.end();
+        for (; iter_other != end_other; ++iter_other)
+          {
+          if (*iter_other != static_cast<T2>(0))
+            tmp.put(iter_other.entry()) = static_cast<T>(*iter_other);
+          }
+        swap(tmp);
+        }
+
+      template <class T2, int N2>
+      sparse_array& operator = (const sparse_array<T2, N2>& other)
+        {
+        sparse_array temp(other);
+        swap(temp);
+        return *this;
+        }
+
+      reference put(uint64_t idx)
+        {
+        const auto iter_end = _container.begin() + _array_size_used;
+        auto iter = std::lower_bound(_container.begin(), iter_end, idx, compare());
+        if (iter != iter_end)
+          {
+          if (iter->first == idx)
+            {
+            return iter->second;
+            }
+          else
+            {            
+            uint64_t pos = iter - _container.begin();
+            for (uint64_t i = _array_size_used; i > pos; --i)
+              {
+              _container[i] = _container[i - 1];
+              }
+            _container[pos].first = idx;
+            _container[pos].second = static_cast<T>(0);
+            ++_array_size_used;
+            return _container[pos].second;
+            }
+          }
+        else
+          {
+          _container[_array_size_used].first = idx;
+          _container[_array_size_used].second = static_cast<T>(0);
+          ++_array_size_used;
+          return _container[_array_size_used - 1].second;
+          }
+        }
+
+      const_reference get(uint64_t idx) const
+        {
+        const auto iter_end = _container.begin() + _array_size_used;
+        const auto iter = std::lower_bound(_container.begin(), iter_end, idx, compare());
+        return (iter != iter_end && iter->first == idx ? iter->second : _zero);
+        }
+
+      iterator begin()
+        {
+        return iterator(this);
+        }
+
+      iterator end()
+        {
+        return iterator(this).end();
+        }
+
+      const_iterator begin() const
+        {
+        return const_iterator(this);
+        }
+
+      const_iterator end() const
+        {
+        return const_iterator(this).end();
+        }
+
+      void resize(uint64_t size)
+        {
+        _size = size;
+        }
+
+      void operator += (const sparse_array<T, N>& other)
+        {
+        assert(other.size() <= size());
+        const_iterator iter = other.begin();
+        const_iterator iter_end = other.end();
+        for (; iter != iter_end; ++iter)
+          put(iter.entry()) += *iter;
+        }
+
+      void operator -= (const sparse_array<T, N>& other)
+        {
+        assert(other.size() <= size());
+        const_iterator iter = other.begin();
+        const_iterator iter_end = other.end();
+        for (; iter != iter_end; ++iter)
+          put(iter.entry()) -= *iter;
+        }
+
+      void operator *= (value_type coeff)
+        {
+        iterator iter = begin();
+        iterator iter_end = end();
+        for (; iter != iter_end; ++iter)
+          *iter *= coeff;
+        }
+
+      void operator /= (value_type coeff)
+        {
+        iterator iter = begin();
+        iterator iter_end = end();
+        for (; iter != iter_end; ++iter)
+          *iter /= coeff;
+        }
+
+      uint64_t size() const
+        {
+        return _size;
+        }
+
+      uint64_t entries_stored() const
+        {
+        return (uint64_t)_container.size();
+        }
+
+      void clear()
+        {
+        _container.clear();
+        }
+
+      bool operator == (const sparse_array& other) const
+        {
+        return _size == other._size && _container == other._container;
+        }
+
+      bool operator != (const sparse_array& other) const
+        {
+        return !(*this == other);
+        }
+
+    private:
+      std::array<std::pair<uint64_t, T>, N> _container;
+      uint64_t _size;
+      uint64_t _array_size_used;
       T _zero;
     };
 
@@ -4438,7 +4958,7 @@ namespace jtk
 
   template <class Container, class Container2>
   double dot(const matrix<double, Container>& a, const matrix<double, Container2>& b)
-    {    
+    {
     const double* ita = a.data();
     const double* itb = b.data();
     uint64_t len = a.rows()*a.cols();
@@ -4448,8 +4968,8 @@ namespace jtk
       {
       __m128d v1 = _mm_loadu_pd(ita + (i << 1));
       __m128d v2 = _mm_loadu_pd(itb + (i << 1));
-      __m128d d = _mm_mul_pd(v1, v2);     
-      sum = _mm_add_pd(sum, d);      
+      __m128d d = _mm_mul_pd(v1, v2);
+      sum = _mm_add_pd(sum, d);
       }
     double buffer[2];
     _mm_storeu_pd(buffer, sum);
@@ -4461,7 +4981,7 @@ namespace jtk
       double d = v1 * v2;
       totalsum += (double)d;
       }
-    return (float)totalsum;    
+    return (float)totalsum;
     }
   ///////////////////////////////////////////////////////////////////////////////
   // Transposing matrices
@@ -6631,7 +7151,7 @@ namespace jtk
         {
         invD = diagonal(A);
         for (auto& v : invD)
-          v = (v==0) ? 1 : (1 / v);
+          v = (v == 0) ? 1 : (1 / v);
         }
 
       template <class T2, class Container>
@@ -6640,7 +7160,7 @@ namespace jtk
         typename matrix<T>::const_iterator,
         typename matrix<T2, Container>::const_iterator,
         OpMul<typename gettype<T, T2>::ty> > >
-      solve(const matrix<T2, Container>& residual) const
+        solve(const matrix<T2, Container>& residual) const
         {
         typedef BinExprOp<
           typename matrix<T>::const_iterator,
