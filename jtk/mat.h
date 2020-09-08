@@ -7289,7 +7289,7 @@ namespace jtk
           }
         }
 
-      template <class T, class Container>
+      template <class Container>
       void solve(matrix<T, Container>& out, const matrix<T, Container>& b) const
         {
         switch (id)
