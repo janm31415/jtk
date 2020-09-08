@@ -4759,7 +4759,7 @@ namespace jtk
 
       symmetric_sparse_matrix_wrapper<float> Awrap(A);
 
-      DiagonalPreconditioner P(A);
+      diagonal_preconditioner P(A);
 
       matf b(10);
       for (uint32_t i = 1; i <= 10; ++i)
@@ -4815,7 +4815,7 @@ namespace jtk
         {
         A.put(i - 1, i - 1) = (double)i;
         }
-      DiagonalPreconditioner P(A);
+      diagonal_preconditioner P(A);
       mat b(10);
       for (uint32_t i = 1; i <= 10; ++i)
         b(i - 1) = (double)i;
