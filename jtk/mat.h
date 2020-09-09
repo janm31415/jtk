@@ -229,6 +229,18 @@ namespace jtk
   T trace(const sparse_matrix<T, Container>& a);
 
   /*
+  checks the input matrix for symmetry.
+  */
+  template <class T, class Container >
+  bool is_symmetric(const matrix<T, Container>& a);
+
+  /*
+  checks the sparse input matrix for symmetry.
+  */
+  template <class T, class Container >
+  bool is_symmetric(const sparse_matrix<T, Container>& a);
+
+  /*
   returns the dot product of two vectors.
   */
   template <class T, class Container, class T2, class Container2>
@@ -1809,7 +1821,13 @@ namespace jtk
 
       bool process_parallel() const
         {
+#ifdef _MAT_PARALLEL
+        if (rows() < 100 && cols() < 100)
+          return false;
         return _expr_op.process_parallel();
+#else
+        return false;
+#endif
         }
 
     private:
@@ -1852,7 +1870,13 @@ namespace jtk
 
       bool process_parallel() const
         {
+#ifdef _MAT_PARALLEL
+        if (rows() < 100 && cols() < 100)
+          return false;
         return _expr_op.process_parallel();
+#else
+        return false;
+#endif
         }
 
       SparseExpr end() const
