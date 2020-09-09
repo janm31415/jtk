@@ -435,13 +435,13 @@ namespace jtk
     template <class T, class Container>
     struct resize
       {
-      void operator()(Container&, uint32_t) {}
+      void operator()(Container&, uint64_t) {}
       };
 
     template <class T>
     struct resize<T, std::vector<T>>
       {
-      void operator()(std::vector<T>& c, uint32_t size)
+      void operator()(std::vector<T>& c, uint64_t size)
         {
         c.resize(size, (T)0);
         }
@@ -657,8 +657,8 @@ namespace jtk
     public:
       using value_type = typename Op::value_type;
 
-      BinExprOp(const A& a, const B& b, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _b(b), _rows(rows), _cols(cols),
-        _evaluate_before_assigning(eval_before_assigning)
+      BinExprOp(const A& a, const B& b, uint32_t rows, uint32_t cols, bool eval_before_assigning, bool process_parallel) : _a(a), _b(b), _rows(rows), _cols(cols),
+        _evaluate_before_assigning(eval_before_assigning), _process_parallel(process_parallel)
         {
         }
 
@@ -701,11 +701,17 @@ namespace jtk
         return _evaluate_before_assigning;
         }
 
+      bool process_parallel() const
+        {
+        return _process_parallel;
+        }
+
     private:
       A _a;
       B _b;
       uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
+      bool _process_parallel;
     };
 
   template <class A, class B, class Op>
@@ -714,8 +720,8 @@ namespace jtk
     public:
       using value_type = typename Op::value_type;
 
-      BinExprSparseOp(const A& a, const B& b, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _b(b), _rows(rows), _cols(cols),
-        _evaluate_before_assigning(eval_before_assigning)
+      BinExprSparseOp(const A& a, const B& b, uint32_t rows, uint32_t cols, bool eval_before_assigning, bool process_parallel) : _a(a), _b(b), _rows(rows), _cols(cols),
+        _evaluate_before_assigning(eval_before_assigning), _process_parallel(process_parallel)
         {
         _set_entry_1();
         _set_entry_2();
@@ -787,6 +793,11 @@ namespace jtk
       bool evaluate_before_assigning() const
         {
         return _evaluate_before_assigning;
+        }
+
+      bool process_parallel() const
+        {
+        return _process_parallel;
         }
 
       uint32_t first_entry() const
@@ -880,6 +891,7 @@ namespace jtk
       uint32_t _rows, _cols;
       uint32_t _first_entry_1, _first_entry_2, _second_entry_1, _second_entry_2;
       bool _evaluate_before_assigning;
+      bool _process_parallel;
     };
 
   template <class A, class B>
@@ -888,8 +900,7 @@ namespace jtk
     public:
       using value_type = typename gettype<typename ::jtk::implementation_details::get_value_type<A>::value_type, typename ::jtk::implementation_details::get_value_type<B>::value_type>::ty;
 
-      MatMatMul(const A& a, const B& b, uint32_t rows, uint32_t cols, uint32_t mid_dim) : _a(a), _b(b), _index(0), _rows(rows), _cols(cols), _mid_dim(mid_dim),
-        _evaluate_before_assigning(true)
+      MatMatMul(const A& a, const B& b, uint32_t rows, uint32_t cols, uint32_t mid_dim) : _a(a), _b(b), _index(0), _rows(rows), _cols(cols), _mid_dim(mid_dim)
         {
         }
 
@@ -939,7 +950,12 @@ namespace jtk
 
       bool evaluate_before_assigning() const
         {
-        return _evaluate_before_assigning;
+        return true;
+        }
+
+      bool process_parallel() const
+        {
+        return true;
         }
 
     private:
@@ -947,7 +963,6 @@ namespace jtk
       B _b;
       std::ptrdiff_t _index;
       uint32_t _rows, _cols, _mid_dim;
-      bool _evaluate_before_assigning;
     };
 
   template <class A, class B>
@@ -956,8 +971,7 @@ namespace jtk
     public:
       using value_type = typename gettype<typename ::jtk::implementation_details::get_value_type<A>::value_type, typename ::jtk::implementation_details::get_value_type<B>::value_type>::ty;
 
-      SparseMatMatMul(const A& a, const B& b, uint32_t rows, uint32_t cols, uint32_t mid_dim) : _a(a), _b(b), _index(0), _rows(rows), _cols(cols), _mid_dim(mid_dim),
-        _evaluate_before_assigning(true)
+      SparseMatMatMul(const A& a, const B& b, uint32_t rows, uint32_t cols, uint32_t mid_dim) : _a(a), _b(b), _index(0), _rows(rows), _cols(cols), _mid_dim(mid_dim)
         {
         }
 
@@ -1004,7 +1018,12 @@ namespace jtk
 
       bool evaluate_before_assigning() const
         {
-        return _evaluate_before_assigning;
+        return true;
+        }
+
+      bool process_parallel() const
+        {
+        return true;
         }
 
     private:
@@ -1012,7 +1031,6 @@ namespace jtk
       B _b;
       std::ptrdiff_t _index;
       uint32_t _rows, _cols, _mid_dim;
-      bool _evaluate_before_assigning;
     };
 
   template <class A>
@@ -1021,7 +1039,8 @@ namespace jtk
     public:
       using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
 
-      Transpose(const A& a, uint32_t rows, uint32_t cols) : _a(a), _index(0), _rows(rows), _cols(cols), _evaluate_before_assigning(true)
+      Transpose(const A& a, uint32_t rows, uint32_t cols, bool process_parallel) : _a(a), _index(0), _rows(rows), _cols(cols),
+        _process_parallel(process_parallel)
         {
         }
 
@@ -1063,14 +1082,19 @@ namespace jtk
 
       bool evaluate_before_assigning() const
         {
-        return _evaluate_before_assigning;
+        return true;
+        }
+
+      bool process_parallel() const
+        {
+        return _process_parallel;
         }
 
     private:
       A _a;
       std::ptrdiff_t _index;
       uint32_t _rows, _cols;
-      bool _evaluate_before_assigning;
+      bool _process_parallel;
     };
 
   template <class A>
@@ -1079,7 +1103,8 @@ namespace jtk
     public:
       using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
 
-      Diagonal(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning)
+      Diagonal(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning, bool process_parallel) : _a(a), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning),
+        _process_parallel(process_parallel)
         {
         _dim = std::min<uint32_t>(_rows, _cols);
         }
@@ -1122,11 +1147,17 @@ namespace jtk
         return _evaluate_before_assigning;
         }
 
+      bool process_parallel() const
+        {
+        return _process_parallel;
+        }
+
     private:
       A _a;
       uint32_t _rows, _cols;
       uint32_t _dim;
       bool _evaluate_before_assigning;
+      bool _process_parallel;
     };
 
   template <class A>
@@ -1135,7 +1166,8 @@ namespace jtk
     public:
       using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
 
-      DiagonalSparse(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _index(0), _evaluate_before_assigning(eval_before_assigning)
+      DiagonalSparse(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning, bool process_parallel) : _a(a), _rows(rows), _cols(cols), _index(0), _evaluate_before_assigning(eval_before_assigning),
+        _process_parallel(process_parallel)
         {
         _dim = std::min<uint32_t>(_rows, _cols);
         }
@@ -1159,7 +1191,7 @@ namespace jtk
 
       DiagonalSparse& operator += (const std::ptrdiff_t offset)
         {
-        _index += offset;
+        _index += (uint32_t)offset;
         return *this;
         }
 
@@ -1185,12 +1217,18 @@ namespace jtk
         return _evaluate_before_assigning;
         }
 
+      bool process_parallel() const
+        {
+        return _process_parallel;
+        }
+
     private:
       A _a;
       uint32_t _rows, _cols;
       uint32_t _dim;
       uint32_t _index;
       bool _evaluate_before_assigning;
+      bool _process_parallel;
     };
 
   template <class A>
@@ -1199,8 +1237,9 @@ namespace jtk
     public:
       using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
 
-      Block(const A& a, uint32_t pos_r, uint32_t pos_c, uint32_t rows, uint32_t cols, uint32_t a_rows, uint32_t a_cols, bool eval_before_assigning) : _a(a), _pos_r(pos_r),
-        _pos_c(pos_c), _rows(rows), _cols(cols), _a_rows(a_rows), _a_cols(a_cols), _evaluate_before_assigning(eval_before_assigning)
+      Block(const A& a, uint32_t pos_r, uint32_t pos_c, uint32_t rows, uint32_t cols, uint32_t a_rows, uint32_t a_cols, bool eval_before_assigning, bool process_parallel) :
+        _a(a), _pos_r(pos_r), _pos_c(pos_c), _rows(rows), _cols(cols), _a_rows(a_rows), _a_cols(a_cols), _evaluate_before_assigning(eval_before_assigning),
+        _process_parallel(process_parallel)
         {
         _current_r = _pos_r;
         _current_c = _pos_c;
@@ -1267,6 +1306,11 @@ namespace jtk
         return _evaluate_before_assigning;
         }
 
+      bool process_parallel() const
+        {
+        return _process_parallel;
+        }
+
     private:
       A _a;
       uint32_t _pos_r, _pos_c;
@@ -1274,6 +1318,7 @@ namespace jtk
       uint32_t _a_rows, _a_cols;
       uint32_t _current_r, _current_c;
       bool _evaluate_before_assigning;
+      bool _process_parallel;
     };
 
   template <class A>
@@ -1282,8 +1327,8 @@ namespace jtk
     public:
       using value_type = typename ::jtk::implementation_details::get_value_type<A>::value_type;
 
-      BlockSparse(const A& a, uint32_t pos_r, uint32_t pos_c, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _pos_r(pos_r),
-        _pos_c(pos_c), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning)
+      BlockSparse(const A& a, uint32_t pos_r, uint32_t pos_c, uint32_t rows, uint32_t cols, bool eval_before_assigning, bool process_parallel) : _a(a), _pos_r(pos_r),
+        _pos_c(pos_c), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning), _process_parallel(process_parallel)
         {
         _find_next_entry();
         }
@@ -1312,6 +1357,11 @@ namespace jtk
       bool evaluate_before_assigning() const
         {
         return _evaluate_before_assigning;
+        }
+
+      bool process_parallel() const
+        {
+        return _process_parallel;
         }
 
       BlockSparse end() const
@@ -1362,6 +1412,7 @@ namespace jtk
       uint32_t _pos_r, _pos_c;
       uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
+      bool _process_parallel;
     };
 
   template <class T>
@@ -1370,7 +1421,7 @@ namespace jtk
     public:
       using value_type = T;
 
-      Constant(T value, uint32_t rows, uint32_t cols) : _value(value), _rows(rows), _cols(cols), _evaluate_before_assigning(false)
+      Constant(T value, uint32_t rows, uint32_t cols) : _value(value), _rows(rows), _cols(cols)
         {
         }
 
@@ -1405,13 +1456,17 @@ namespace jtk
 
       bool evaluate_before_assigning() const
         {
-        return _evaluate_before_assigning;
+        return false;
+        }
+
+      bool process_parallel() const
+        {
+        return false;
         }
 
     private:
       T _value;
       uint32_t _rows, _cols;
-      bool _evaluate_before_assigning;
     };
 
 
@@ -1421,14 +1476,14 @@ namespace jtk
     public:
       using value_type = T;
 
-      Identity(uint32_t rows, uint32_t cols) : _rows(rows), _cols(cols), _index(0), _evaluate_before_assigning(false)
+      Identity(uint32_t rows, uint32_t cols) : _index(0), _rows(rows), _cols(cols)
         {
         }
 
       value_type operator * () const
         {
-        const uint32_t r = _index / _cols;
-        const uint32_t c = _index % _cols;
+        const auto r = (_index / _cols);
+        const auto c = (_index % _cols);
         return r == c ? (value_type)1 : (value_type)0;
         }
 
@@ -1462,13 +1517,17 @@ namespace jtk
 
       bool evaluate_before_assigning() const
         {
-        return _evaluate_before_assigning;
+        return false;
+        }
+
+      bool process_parallel() const
+        {
+        return false;
         }
 
     private:
+      std::ptrdiff_t _index;
       uint32_t _rows, _cols;
-      uint32_t _index;
-      bool _evaluate_before_assigning;
     };
 
   template <class A, class Op>
@@ -1477,7 +1536,8 @@ namespace jtk
     public:
       using value_type = typename Op::value_type;
 
-      UnExprOp(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning)
+      UnExprOp(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning, bool process_parallel) : _a(a), _rows(rows), _cols(cols),
+        _evaluate_before_assigning(eval_before_assigning), _process_parallel(process_parallel)
         {
         }
 
@@ -1519,10 +1579,16 @@ namespace jtk
         return _evaluate_before_assigning;
         }
 
+      bool process_parallel() const
+        {
+        return _process_parallel;
+        }
+
     private:
       A _a;
       uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
+      bool _process_parallel;
     };
 
   template <class A, class Op>
@@ -1531,7 +1597,8 @@ namespace jtk
     public:
       using value_type = typename Op::value_type;
 
-      UnExprSparseOp(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning) : _a(a), _rows(rows), _cols(cols), _evaluate_before_assigning(eval_before_assigning)
+      UnExprSparseOp(const A& a, uint32_t rows, uint32_t cols, bool eval_before_assigning, bool process_parallel) : _a(a), _rows(rows), _cols(cols),
+        _evaluate_before_assigning(eval_before_assigning), _process_parallel(process_parallel)
         {
         }
 
@@ -1560,6 +1627,11 @@ namespace jtk
       bool evaluate_before_assigning() const
         {
         return _evaluate_before_assigning;
+        }
+
+      bool process_parallel() const
+        {
+        return _process_parallel;
         }
 
       UnExprSparseOp end() const
@@ -1600,6 +1672,7 @@ namespace jtk
       A _a;
       uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
+      bool _process_parallel;
     };
 
   template <class A, class Op>
@@ -1608,7 +1681,8 @@ namespace jtk
     public:
       using value_type = typename Op::value_type;
 
-      BinExprSparseScalarOp(const A& a, value_type scalar, uint32_t rows, uint32_t cols, bool evaluate_before_assigning) : _a(a), _scalar(scalar), _rows(rows), _cols(cols), _evaluate_before_assigning(evaluate_before_assigning)
+      BinExprSparseScalarOp(const A& a, value_type scalar, uint32_t rows, uint32_t cols, bool evaluate_before_assigning, bool process_parallel) : _a(a), _scalar(scalar),
+        _rows(rows), _cols(cols), _evaluate_before_assigning(evaluate_before_assigning), _process_parallel(process_parallel)
         {
         }
 
@@ -1637,6 +1711,11 @@ namespace jtk
       bool evaluate_before_assigning() const
         {
         return _evaluate_before_assigning;
+        }
+
+      bool process_parallel() const
+        {
+        return _process_parallel;
         }
 
       BinExprSparseScalarOp end() const
@@ -1678,6 +1757,7 @@ namespace jtk
       value_type _scalar;
       uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
+      bool _process_parallel;
     };
 
   template <class ExprOp>
@@ -1686,7 +1766,7 @@ namespace jtk
     public:
       using value_type = typename ExprOp::value_type;
 
-      Expr(const ExprOp& expr_op) : _expr_op(expr_op), _evaluate_before_assigning(expr_op.evaluate_before_assigning())
+      Expr(const ExprOp& expr_op) : _expr_op(expr_op)
         {}
 
       value_type operator * () const
@@ -1724,12 +1804,16 @@ namespace jtk
 
       bool evaluate_before_assigning() const
         {
-        return _evaluate_before_assigning;
+        return _expr_op.evaluate_before_assigning();
+        }
+
+      bool process_parallel() const
+        {
+        return _expr_op.process_parallel();
         }
 
     private:
       ExprOp _expr_op;
-      bool _evaluate_before_assigning;
     };
 
   template <class ExprOp>
@@ -1738,7 +1822,7 @@ namespace jtk
     public:
       using value_type = typename ExprOp::value_type;
 
-      SparseExpr(const ExprOp& expr_op) : _expr_op(expr_op), _evaluate_before_assigning(expr_op.evaluate_before_assigning())
+      SparseExpr(const ExprOp& expr_op) : _expr_op(expr_op)
         {}
 
       value_type operator * () const
@@ -1763,7 +1847,12 @@ namespace jtk
 
       bool evaluate_before_assigning() const
         {
-        return _evaluate_before_assigning;
+        return _expr_op.evaluate_before_assigning();
+        }
+
+      bool process_parallel() const
+        {
+        return _expr_op.process_parallel();
         }
 
       SparseExpr end() const
@@ -1861,13 +1950,13 @@ namespace jtk
       matrix(uint32_t rows, uint32_t cols) : _rows(rows), _cols(cols)
         {
         ::jtk::implementation_details::resize<T, Container> r;
-        r(_entries, _rows*_cols);
+        r(_entries, (uint64_t)_rows*(uint64_t)_cols);
         }
 
       matrix(uint32_t rows) : _rows(rows), _cols(1)
         {
         ::jtk::implementation_details::resize<T, Container> r;
-        r(_entries, _rows);
+        r(_entries, (uint64_t)_rows);
         }
 
       void swap(matrix& other)
@@ -1930,10 +2019,20 @@ namespace jtk
       template <class ExprOp>
       void assign(const Expr<ExprOp>& result)
         {
-        if (result.evaluate_before_assigning())
-          assign_alias(result);
+        if (result.process_parallel())
+          {
+          if (result.evaluate_before_assigning())
+            assign_alias_parallel(result);
+          else
+            assign_no_alias_parallel(result);
+          }
         else
-          assign_no_alias(result);
+          {
+          if (result.evaluate_before_assigning())
+            assign_alias(result);
+          else
+            assign_no_alias(result);
+          }
         }
 
       template <class ExprOp>
@@ -1967,17 +2066,62 @@ namespace jtk
           }
         }
 
+      template <class ExprOp>
+      void assign_alias_parallel(Expr<ExprOp> result)
+        {
+        matrix temp(result.rows(), result.cols());
+        auto it = temp._entries.begin();
+        uint64_t sz = (uint64_t)result.rows()*(uint64_t)result.cols();
+#ifdef _MAT_PARALLEL
+        parallel_for((uint64_t)0, sz, [&](uint64_t i)
+          {
+          *(it + (std::ptrdiff_t)i) = (T)*(result + (std::ptrdiff_t)i);
+          });
+#else
+        *it = (T)*result;
+        for (uint64_t i = 1; i < sz; ++i)
+          {
+          ++result;
+          ++it;
+          *it = (T)*result;
+          }
+#endif
+        swap(temp);
+        }
+
+      template <class ExprOp>
+      void assign_no_alias_parallel(Expr<ExprOp> result)
+        {
+        resize(result.rows(), result.cols());
+        auto it = _entries.begin();
+        uint64_t sz = (uint64_t)result.rows()*(uint64_t)result.cols();
+#ifdef _MAT_PARALLEL
+        parallel_for((uint64_t)0, sz, [&](uint64_t i)
+          {
+          *(it + (std::ptrdiff_t)i) = (T)*(result + (std::ptrdiff_t)i);
+          });
+#else
+        *it = (T)*result;
+        for (uint64_t i = 1; i < sz; ++i)
+          {
+          ++result;
+          ++it;
+          *it = (T)*result;
+          }
+#endif
+        }
+
       template <class T2, class Container2>
       matrix(const sparse_matrix<T2, Container2>& m)
         {
-        UnExprSparseOp<typename sparse_matrix<T2, Container2>::const_iterator, OpId<T2>> expr(m.begin(), m.rows(), m.cols(), false);
+        UnExprSparseOp<typename sparse_matrix<T2, Container2>::const_iterator, OpId<T2>> expr(m.begin(), m.rows(), m.cols(), false, false);
         assign_no_alias(SparseExpr<UnExprSparseOp<typename sparse_matrix<T2, Container2>::const_iterator, OpId<T2>>>(expr));
         }
 
       template <class T2, class Container2>
       matrix& operator = (const sparse_matrix<T2, Container2>& m)
         {
-        UnExprSparseOp<typename sparse_matrix<T2, Container2>::const_iterator, OpId<T2>> expr(m.begin(), m.rows(), m.cols(), false);
+        UnExprSparseOp<typename sparse_matrix<T2, Container2>::const_iterator, OpId<T2>> expr(m.begin(), m.rows(), m.cols(), false, false);
         assign_no_alias(SparseExpr<UnExprSparseOp<typename sparse_matrix<T2, Container2>::const_iterator, OpId<T2>>>(expr));
         return *this;
         }
@@ -2064,10 +2208,20 @@ namespace jtk
       template <class ExprOp>
       matrix& operator += (const Expr<ExprOp>& result)
         {
-        if (result.evaluate_before_assigning())
-          add_assign_alias(result);
+        if (result.process_parallel())
+          {
+          if (result.evaluate_before_assigning())
+            add_assign_alias_parallel(result);
+          else
+            add_assign_no_alias_parallel(result);
+          }
         else
-          add_assign_no_alias(result);
+          {
+          if (result.evaluate_before_assigning())
+            add_assign_alias(result);
+          else
+            add_assign_no_alias(result);
+          }
         return *this;
         }
 
@@ -2087,7 +2241,7 @@ namespace jtk
           *it += (T)*result;
           }
         swap(temp);
-        }
+          }
 
       template <class ExprOp>
       void add_assign_no_alias(Expr<ExprOp> result)
@@ -2103,6 +2257,54 @@ namespace jtk
           ++result;
           *it += (T)*result;
           }
+        }
+
+      template <class ExprOp>
+      void add_assign_alias_parallel(Expr<ExprOp> result)
+        {
+        assert(result.rows() == _rows);
+        assert(result.cols() == _cols);
+        matrix temp(*this);
+        auto it = temp._entries.begin();
+        const uint64_t sz = (uint64_t)_rows * (uint64_t)_cols;
+#ifdef _MAT_PARALLEL
+        parallel_for((uint64_t)0, sz, [&](uint64_t i)
+          {
+          *(it + (std::ptrdiff_t)i) += (T)*(result + (std::ptrdiff_t)i);
+          });         
+#else
+        *it += (T)*result;
+        for (uint64_t i = 1; i < sz; ++i)
+          {
+          ++it;
+          ++result;
+          *it += (T)*result;
+          }
+#endif
+        swap(temp);
+        }
+
+      template <class ExprOp>
+      void add_assign_no_alias_parallel(Expr<ExprOp> result)
+        {
+        assert(result.rows() == _rows);
+        assert(result.cols() == _cols);
+        auto it = _entries.begin();
+        const uint64_t sz = (uint64_t)_rows * (uint64_t)_cols;
+#ifdef _MAT_PARALLEL
+        parallel_for((uint64_t)0, sz, [&](uint64_t i)
+          {
+          *(it + (std::ptrdiff_t)i) += (T)*(result + (std::ptrdiff_t)i);
+          });     
+#else
+        *it += (T)*result;
+        for (uint64_t i = 1; i < sz; ++i)
+          {
+          ++it;
+          ++result;
+          *it += (T)*result;
+          }
+#endif
         }
 
       template <class T2, class Container2>
@@ -2122,10 +2324,20 @@ namespace jtk
       template <class ExprOp>
       matrix& operator -= (const Expr<ExprOp>& result)
         {
-        if (result.evaluate_before_assigning())
-          subtract_assign_alias(result);
+        if (result.process_parallel())
+          {
+          if (result.evaluate_before_assigning())
+            subtract_assign_alias_parallel(result);
+          else
+            subtract_assign_no_alias_parallel(result);
+          }
         else
-          subtract_assign_no_alias(result);
+          {
+          if (result.evaluate_before_assigning())
+            subtract_assign_alias(result);
+          else
+            subtract_assign_no_alias(result);
+          }
         return *this;
         }
 
@@ -2145,7 +2357,7 @@ namespace jtk
           *it -= (T)*result;
           }
         swap(temp);
-        }
+          }
 
       template <class ExprOp>
       void subtract_assign_no_alias(Expr<ExprOp> result)
@@ -2161,6 +2373,54 @@ namespace jtk
           ++result;
           *it -= (T)*result;
           }
+        }
+
+      template <class ExprOp>
+      void subtract_assign_alias_parallel(Expr<ExprOp> result)
+        {
+        assert(result.rows() == _rows);
+        assert(result.cols() == _cols);
+        matrix temp(*this);
+        auto it = temp._entries.begin();
+        const uint64_t sz = (uint64_t)_rows * (uint64_t)_cols;
+#ifdef _MAT_PARALLEL
+        parallel_for((uint64_t)0, sz, [&](uint64_t i)
+          {
+          *(it + (std::ptrdiff_t)i) -= (T)*(result + (std::ptrdiff_t)i);
+          });          
+#else
+        *it -= (T)*result;
+        for (uint64_t i = 1; i < sz; ++i)
+          {
+          ++it;
+          ++result;
+          *it -= (T)*result;
+          }
+#endif
+        swap(temp);
+        }
+
+      template <class ExprOp>
+      void subtract_assign_no_alias_parallel(Expr<ExprOp> result)
+        {
+        assert(result.rows() == _rows);
+        assert(result.cols() == _cols);
+        auto it = _entries.begin();
+        const uint64_t sz = (uint64_t)_rows * (uint64_t)_cols;
+#ifdef _MAT_PARALLEL
+        parallel_for((uint64_t)0, sz, [&](uint64_t i)
+          {
+          *(it + (std::ptrdiff_t)i) -= (T)*(result + (std::ptrdiff_t)i);
+          });          
+#else
+        *it -= (T)*result;
+        for (uint64_t i = 1; i < sz; ++i)
+          {
+          ++it;
+          ++result;
+          *it -= (T)*result;
+          }
+#endif
         }
 
       template <class T2, class Container2>
@@ -2203,7 +2463,7 @@ namespace jtk
         _rows = rows;
         _cols = cols;
         ::jtk::implementation_details::resize<T, Container> r;
-        r(_entries, _rows*_cols);
+        r(_entries, (uint64_t)_rows*(uint64_t)_cols);
         }
 
       const_reference operator()(uint32_t r, uint32_t c) const
@@ -2292,7 +2552,7 @@ namespace jtk
     private:
       Container _entries;
       uint32_t _rows, _cols;
-    };
+          };
 
   ///////////////////////////////////////////////////////////////////////////////
   // sparse vector class
@@ -3738,14 +3998,14 @@ namespace jtk
       template <class T2, class TContainer>
       sparse_matrix(const matrix<T2, TContainer>& m)
         {
-        UnExprOp<typename matrix<T2, TContainer>::const_iterator, OpId<T2>> expr(m.begin(), m.rows(), m.cols(), false);
+        UnExprOp<typename matrix<T2, TContainer>::const_iterator, OpId<T2>> expr(m.begin(), m.rows(), m.cols(), false, false);
         assign_no_alias(Expr<UnExprOp< typename matrix<T2, TContainer>::const_iterator, OpId<T2>>>(expr));
         }
 
       template <class T2, class TContainer>
       sparse_matrix& operator = (const matrix<T2, TContainer>& m)
         {
-        UnExprOp<typename matrix<T2, TContainer>::const_iterator, OpId<T2>> expr(m.begin(), m.rows(), m.cols(), false);
+        UnExprOp<typename matrix<T2, TContainer>::const_iterator, OpId<T2>> expr(m.begin(), m.rows(), m.cols(), false, false);
         assign_no_alias(Expr<UnExprOp< typename matrix<T2, TContainer>::const_iterator, OpId<T2>>>(expr));
         return *this;
         }
@@ -4071,7 +4331,7 @@ namespace jtk
       typename matrix<T2, Container2>::const_iterator,
       OpAdd<typename gettype<T, T2>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
-    return Expr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false));
+    return Expr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false, false));
     }
 
   template <class T, class Container, class ExprOp >
@@ -4086,7 +4346,7 @@ namespace jtk
       Expr<ExprOp>,
       OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
-    return Expr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning(), b.process_parallel()));
     }
 
   template <class T, class Container, class ExprOp >
@@ -4101,7 +4361,7 @@ namespace jtk
       typename matrix<T, Container>::const_iterator,
       OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
-    return Expr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class ExprOp1, class ExprOp2 >
@@ -4116,7 +4376,7 @@ namespace jtk
       Expr<ExprOp2>,
       OpAdd<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
-    return Expr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning(), a.process_parallel() || b.process_parallel()));
     }
 
 
@@ -4133,7 +4393,7 @@ namespace jtk
       OpAdd<typename gettype<T, T2>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
-    return SparseExpr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false));
+    return SparseExpr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false, false));
     }
 
   template <class T, class Container, class ExprOp >
@@ -4149,7 +4409,7 @@ namespace jtk
       OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
-    return SparseExpr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning(), b.process_parallel()));
     }
 
   template <class T, class Container, class ExprOp >
@@ -4165,7 +4425,7 @@ namespace jtk
       OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
-    return SparseExpr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class ExprOp1, class ExprOp2 >
@@ -4181,7 +4441,7 @@ namespace jtk
       OpAdd<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
-    return SparseExpr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning(), a.process_parallel() || b.process_parallel()));
     }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -4200,7 +4460,7 @@ namespace jtk
       typename matrix<T2, Container2>::const_iterator,
       OpSub<typename gettype<T, T2>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
-    return Expr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false));
+    return Expr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false, false));
     }
 
   template <class T, class Container, class ExprOp >
@@ -4215,7 +4475,7 @@ namespace jtk
       Expr<ExprOp>,
       OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
-    return Expr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning(), b.process_parallel()));
     }
 
   template <class T, class Container, class ExprOp >
@@ -4230,7 +4490,7 @@ namespace jtk
       typename matrix<T, Container>::const_iterator,
       OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
-    return Expr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class ExprOp1, class ExprOp2 >
@@ -4245,7 +4505,7 @@ namespace jtk
       Expr<ExprOp2>,
       OpSub<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > ExprT;
     assert(a.rows()*a.cols() == b.rows()*b.cols());
-    return Expr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning(), a.process_parallel() || b.process_parallel()));
     }
 
 
@@ -4262,7 +4522,7 @@ namespace jtk
       OpSub<typename gettype<T, T2>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
-    return SparseExpr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false));
+    return SparseExpr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false, false));
     }
 
   template <class T, class Container, class ExprOp >
@@ -4278,7 +4538,7 @@ namespace jtk
       OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
-    return SparseExpr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning(), b.process_parallel()));
     }
 
   template <class T, class Container, class ExprOp >
@@ -4294,7 +4554,7 @@ namespace jtk
       OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
-    return SparseExpr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class ExprOp1, class ExprOp2 >
@@ -4310,7 +4570,7 @@ namespace jtk
       OpSub<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > ExprT;
     assert(a.rows() == b.rows());
     assert(a.cols() == b.cols());
-    return SparseExpr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning(), a.process_parallel() || b.process_parallel()));
     }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -4326,7 +4586,7 @@ namespace jtk
     typedef UnExprOp<
       typename matrix<T, Container>::const_iterator,
       OpNeg<T> > ExprT;
-    return Expr<ExprT>(ExprT(a.begin(), a.rows(), a.cols(), false));
+    return Expr<ExprT>(ExprT(a.begin(), a.rows(), a.cols(), false, false));
     }
 
   template <class ExprOp>
@@ -4338,7 +4598,7 @@ namespace jtk
     typedef UnExprOp<
       Expr<ExprOp>,
       OpNeg<typename ExprOp::value_type> > ExprT;
-    return Expr<ExprT>(ExprT(a, a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class T, class Container>
@@ -4350,7 +4610,7 @@ namespace jtk
     typedef UnExprSparseOp<
       typename sparse_matrix<T, Container>::const_iterator,
       OpNeg<T> > ExprT;
-    return SparseExpr<ExprT>(ExprT(a.begin(), a.rows(), a.cols(), false));
+    return SparseExpr<ExprT>(ExprT(a.begin(), a.rows(), a.cols(), false, false));
     }
 
   template <class ExprOp>
@@ -4362,7 +4622,7 @@ namespace jtk
     typedef UnExprSparseOp<
       SparseExpr<ExprOp>,
       OpNeg<typename ExprOp::value_type> > ExprT;
-    return SparseExpr<ExprT>(ExprT(a, a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a, a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -4380,7 +4640,7 @@ namespace jtk
       typename matrix<T, Container>::const_iterator,
       Constant<T>,
       OpMul<typename gettype<T, T2>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false));
+    return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false, false));
     }
 
   template <class T, class Container, class T2 >
@@ -4394,7 +4654,7 @@ namespace jtk
       Constant<T>,
       typename matrix<T, Container>::const_iterator,
       OpMul<typename gettype<T, T2>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false));
+    return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false, false));
     }
 
   template <class ExprOp, class T2>
@@ -4408,7 +4668,7 @@ namespace jtk
       Expr<ExprOp>,
       Constant<typename ExprOp::value_type>,
       OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class ExprOp, class T2 >
@@ -4422,7 +4682,7 @@ namespace jtk
       Constant<typename ExprOp::value_type>,
       Expr<ExprOp>,
       OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning(), b.process_parallel()));
     }
 
 
@@ -4435,7 +4695,7 @@ namespace jtk
     typedef BinExprSparseScalarOp<
       typename sparse_matrix<T, Container>::const_iterator,
       OpMul<typename gettype<T, T2>::ty> > ExprT;
-    return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false));
+    return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false, false));
     }
 
   template <class T, class Container, class T2>
@@ -4447,7 +4707,7 @@ namespace jtk
     typedef BinExprSparseScalarOp<
       typename sparse_matrix<T, Container>::const_iterator,
       OpMul<typename gettype<T, T2>::ty> > ExprT;
-    return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false));
+    return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false, false));
     }
 
   template <class ExprOp, class T2>
@@ -4459,7 +4719,7 @@ namespace jtk
     typedef BinExprSparseScalarOp<
       SparseExpr<ExprOp>,
       OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class ExprOp, class T2>
@@ -4471,7 +4731,7 @@ namespace jtk
     typedef BinExprSparseScalarOp<
       SparseExpr<ExprOp>,
       OpMul<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -4489,7 +4749,7 @@ namespace jtk
       typename matrix<T, Container>::const_iterator,
       Constant<T>,
       OpDiv<typename gettype<T, T2>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false));
+    return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false, false));
     }
 
   template <class T, class Container, class T2 >
@@ -4503,7 +4763,7 @@ namespace jtk
       Constant<T>,
       typename matrix<T, Container>::const_iterator,
       OpDiv<typename gettype<T, T2>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false));
+    return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false, false));
     }
 
   template <class ExprOp, class T2>
@@ -4517,7 +4777,7 @@ namespace jtk
       Expr<ExprOp>,
       Constant<typename ExprOp::value_type>,
       OpDiv<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class ExprOp, class T2 >
@@ -4531,7 +4791,7 @@ namespace jtk
       Constant<typename ExprOp::value_type>,
       Expr<ExprOp>,
       OpDiv<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning(), b.process_parallel()));
     }
 
 
@@ -4546,7 +4806,7 @@ namespace jtk
     typedef BinExprSparseScalarOp<
       typename sparse_matrix<T, Container>::const_iterator,
       OpDiv<typename gettype<T, T2>::ty> > ExprT;
-    return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false));
+    return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false, false));
     }
 
   template <class T, class Container, class T2>
@@ -4558,7 +4818,7 @@ namespace jtk
     typedef BinExprSparseScalarOp<
       typename sparse_matrix<T, Container>::const_iterator,
       OpDivInv<typename gettype<T, T2>::ty> > ExprT;
-    return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false));
+    return SparseExpr<ExprT>(ExprT(a.begin(), (T)b, a.rows(), a.cols(), false, false));
     }
 
   template <class ExprOp, class T2>
@@ -4570,7 +4830,7 @@ namespace jtk
     typedef BinExprSparseScalarOp<
       SparseExpr<ExprOp>,
       OpDiv<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class ExprOp, class T2>
@@ -4582,7 +4842,7 @@ namespace jtk
     typedef BinExprSparseScalarOp<
       SparseExpr<ExprOp>,
       OpDivInv<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a, (typename ExprOp::value_type)b, a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -4600,7 +4860,7 @@ namespace jtk
       typename matrix<T, Container>::const_iterator,
       Constant<T>,
       OpAdd<typename gettype<T, T2>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false));
+    return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false, false));
     }
 
   template <class T, class Container, class T2 >
@@ -4614,7 +4874,7 @@ namespace jtk
       Constant<T>,
       typename matrix<T, Container>::const_iterator,
       OpAdd<typename gettype<T, T2>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false));
+    return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false, false));
     }
 
   template <class ExprOp, class T2>
@@ -4628,7 +4888,7 @@ namespace jtk
       Expr<ExprOp>,
       Constant<typename ExprOp::value_type>,
       OpAdd<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class ExprOp, class T2 >
@@ -4642,7 +4902,7 @@ namespace jtk
       Constant<typename ExprOp::value_type>,
       Expr<ExprOp>,
       OpAdd<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning(), b.process_parallel()));
     }
 
 
@@ -4661,7 +4921,7 @@ namespace jtk
       typename matrix<T, Container>::const_iterator,
       Constant<T>,
       OpSub<typename gettype<T, T2>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false));
+    return Expr<ExprT>(ExprT(a.begin(), Constant<T>((T)b, a.rows(), a.cols()), a.rows(), a.cols(), false, false));
     }
 
   template <class T, class Container, class T2 >
@@ -4675,7 +4935,7 @@ namespace jtk
       Constant<T>,
       typename matrix<T, Container>::const_iterator,
       OpSub<typename gettype<T, T2>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false));
+    return Expr<ExprT>(ExprT(Constant<T>((T)a, b.rows(), b.cols()), b.begin(), b.rows(), b.cols(), false, false));
     }
 
   template <class ExprOp, class T2>
@@ -4689,7 +4949,7 @@ namespace jtk
       Expr<ExprOp>,
       Constant<typename ExprOp::value_type>,
       OpSub<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, Constant<typename ExprOp::value_type>((typename ExprOp::value_type)b, a.rows(), a.cols()), a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class ExprOp, class T2 >
@@ -4703,7 +4963,7 @@ namespace jtk
       Constant<typename ExprOp::value_type>,
       Expr<ExprOp>,
       OpSub<typename gettype<T2, typename ExprOp::value_type>::ty> > ExprT;
-    return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(Constant<typename ExprOp::value_type>((typename ExprOp::value_type)a, b.rows(), b.cols()), b, b.rows(), b.cols(), b.evaluate_before_assigning(), b.process_parallel()));
     }
 
 
@@ -5037,7 +5297,7 @@ namespace jtk
     typename matrix<T, Container>::const_iterator > > transpose(const matrix<T, Container>& a)
     {
     typedef Transpose< typename matrix<T, Container>::const_iterator > ExprT;
-    return Expr<ExprT>(ExprT(a.begin(), a.cols(), a.rows()));
+    return Expr<ExprT>(ExprT(a.begin(), a.cols(), a.rows(), false));
     }
 
   template <class ExprOp>
@@ -5046,7 +5306,7 @@ namespace jtk
     Expr<ExprOp> > > transpose(const Expr<ExprOp>& a)
     {
     typedef Transpose< Expr<ExprOp> > ExprT;
-    return Expr<ExprT>(ExprT(a, a.cols(), a.rows()));
+    return Expr<ExprT>(ExprT(a, a.cols(), a.rows(), a.process_parallel()));
     }
 
   template <class T, class Container>
@@ -5089,7 +5349,7 @@ namespace jtk
     typename matrix<T, Container>::const_iterator > > diagonal(const matrix<T, Container>& a)
     {
     typedef Diagonal< typename matrix<T, Container>::const_iterator > ExprT;
-    return Expr<ExprT>(ExprT(a.begin(), a.rows(), a.cols(), false));
+    return Expr<ExprT>(ExprT(a.begin(), a.rows(), a.cols(), false, false));
     }
 
   template <class ExprOp>
@@ -5098,7 +5358,7 @@ namespace jtk
     Expr<ExprOp> > > diagonal(const Expr<ExprOp>& a)
     {
     typedef Diagonal< Expr<ExprOp> > ExprT;
-    return Expr<ExprT>(ExprT(a, a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class T, class Container>
@@ -5107,7 +5367,7 @@ namespace jtk
     typename sparse_matrix<T, Container>::const_iterator > > diagonal(const sparse_matrix<T, Container>& a)
     {
     typedef DiagonalSparse< typename sparse_matrix<T, Container>::const_iterator > ExprT;
-    return Expr<ExprT>(ExprT(a.begin(), a.rows(), a.cols(), false));
+    return Expr<ExprT>(ExprT(a.begin(), a.rows(), a.cols(), false, false));
     }
 
   template <class ExprOp>
@@ -5116,7 +5376,7 @@ namespace jtk
     SparseExpr<ExprOp> > > diagonal(const SparseExpr<ExprOp>& a)
     {
     typedef DiagonalSparse< SparseExpr<ExprOp> > ExprT;
-    return Expr<ExprT>(ExprT(a, a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -5129,7 +5389,7 @@ namespace jtk
     typename matrix<T, Container>::const_iterator > > block(const matrix<T, Container>& a, uint32_t i, uint32_t j, uint32_t rows, uint32_t cols)
     {
     typedef Block< typename matrix<T, Container>::const_iterator > ExprT;
-    return Expr<ExprT>(ExprT(a.begin(), i, j, rows, cols, a.rows(), a.cols(), false));
+    return Expr<ExprT>(ExprT(a.begin(), i, j, rows, cols, a.rows(), a.cols(), false, false));
     }
 
   template <class ExprOp>
@@ -5138,7 +5398,7 @@ namespace jtk
     Expr<ExprOp> > > block(const Expr<ExprOp>& a, uint32_t i, uint32_t j, uint32_t rows, uint32_t cols)
     {
     typedef Block< Expr<ExprOp> > ExprT;
-    return Expr<ExprT>(ExprT(a, i, j, rows, cols, a.rows(), a.cols(), a.evaluate_before_assigning()));
+    return Expr<ExprT>(ExprT(a, i, j, rows, cols, a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   template <class T, class Container>
@@ -5147,7 +5407,7 @@ namespace jtk
     typename sparse_matrix<T, Container>::const_iterator > > block(const sparse_matrix<T, Container>& a, uint32_t i, uint32_t j, uint32_t rows, uint32_t cols)
     {
     typedef BlockSparse< typename sparse_matrix<T, Container>::const_iterator > ExprT;
-    return SparseExpr<ExprT>(ExprT(a.begin(), i, j, rows, cols, false));
+    return SparseExpr<ExprT>(ExprT(a.begin(), i, j, rows, cols, false, false));
     }
 
   template <class ExprOp>
@@ -5156,7 +5416,7 @@ namespace jtk
     SparseExpr<ExprOp> > > block(const SparseExpr<ExprOp>& a, uint32_t i, uint32_t j, uint32_t rows, uint32_t cols)
     {
     typedef BlockSparse< SparseExpr<ExprOp> > ExprT;
-    return SparseExpr<ExprT>(ExprT(a, i, j, rows, cols, a.evaluate_before_assigning()));
+    return SparseExpr<ExprT>(ExprT(a, i, j, rows, cols, a.evaluate_before_assigning(), a.process_parallel()));
     }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -7293,8 +7553,8 @@ namespace jtk
           case 19: fill_lower(m19, A); break;
           case 20: fill_lower(m20, A); break;
           default: fill_lower(m, A); break;
-          }
         }
+    }
 
       uint32_t rows() const
         {
@@ -7446,7 +7706,7 @@ namespace jtk
       sparse_matrix<T, sparse_array<T, 20>> m20;
       uint32_t id;
       uint32_t _rows;
-    };
+          };
 
   template <class T>
   class diagonal_preconditioner
@@ -7479,7 +7739,7 @@ namespace jtk
           typename matrix<T>::const_iterator,
           typename matrix<T2, Container>::const_iterator,
           OpMul<typename gettype<T, T2>::ty> > ExprT;
-        return Expr<ExprT>(ExprT(invD.begin(), residual.begin(), invD.rows(), 1, false));
+        return Expr<ExprT>(ExprT(invD.begin(), residual.begin(), invD.rows(), 1, false, false));
         }
 
     private:
@@ -7948,4 +8208,4 @@ namespace jtk
   typedef matrix<float, std::array<float, 99>> matf99;
   typedef matrix<float, std::array<float, 100>> matf100;
 
-  }
+        }

@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "../jtk/mat.h"
+#include "../jtk/timer.h"
 
 #include "test_assert.h"
 
@@ -4918,6 +4919,23 @@ namespace jtk
         }
       }
 
+
+    void matvec_multiply_performance_test()
+      {
+      uint64_t n = 10000;
+      matf A((uint32_t)n, (uint32_t)n);
+      for (uint64_t i = 1; i <= n*n; ++i)
+        A[(uint32_t)((i - 1) % n)][(uint32_t)((i - 1) / n)] = float(i);
+      
+      matf v = ones<float>((uint32_t)n, 1);
+
+      timer t;
+      t.start();
+      matf res = A * v;
+      double time_spent = t.time_elapsed();
+      std::cout << "Time spent in multiply: " << time_spent << " s\n";
+      
+      }
     }
   }
 
@@ -5135,4 +5153,5 @@ void run_all_mat_tests()
   bipcgstab_tests();  
   poisson_with_conjugate_gradient_tests();
   poisson_with_bicgstab_tests();
+  matvec_multiply_performance_test();
   }
