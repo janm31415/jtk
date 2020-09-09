@@ -4056,9 +4056,9 @@ namespace jtk
       for (i = 0; i < 5; ++i)
         v.put(i) = 0.0;
       v.put(0) = 1.0;
-      TEST_EQ(v.entries_stored(), static_cast<uint32_t>(10));
+      TEST_EQ(v.entries_stored(), static_cast<uint32_t>(5));
       sparse_array<double, 10> v2 = v;
-      TEST_EQ(v2.entries_stored(), static_cast<uint32_t>(10));
+      TEST_EQ(v2.entries_stored(), static_cast<uint32_t>(1));
       TEST_EQ(v2.get(0), 1.0);
       }
 
@@ -4878,6 +4878,46 @@ namespace jtk
         }
       }
 
+    void poisson_with_bicgstab_tests()
+      {
+      /*
+      Poisson equation:
+      u"(x) = -f(x) with 0 < x < 1.
+      Dirichlet boundary conditions, i.e. u(0) = u(1) = 0.
+      Let u(x) = x * (1 - x), then u'(x) = 1 - 2*x, and u"(x) = -2
+
+      Solving poisson with linear FEM using Galerkin method, (equals same system as differences method)
+      */
+      uint32_t n = 100;
+      float h = 1.f / (float)(n + 1);
+      smatf A(n, n);
+      for (uint32_t i = 0; i < n; ++i)
+        {
+        A.put(i, i) = 2.f / (h*h);
+        if (i > 0)
+          A.put(i, i - 1) = -1.f / (h*h);
+        if (i < n - 1)
+          A.put(i, i + 1) = -1.f / (h*h);
+        }
+      matf b(n);
+      for (uint32_t i = 0; i < n; ++i)
+        {
+        b(i) = 2.f; //-u"(x)
+        }
+      float tol = std::numeric_limits<float>::epsilon();
+      float residu;
+      uint32_t iter;
+      matf sol;
+      matf x0 = zeros<float>(n, 1);
+      bicgstab(sol, residu, iter, A, b, x0, tol);
+      for (uint32_t i = 0; i < n; ++i)
+        {
+        double x = (double)(i + 1) / (double)(n + 1);
+        double u = x * (1 - x); // we know the exact solution u(x)
+        TEST_EQ_CLOSE((float)u, sol(i), 0.00001f);
+        }
+      }
+
     }
   }
 
@@ -5094,4 +5134,5 @@ void run_all_mat_tests()
   bicgstab_tests();
   bipcgstab_tests();  
   poisson_with_conjugate_gradient_tests();
+  poisson_with_bicgstab_tests();
   }

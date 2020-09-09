@@ -26,10 +26,10 @@ vec_tests.cpp
 )
 
 if (WIN32)
-set(CMAKE_C_FLAGS_DEBUG "/W4 /MP /GF /RTCu /Od /MDd /Zi")
-set(CMAKE_CXX_FLAGS_DEBUG "/W4 /MP /GF /RTCu /Od /MDd /Zi")
-set(CMAKE_C_FLAGS_RELEASE "/W4 /MP /GF /O2 /Ob2 /Oi /Ot /MD /Zi /DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "/W4 /MP /GF /O2 /Ob2 /Oi /Ot /MD /Zi /DNDEBUG")
+set(CMAKE_C_FLAGS_DEBUG "/W4 /MP /GF /RTCu /Od /MDd /Zi /bigobj")
+set(CMAKE_CXX_FLAGS_DEBUG "/W4 /MP /GF /RTCu /Od /MDd /Zi /bigobj")
+set(CMAKE_C_FLAGS_RELEASE "/W4 /MP /GF /O2 /Ob2 /Oi /Ot /MD /Zi /DNDEBUG /bigobj")
+set(CMAKE_CXX_FLAGS_RELEASE "/W4 /MP /GF /O2 /Ob2 /Oi /Ot /MD /Zi /DNDEBUG /bigobj")
 endif (WIN32)
 
 if (UNIX)
@@ -43,8 +43,10 @@ endif (UNIX)
 add_definitions(-D_SCL_SECURE_NO_WARNINGS)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
+#add_definitions(-D_MAT_PARALLEL)
 #add_definitions(-D_ENABLE_TBB)
 #add_definitions(-D_ENABLE_PPL)
+add_definitions(-D_ENABLE_THREADING)
 
 add_definitions(-DMEMORY_LEAK_TRACKING)
 

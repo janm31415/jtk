@@ -47,6 +47,10 @@ V1.5: 08 September 2020
 
 #include "timer.h"
 
+#ifdef _MAT_PARALLEL
+#include "concurrency.h"
+#endif
+
 namespace jtk
   {
 
@@ -189,16 +193,46 @@ namespace jtk
   void solve_qr(matrix<T, Container>& a, matrix<T, Container2>& b);
 
   /*
-  Returns the l2 norm for a vector and the frobenius norm for a matrix.
+  returns the squared l2 norm for a vector and the squared frobenius norm for a matrix.
+  */
+  template <class T, class Container >
+  T norm_sqr(const matrix<T, Container>& a);
+
+  /*
+  returns the l2 norm for a vector and the frobenius norm for a matrix.
   */
   template <class T, class Container >
   T norm(const matrix<T, Container>& a);
 
   /*
-  Returns the trace of the matrix.
+  returns the squared frobenius norm for a sparse matrix.
+  */
+  template <class T, class Container >
+  T norm_sqr(const sparse_matrix<T, Container>& a);
+
+  /*
+  returns the frobenius norm for a sparse matrix.
+  */
+  template <class T, class Container >
+  T norm(const sparse_matrix<T, Container>& a);
+
+  /*
+  returns the trace of the matrix.
   */
   template <class T, class Container >
   T trace(const matrix<T, Container>& a);
+
+  /*
+  returns the trace of a sparse matrix.
+  */
+  template <class T, class Container >
+  T trace(const sparse_matrix<T, Container>& a);
+
+  /*
+  returns the dot product of two vectors.
+  */
+  template <class T, class Container, class T2, class Container2>
+  T dot(const matrix<T, Container>& a, const matrix<T2, Container2>& b);
 
   /*
   constructs the qr decomposition of a rectangular mxn matrix a with pivoting, i.e. a*p = q*r.
@@ -912,7 +946,7 @@ namespace jtk
       A _a;
       B _b;
       std::ptrdiff_t _index;
-      uint32_t _rows, _cols, _mid_dim;      
+      uint32_t _rows, _cols, _mid_dim;
       bool _evaluate_before_assigning;
     };
 
@@ -977,7 +1011,7 @@ namespace jtk
       A _a;
       B _b;
       std::ptrdiff_t _index;
-      uint32_t _rows, _cols, _mid_dim;      
+      uint32_t _rows, _cols, _mid_dim;
       bool _evaluate_before_assigning;
     };
 
@@ -1035,7 +1069,7 @@ namespace jtk
     private:
       A _a;
       std::ptrdiff_t _index;
-      uint32_t _rows, _cols;      
+      uint32_t _rows, _cols;
       bool _evaluate_before_assigning;
     };
 
@@ -2257,7 +2291,7 @@ namespace jtk
 
     private:
       Container _entries;
-      uint32_t _rows, _cols;      
+      uint32_t _rows, _cols;
     };
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -3180,7 +3214,7 @@ namespace jtk
         _container[_array_size_used].second = static_cast<T>(0);
         ++_array_size_used;
         return _container[_array_size_used - 1].second;
-        */        
+        */
         const auto iter_end = _container.begin() + _array_size_used;
         auto iter = std::lower_bound(_container.begin(), iter_end, idx, compare());
         if (iter != iter_end)
@@ -3208,7 +3242,7 @@ namespace jtk
           _container[_array_size_used].second = static_cast<T>(0);
           ++_array_size_used;
           return _container[_array_size_used - 1].second;
-          }        
+          }
         }
 
       const_reference get(uint32_t idx) const
@@ -3222,10 +3256,10 @@ namespace jtk
             return _zero;
           }
         return _zero;
-        */        
+        */
         const auto iter_end = _container.begin() + _array_size_used;
         const auto iter = std::lower_bound(_container.begin(), iter_end, idx, compare());
-        return (iter != iter_end && iter->first == idx ? iter->second : _zero);        
+        return (iter != iter_end && iter->first == idx ? iter->second : _zero);
         }
 
       iterator begin()
@@ -3294,7 +3328,7 @@ namespace jtk
 
       uint32_t entries_stored() const
         {
-        return (uint32_t)_container.size();
+        return _array_size_used;
         }
 
       void clear()
@@ -3632,13 +3666,11 @@ namespace jtk
       sparse_matrix(const sparse_matrix<T2, Container2>& other) : _rows(other.rows()), _cols(other.cols())
         {
         resize(_rows, _cols);
-        auto it = _entries.begin();
         auto other_it = other.begin();
         const auto other_it_end = other.end();
         for (; other_it != other_it_end; ++other_it)
           {
-          *it = *other_it;
-          ++it;
+          put(other_it.first_entry(), other_it.second_entry()) = *other_it;
           }
         }
 
@@ -3864,7 +3896,7 @@ namespace jtk
 
     private:
       std::vector<Container> _entries;
-      uint32_t _rows, _cols;      
+      uint32_t _rows, _cols;
     };
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -4729,29 +4761,6 @@ namespace jtk
       Expr<ExprOp2> > ExprT;
     assert(a.cols() == b.rows());
     return Expr<ExprT>(ExprT(a, b, a.rows(), b.cols(), a.cols()));
-    }
-
-  template <class T, class T2>
-  T dot(const sparse_vector<T>& a, const sparse_vector<T2>& b)
-    {
-    double out = 0.0;
-    const auto a_end = a.end();
-    const auto b_end = b.end();
-    auto a_it = a.begin();
-    auto b_it = b.begin();
-    while (a_it != a_end && b_it != b_end)
-      {
-      if (a_it.entry() == b_it.entry())
-        {
-        out += (double)(*a_it)*(double)(*b_it);
-        ++a_it; ++b_it;
-        }
-      else if (a_it.entry() < b_it.entry())
-        ++a_it;
-      else
-        ++b_it;
-      }
-    return (T)out;
     }
 
   template <class T, class Container, class T2, class Container2>
@@ -7004,7 +7013,7 @@ namespace jtk
     p = q = r = (T)0;
     anorm = (T)0; //Compute matrix norm for possible use in locating single small subdiagonal element.
     for (i = 0; i < n; ++i)
-      for (j = i > 0 ? i-1 : 0; j < n; ++j)
+      for (j = i > 0 ? i - 1 : 0; j < n; ++j)
         anorm += std::abs(a[i][j]);
     nn = (int64_t)n;
     t = 0.0; //Gets changed only by an exceptional shift.
@@ -7013,7 +7022,7 @@ namespace jtk
       //Begin search for next eigenvalue.
       its = 0;
       do {
-        for (l = nn > 0 ? nn - 1 : 0 ; l >= 1; --l)
+        for (l = nn > 0 ? nn - 1 : 0; l >= 1; --l)
           {
           //Begin iteration : look for single small subdiagonal element.
           s = fabs(a[l - 1][l - 1]) + fabs(a[l][l]);
@@ -7177,8 +7186,22 @@ namespace jtk
   void sparse_matrix_vector_multiply(matrix<T, Container>& out, const sparse_matrix<T, Container2>& a, const matrix<T, Container>& b)
     {
     assert(b.cols() == 1);
-    out.resize(a.rows(), 1);
-    for (uint32_t i = 0; i < a.rows(); ++i)
+    const uint32_t rows = a.rows();
+    out.resize(rows, 1);
+#ifdef _MAT_PARALLEL
+    parallel_for((uint32_t)0, rows, [&](uint32_t i)
+      {
+      T val = (T)0;
+      auto it = a.row(i).begin();
+      const auto it_end = it.end();
+      for (; it != it_end; ++it)
+        {
+        val += *it * b(it.entry());
+        }
+      out(i) = val;
+      });
+#else
+    for (uint32_t i = 0; i < rows; ++i)
       {
       T val = (T)0;
       auto it = a.row(i).begin();
@@ -7189,6 +7212,7 @@ namespace jtk
         }
       out(i) = val;
       }
+#endif
     }
 
   template <class T, class Container, class Container2>
@@ -7226,6 +7250,13 @@ namespace jtk
         {
         assert(is_symmetric(A));
         uint32_t max_nonzero = 0;
+#ifdef _MAT_PARALLEL
+        for (uint32_t i = 0; i < A.rows(); ++i)
+          {
+          const uint32_t nz = A.row(i).entries_stored();
+          max_nonzero = nz > max_nonzero ? nz : max_nonzero;
+          }
+#else
         for (uint32_t i = 0; i < A.rows(); ++i)
           {
           auto it = A.row(i).begin();
@@ -7235,6 +7266,7 @@ namespace jtk
             ++nz;
           max_nonzero = nz > max_nonzero ? nz : max_nonzero;
           }
+#endif
         if (max_nonzero <= 40)
           id = max_nonzero;
         switch (id)
@@ -7277,6 +7309,9 @@ namespace jtk
       template <class Container, class Container2>
       void fill_lower(sparse_matrix<T, Container>& out, const sparse_matrix<T, Container2>& in)
         {
+#ifdef _MAT_PARALLEL
+        out = in;
+#else
         out.resize(in.rows(), in.cols());
         auto it = in.begin();
         const auto it_end = in.end();
@@ -7287,11 +7322,39 @@ namespace jtk
             out.put(it.first_entry(), it.second_entry()) = *it;
             }
           }
+#endif
         }
 
       template <class Container>
       void solve(matrix<T, Container>& out, const matrix<T, Container>& b) const
         {
+#ifdef _MAT_PARALLEL
+        switch (id)
+          {
+          case 0: sparse_matrix_vector_multiply(out, m, b); break;
+          case 1: sparse_matrix_vector_multiply(out, m1, b); break;
+          case 2: sparse_matrix_vector_multiply(out, m2, b); break;
+          case 3: sparse_matrix_vector_multiply(out, m3, b); break;
+          case 4: sparse_matrix_vector_multiply(out, m4, b); break;
+          case 5: sparse_matrix_vector_multiply(out, m5, b); break;
+          case 6: sparse_matrix_vector_multiply(out, m6, b); break;
+          case 7: sparse_matrix_vector_multiply(out, m7, b); break;
+          case 8: sparse_matrix_vector_multiply(out, m8, b); break;
+          case 9: sparse_matrix_vector_multiply(out, m9, b); break;
+          case 10: sparse_matrix_vector_multiply(out, m10, b); break;
+          case 11: sparse_matrix_vector_multiply(out, m11, b); break;
+          case 12: sparse_matrix_vector_multiply(out, m12, b); break;
+          case 13: sparse_matrix_vector_multiply(out, m13, b); break;
+          case 14: sparse_matrix_vector_multiply(out, m14, b); break;
+          case 15: sparse_matrix_vector_multiply(out, m15, b); break;
+          case 16: sparse_matrix_vector_multiply(out, m16, b); break;
+          case 17: sparse_matrix_vector_multiply(out, m17, b); break;
+          case 18: sparse_matrix_vector_multiply(out, m18, b); break;
+          case 19: sparse_matrix_vector_multiply(out, m19, b); break;
+          case 20: sparse_matrix_vector_multiply(out, m20, b); break;
+          default: sparse_matrix_vector_multiply(out, m, b); break;
+          }
+#else
         switch (id)
           {
           case 0: sparse_symmetric_matrix_vector_multiply(out, m, b); break;
@@ -7317,37 +7380,14 @@ namespace jtk
           case 20: sparse_symmetric_matrix_vector_multiply(out, m20, b); break;
           default: sparse_symmetric_matrix_vector_multiply(out, m, b); break;
           }
+#endif
         }
 
       template <class Container>
       matrix<T, Container> operator * (const matrix<T, Container>& v) const
         {
         matrix<T, Container> out;
-        switch (id)
-          {
-          case 0: out = m * v; break;
-          case 1: out = m1 * v; break;
-          case 2: out = m2 * v; break;
-          case 3: out = m3 * v; break;
-          case 4: out = m4 * v; break;
-          case 5: out = m5 * v; break;
-          case 6: out = m6 * v; break;
-          case 7: out = m7 * v; break;
-          case 8: out = m8 * v; break;
-          case 9: out = m9 * v; break;
-          case 10: out = m10 * v; break;
-          case 11: out = m11 * v; break;
-          case 12: out = m12 * v; break;
-          case 13: out = m13 * v; break;
-          case 14: out = m14 * v; break;
-          case 15: out = m15 * v; break;
-          case 16: out = m16 * v; break;
-          case 17: out = m17 * v; break;
-          case 18: out = m18 * v; break;
-          case 19: out = m19 * v; break;
-          case 20: out = m20 * v; break;
-          default: out = m * v; break;
-          }
+        solve(out, v);
         return out;
         }
 
@@ -7382,7 +7422,7 @@ namespace jtk
         return out;
         }
 
-    private:      
+    private:
       sparse_matrix<T> m;
       sparse_matrix<T, sparse_array<T, 1>> m1;
       sparse_matrix<T, sparse_array<T, 2>> m2;
@@ -7471,7 +7511,7 @@ namespace jtk
     if (residualnorm < threshold)
       {
       iterations = 0;
-      residu = residualnorm / rhsnorm;
+      residu = std::sqrt(residualnorm / rhsnorm);
       return;
       }
 
@@ -7515,7 +7555,7 @@ namespace jtk
     printf("time1: %f\n", time1);
     printf("time2: %f\n", time2);
     iterations = i + 1;
-    residu = residualnorm / rhsnorm;
+    residu = std::sqrt(residualnorm / rhsnorm);
     }
 
   template <class T, class Container>
@@ -7531,8 +7571,9 @@ namespace jtk
     preconditioned_conjugate_gradient(out, residu, iterations, A, P, b, x0, tolerance);
     }
 
+  /*
   template <class T, class Container, class Container2, class TPreconditioner>
-  void bipcgstab(matrix<T, Container>& out,
+  void bipcgstabold(matrix<T, Container>& out,
     T& residu,
     uint32_t& iterations,
     const sparse_matrix<T, Container2>& A,
@@ -7542,74 +7583,149 @@ namespace jtk
     T tolerance)
     {
     matrix<T, Container> r, r_, p, s, phat, shat, t, v;
-    matrix<T, Container> rho_1(1), rho_2(1), alpha(1), omega(1);
+    T rho_1 = 1;
+    T rho_2 = 1;
+    T alpha = 1;
+    T omega = 1;
     T beta = 0;
     out = x0;
-    T normb = norm(b);
+    T normb = norm_sqr(b);
     r = b - A * out;
     r_ = r;
 
     if (normb == (T)0)
       normb = (T)1;
 
-    T resid = norm(r) / normb;
-    if (resid <= tolerance)
+    const T threshold = tolerance * tolerance * normb;
+    T residualnorm = norm_sqr(r);
+    if (residualnorm < threshold)
       {
-      residu = resid;
+      residu = residualnorm / normb;
       iterations = 0;
       return;
       }
 
-    for (uint32_t i = 0; i < A.rows(); ++i)
+    uint32_t i = 0;
+    for (i = 0; i < A.rows(); ++i)
       {
-      rho_1 = transpose(r_) * r;
-      if (rho_1(0) == (T)0)
+      rho_1 = dot(r_, r);
+      if (rho_1 == (T)0)
         {
-        residu = norm(r) / normb;
-        iterations = i + 1;
-        return;
+        break;
         }
       if (i == 0)
         p = r;
       else
         {
-        beta = (rho_1(0) / rho_2(0))*(alpha(0) / omega(0));
-        p = r + beta * (p - omega(0)*v);
+        beta = (rho_1 / rho_2)*(alpha / omega);
+        p = r + beta * (p - omega*v);
         }
       phat = P.solve(p);
-      v = A * phat;
-      alpha = rho_1(0) / (transpose(r_)*v);
-      s = r - alpha(0)*v;
-      resid = norm(s) / normb;
-      if (resid < tolerance)
+      sparse_matrix_vector_multiply(v, A, phat);
+      //v = A * phat;
+      alpha = rho_1 / dot(r_,v);
+      s = r - alpha*v;
+      residu = norm_sqr(s);
+      if (residu < tolerance)
         {
-        out += alpha(0)*phat;
-        residu = resid;
-        iterations = i + 1;
-        return;
+        out += alpha*phat;
+        break;
         }
       shat = P.solve(s);
-      t = A * shat;
-      omega = (transpose(t)*s) / matrix<T, Container>(transpose(t)*t)(0);
-      out += alpha(0)*phat + omega(0)*shat;
-      r = s - omega(0)*t;
+      sparse_matrix_vector_multiply(t, A, shat);
+      //t = A * shat;
+      omega = dot(t, s) / norm_sqr(t);
+      out += alpha*phat + omega*shat;
+      r = s - omega*t;
       rho_2 = rho_1;
-      resid = norm(r) / normb;
-      if (resid < tolerance)
+      residu = norm_sqr(r);
+      if (residu < tolerance)
         {
-        residu = resid;
-        iterations = i + 1;
-        return;
+        break;
         }
-      if (omega(0) == 0)
+      if (omega == 0)
         {
-        residu = norm(r) / normb;
-        iterations = i + 1;
-        return;
+        residu = norm_sqr(r);
+        break;
         }
       }
-    residu = resid;
-    iterations = A.rows();
+    residu /= normb;
+    iterations = i+1;
+    }
+    */
+
+  template <class T, class Container, class Container2, class TPreconditioner>
+  void bipcgstab(matrix<T, Container>& x,
+    T& residu,
+    uint32_t& iterations,
+    const sparse_matrix<T, Container2>& A,
+    const TPreconditioner& P,
+    const matrix<T, Container>& b,
+    const matrix<T, Container>& x0,
+    T tolerance)
+    {
+    x = x0;
+    matrix<T, Container> r = b - A * x;
+    matrix<T, Container> r0 = r;
+
+    T r0_sqnorm = norm_sqr(r0);
+    T b_sqnorm = norm_sqr(b);
+    if (b_sqnorm == 0)
+      {
+      x = zeros(b.rows(), 1);
+      iterations = 0;
+      residu = (T)0;
+      return;
+      }
+    T rho = 1;
+    T alpha = 1;
+    T w = 1;
+
+    matrix<T, Container> v = zeros<float>(A.rows(), 1);
+    matrix<T, Container> p = zeros<float>(A.rows(), 1);
+    matrix<T, Container> y, z, kt, ks, s, t;
+
+    T tol2 = tolerance * tolerance * b_sqnorm;
+    T eps2 = std::numeric_limits<T>::epsilon()*std::numeric_limits<T>::epsilon();
+
+    uint32_t i = 0;
+    while (norm_sqr(r) > tol2 && i < A.rows())
+      {
+      T rho_old = rho;
+      rho = dot(r0, r);
+      if (std::abs(rho) < eps2*r0_sqnorm)
+        {
+        // The new residual vector became too orthogonal to the arbitrarily chosen direction r0
+        // Let's restart with a new r0:
+        r = b - A * x;
+        r0 = r;
+        rho = r0_sqnorm = norm_sqr(r);
+        }
+      T beta = (rho / rho_old) * (alpha / w);
+      p = r + beta * (p - w * v);
+
+      y = P.solve(p);
+
+      sparse_matrix_vector_multiply(v, A, y);
+
+      alpha = rho / dot(r0, v);
+      s = r - alpha * v;
+
+      z = P.solve(s);
+      sparse_matrix_vector_multiply(t, A, z);
+
+      T tmp = norm_sqr(t);
+      if (tmp > (T)0)
+        w = dot(t, s) / tmp;
+      else
+        w = (T)0;
+
+      x += alpha * y + w * z;
+      r = s - w * t;
+      ++i;
+      }
+    residu = std::sqrt(norm_sqr(r) / b_sqnorm);
+    iterations = i;
     }
 
   template <class T, class Container, class Container2>
