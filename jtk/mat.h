@@ -1,4 +1,4 @@
-﻿///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 //
 // header only matrix library using expression templates
 // matrices are stored row major
@@ -6756,7 +6756,7 @@ namespace jtk
     if (mode == 2)
       {
       for (j = 0; j < n; ++j)
-        if (diag[j] <= 0)
+        if (diag(j) <= 0)
           return;
       }
 

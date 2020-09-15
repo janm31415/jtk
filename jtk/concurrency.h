@@ -554,8 +554,13 @@ namespace jtk
         {
 #ifdef _WIN32
         return GetCurrentThreadId();
-#else
+#elif defined(unix)
         return pthread_self();
+#elif defined(__APPLE__)
+        //pthread_t tid = pthread_self();
+        uint64_t tid;
+        pthread_threadid_np(NULL, &tid);
+            return (unsigned long)tid;
 #endif 
         }
 
