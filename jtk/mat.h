@@ -45,8 +45,6 @@ V1.5: 08 September 2020
 
 #include <immintrin.h>
 
-#include "timer.h"
-
 #ifdef _MAT_PARALLEL
 #include "concurrency.h"
 #endif
@@ -441,6 +439,47 @@ namespace jtk
   */
   template <class T, class Container>
   bool eig(matrix<T, Container>& a, matrix<T, Container>&  wr, matrix<T, Container>&  wi);
+
+  template <class T>
+  class symmetric_sparse_matrix_wrapper;
+
+  template <class T, class Container>
+  void conjugate_gradient(matrix<T, Container>& out,
+    T& residu,
+    uint32_t& iterations,
+    const symmetric_sparse_matrix_wrapper<T>& A,
+    const matrix<T, Container>& b,
+    const matrix<T, Container>& x0,
+    T tolerance);
+
+  template <class T, class Container, class TPreconditioner>
+  void preconditioned_conjugate_gradient(matrix<T, Container>& out,
+    T& residu,
+    uint32_t& iterations,
+    const symmetric_sparse_matrix_wrapper<T>& A,
+    const TPreconditioner& P,
+    const matrix<T, Container>& b,
+    const matrix<T, Container>& x0,
+    T tolerance);
+
+  template <class T, class Container, class Container2>
+  void bicgstab(matrix<T, Container>& out,
+    T& residu,
+    uint32_t& iterations,
+    const sparse_matrix<T, Container2>& A,
+    const matrix<T, Container>& b,
+    const matrix<T, Container>& x0,
+    T tolerance);
+
+  template <class T, class Container, class Container2, class TPreconditioner>
+  void bipcgstab(matrix<T, Container>& x,
+    T& residu,
+    uint32_t& iterations,
+    const sparse_matrix<T, Container2>& A,
+    const TPreconditioner& P,
+    const matrix<T, Container>& b,
+    const matrix<T, Container>& x0,
+    T tolerance);
 
   namespace implementation_details
     {
@@ -5311,6 +5350,29 @@ namespace jtk
       }
     return (float)totalsum;
     }
+
+  template <class T, class Container, class ExprOp>
+  T dot(const matrix<T, Container>& a, const Expr<ExprOp>& b)
+    {
+    matrix<T, Container> bb(b);
+    return dot(a, bb);
+    }
+
+  template <class T, class Container, class ExprOp>
+  T dot(const Expr<ExprOp>& a, const matrix<T, Container>& b)
+    {
+    matrix<T, Container> aa(a);
+    return dot(aa, b);
+    }
+
+  template <class ExprOp1, class ExprOp2>
+  typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty dot(const Expr<ExprOp1>& a, const Expr<ExprOp2>& b)
+    {
+    matrix<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> aa(a);
+    matrix<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> bb(b);
+    return dot(aa, bb);
+    }
+
   ///////////////////////////////////////////////////////////////////////////////
   // Transposing matrices
   ///////////////////////////////////////////////////////////////////////////////
@@ -7804,25 +7866,13 @@ namespace jtk
     matrix<T, Container> z, tmp;
     T absnew = dot(r, p);
 
-    double time1 = 0;
-    double time2 = 0;
-
-    timer t1, t2;
-
     uint32_t i = 0;
     for (; i < A.rows(); ++i)
       {
-      t1.start();
       //tmp.noalias() = A * p;
       //sparse_matrix_vector_multiply(tmp, A, p);
       //sparse_symmetric_matrix_vector_multiply(tmp, A, p);
       A.solve(tmp, p);
-
-      double multime = t1.time_elapsed();
-      //printf("A*x, time: %f\n", multime);
-      time1 += multime;
-
-      t2.start();
       T alpha = absnew / dot(p, tmp);
       out += alpha * p;
       r -= alpha * tmp;
@@ -7834,10 +7884,7 @@ namespace jtk
       absnew = dot(r, z);
       T beta = absnew / absold;
       p = z + beta * p;
-      time2 += t2.time_elapsed();
       }
-    printf("time1: %f\n", time1);
-    printf("time2: %f\n", time2);
     iterations = i + 1;
     residu = std::sqrt(residualnorm / rhsnorm);
     }

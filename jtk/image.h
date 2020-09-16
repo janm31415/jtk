@@ -13,6 +13,7 @@
 #include <string>
 #include <sstream>
 #include <cstring>
+#include <cmath>
 
 namespace jtk
   {
