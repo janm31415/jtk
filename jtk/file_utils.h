@@ -992,11 +992,15 @@ extern "C" {
   }
 #endif
 
-#else //#ifdef _WIN32
+#elif defined(unix) //#ifdef _WIN32
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <linux/limits.h>
+#elif defined(__APPLE__)
+#include <sys/stat.h>
+#include <unistd.h>
+#include <dirent.h>
 #endif
 
 

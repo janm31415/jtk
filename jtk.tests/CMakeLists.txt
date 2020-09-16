@@ -8,6 +8,11 @@ if (UNIX)
   set(TBB_LIBRARIES "/usr/lib/x86_64-linux-gnu/libtbb.so" "/usr/lib/x86_64-linux-gnu/libtbb.so.2")  
 endif (UNIX)
 
+if (APPLE)
+  set(TBB_INCLUDE_DIR "")
+  set(TBB_LIBRARIES "")
+endif (APPLE)
+
 set(HDRS
 file_utils_tests.h
 mat_tests.h
@@ -38,6 +43,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -pthread -msse4.1")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -pthread -msse4.1")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pthread -msse4.1")
 endif (UNIX)
+
+if (APPLE)
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -std=c++11")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -std=c++11")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -std=c++11")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -std=c++11")
+endif (APPLE)
 
 # general build definitions
 add_definitions(-D_SCL_SECURE_NO_WARNINGS)
