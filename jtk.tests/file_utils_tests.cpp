@@ -58,6 +58,11 @@ namespace jtk
     TEST_ASSERT(w[0] == (wchar_t)960);
     }
 
+  void print_executable_path()
+    {
+    auto exepath = get_executable_path();
+    printf("Executable path: %s\n", exepath.c_str());
+    }
   }
 
 void run_all_file_utils_tests()
@@ -65,4 +70,5 @@ void run_all_file_utils_tests()
   using namespace jtk;
   csv_write_and_read();
   test_conversions_wstring_string();
+  print_executable_path();
   }

@@ -18,6 +18,7 @@ namespace jtk
   std::vector<std::string> get_subdirectories_from_directory(const std::string& d, bool include_subfolders);
   std::vector<std::string> get_list_from_directory(const std::string& d, bool include_subfolders);
 
+  std::string get_executable_path();
   /*
   Everything is assumed to be in utf8 encoding
   */
@@ -1006,6 +1007,54 @@ extern "C" {
 
 namespace jtk
   {
+  inline std::string get_executable_path()
+    {
+#ifdef _WIN32
+    typedef std::vector<wchar_t> char_vector;
+    typedef std::vector<wchar_t>::size_type size_type;
+    char_vector buf(1024, 0);
+    size_type size = buf.size();
+    bool havePath = false;
+    bool shouldContinue = true;
+    do
+      {
+      DWORD result = GetModuleFileNameW(nullptr, &buf[0], (DWORD)size);
+      DWORD lastError = GetLastError();
+      if (result == 0)
+        {
+        shouldContinue = false;
+        }
+      else if (result < size)
+        {
+        havePath = true;
+        shouldContinue = false;
+        }
+      else if (
+        result == size
+        && (lastError == ERROR_INSUFFICIENT_BUFFER || lastError == ERROR_SUCCESS)
+        )
+        {
+        size *= 2;
+        buf.resize(size);
+        }
+      else
+        {
+        shouldContinue = false;
+        }
+      } while (shouldContinue);
+      if (!havePath)
+        {
+        return std::string("");
+        }
+      std::wstring wret = &buf[0];
+      return convert_wstring_to_string(wret);
+#else
+    char result[PATH_MAX];
+    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+    return std::string(result, (count > 0) ? count : 0);
+#endif
+    }
+
   inline std::wstring convert_string_to_wstring(const std::string& str)
     {
     std::wstring out;
