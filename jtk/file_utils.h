@@ -1002,6 +1002,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <mach-o/dyld.h>
 #endif
 
 
@@ -1048,10 +1049,19 @@ namespace jtk
         }
       std::wstring wret = &buf[0];
       return convert_wstring_to_string(wret);
-#else
+#elif defined(unix)
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
     return std::string(result, (count > 0) ? count : 0);
+#elif defined(__APPLE__)
+        char path[1024];
+        uint32_t size = sizeof(path);
+        if (_NSGetExecutablePath(path, &size) == 0)
+            return std::string(path, size);
+        else
+            return std::string();
+#else
+        return std::string();
 #endif
     }
 
