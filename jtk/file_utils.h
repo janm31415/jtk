@@ -1057,7 +1057,7 @@ namespace jtk
         char path[1024];
         uint32_t size = sizeof(path);
         if (_NSGetExecutablePath(path, &size) == 0)
-            return std::string(path, size);
+            return std::string(path);
         else
             return std::string();
 #else
