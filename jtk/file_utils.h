@@ -19,6 +19,7 @@ namespace jtk
   std::vector<std::string> get_list_from_directory(const std::string& d, bool include_subfolders);
 
   std::string get_executable_path();
+  std::string get_cwd();
   /*
   Everything is assumed to be in utf8 encoding
   */
@@ -1062,6 +1063,19 @@ namespace jtk
             return std::string();
 #else
         return std::string();
+#endif
+    }
+
+  inline std::string get_cwd()
+    {
+#ifdef _WIN32
+    wchar_t buf[MAX_PATH];
+    GetCurrentDirectoryW(MAX_PATH, buf);
+    return jtk::convert_wstring_to_string(buf);
+#else
+    char buf[PATH_MAX];
+    getcwd(buf, sizeof(buf));
+    return std::string(buf);
 #endif
     }
 
