@@ -5,6 +5,9 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#ifdef _WIN32
+#include <algorithm>
+#endif
 
 namespace jtk
   {
@@ -1049,6 +1052,7 @@ namespace jtk
         return std::string("");
         }
       std::wstring wret = &buf[0];
+      std::replace(wret.begin(), wret.end(), '\\', '/'); // replace all '\\' by '/'
       return convert_wstring_to_string(wret);
 #elif defined(unix)
     char result[PATH_MAX];
@@ -1071,7 +1075,9 @@ namespace jtk
 #ifdef _WIN32
     wchar_t buf[MAX_PATH];
     GetCurrentDirectoryW(MAX_PATH, buf);
-    return jtk::convert_wstring_to_string(buf);
+    std::wstring wbuf(buf);
+    std::replace(wbuf.begin(), wbuf.end(), '\\', '/'); // replace all '\\' by '/'
+    return jtk::convert_wstring_to_string(wbuf);
 #else
     char buf[PATH_MAX];
     getcwd(buf, sizeof(buf));
