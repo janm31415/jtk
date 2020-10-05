@@ -1223,7 +1223,7 @@ namespace jtk
       return files;
     while (ent)
       {
-      if (ent->d_type == DT_REG) // a file
+      if (ent->d_type == DT_REG || ent->d_type == DT_LNK) // a file
         {
 #ifdef _WIN32
         files.push_back(directory + convert_wstring_to_string(std::wstring(ent->d_name)));
@@ -1336,7 +1336,7 @@ namespace jtk
       return files;
     while (ent)
       {
-      if (ent->d_type == DT_REG) // a file
+      if (ent->d_type == DT_REG || ent->d_type == DT_LNK) // a file
         {
 #ifdef _WIN32
         files.push_back(directory + convert_wstring_to_string(std::wstring(ent->d_name)));
