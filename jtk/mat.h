@@ -1057,7 +1057,7 @@ namespace jtk
 
       SparseMatMatMul operator + (const std::ptrdiff_t offset) const
         {
-        MatMatMul tmp = *this;
+        SparseMatMatMul tmp = *this;
         tmp += offset;
         return tmp;
         }
@@ -1253,7 +1253,7 @@ namespace jtk
 
       DiagonalSparse operator + (const std::ptrdiff_t offset) const
         {
-        Diagonal tmp = *this;
+        DiagonalSparse tmp = *this;
         tmp += offset;
         return tmp;
         }
@@ -5308,9 +5308,9 @@ namespace jtk
     */
     const float* ita = a.data();
     const float* itb = b.data();
+    double sum = 0.0;
     uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
     uint64_t len4 = len / 4;
-    double sum = 0.0;
     for (uint64_t i = 0; i < len4; ++i)
       {
       __m128 v1 = _mm_loadu_ps(ita + (i << 2));
@@ -5334,6 +5334,10 @@ namespace jtk
     const double* ita = a.data();
     const double* itb = b.data();
     uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
+#ifdef _JTK_FOR_ARM
+    uint64_t len2 = 0;
+    double totalsum = 0.0;
+#else
     uint64_t len2 = len / 2;
     __m128d sum = _mm_setzero_pd();
     for (uint64_t i = 0; i < len2; ++i)
@@ -5346,6 +5350,7 @@ namespace jtk
     double buffer[2];
     _mm_storeu_pd(buffer, sum);
     double totalsum = buffer[0] + buffer[1];
+#endif
     for (uint64_t i = len2 * 2; i < len; ++i)
       {
       double v1 = *(ita + i);
@@ -5587,6 +5592,10 @@ namespace jtk
     {
     const double* ita = a.data();
     uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
+#ifdef _JTK_FOR_ARM
+    uint64_t len2 = 0;
+    double totalsum = 0.0;
+#else
     uint64_t len2 = len / 2;
     __m128d sum = _mm_setzero_pd();
     for (uint64_t i = 0; i < len2; ++i)
@@ -5598,6 +5607,7 @@ namespace jtk
     double buffer[2];
     _mm_storeu_pd(buffer, sum);
     double totalsum = buffer[0] + buffer[1];
+#endif
     for (uint64_t i = len2 * 2; i < len; ++i)
       {
       double v1 = *(ita + i);
@@ -7903,7 +7913,7 @@ namespace jtk
     const matrix<T, Container>& x0,
     T tolerance)
     {
-    diagonal_preconditioner P(A);
+    diagonal_preconditioner<T> P(A);
     preconditioned_conjugate_gradient(out, residu, iterations, A, P, b, x0, tolerance);
     }
 
@@ -8073,7 +8083,7 @@ namespace jtk
     const matrix<T, Container>& x0,
     T tolerance)
     {
-    diagonal_preconditioner P(A);
+    diagonal_preconditioner<T> P(A);
     bipcgstab(out, residu, iterations, A, P, b, x0, tolerance);
     }
 
