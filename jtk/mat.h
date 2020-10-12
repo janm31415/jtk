@@ -43,7 +43,12 @@ V1.5: 08 September 2020
 #include <limits>
 #include <cmath>
 
+
+#ifdef _JTK_FOR_ARM
+#include "sse2neon.h"
+#else
 #include <immintrin.h>
+#endif
 
 #ifdef _MAT_PARALLEL
 #include "concurrency.h"

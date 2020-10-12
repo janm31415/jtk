@@ -2,11 +2,14 @@
 
 #include "concurrency.h"
 
+#ifdef _JTK_FOR_ARM
+#include "sse2neon.h"
+#else
 #include <immintrin.h>
+//#define _AVX2
+#endif
 
 #include <vector>
-
-//#define _AVX2
 
 // software rendering of point clouds
 

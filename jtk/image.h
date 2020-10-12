@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef __ANDROID__
+#ifdef _JTK_FOR_ARM
 #include "sse2neon.h"
 #else
 #include <immintrin.h>
