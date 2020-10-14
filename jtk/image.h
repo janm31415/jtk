@@ -589,7 +589,7 @@ namespace jtk
         __m128 val_max = val_min;
         if (skip_infinity)
           {
-          __m128 mask = _mm_cmp_ps(val_min, inf, 0);
+          __m128 mask = _mm_cmpeq_ps(val_min, inf);
           val_min = _mm_blendv_ps(val_min, current_min, mask);
           val_max = _mm_blendv_ps(val_max, current_max, mask);
           }
