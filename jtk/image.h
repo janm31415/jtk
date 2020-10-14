@@ -7,6 +7,9 @@
 #include <emmintrin.h>
 #endif
 
+#include "clamp.h"
+
+#include <array>
 #include <cassert>
 #include <fstream>
 #include <stdint.h>
@@ -14,6 +17,7 @@
 #include <sstream>
 #include <cstring>
 #include <cmath>
+#include <vector>
 
 namespace jtk
   {
@@ -28,7 +32,10 @@ namespace jtk
 
   template <class T>
   void draw_line(T* raw, double x1, double y1, double x2, double y2, const uint32_t w, const uint32_t h, const uint32_t stride, const T& color);
-
+  
+  template <class T>
+  void draw_box(T* raw, int x, int y, int box_width, int box_height, const uint32_t w, const uint32_t h, const uint32_t stride, const T& color);
+  
   template <class T>
   image<T> rotate90(const image<T>& im);
 
@@ -37,6 +44,41 @@ namespace jtk
 
   template <class T>
   image<T> rotate270(const image<T>& im);
+  
+  template <class T>
+  void fill_image(image<T>& im, T value);
+  
+  image<uint8_t> image_to_gray(const image<uint32_t>& im);
+  image<uint8_t> image_to_gray(const image<float>& im);
+  
+  void minmax(float& min, float& max, const image<float>& im, bool skip_infinity);
+
+  template <class T, class TValid>
+  void convolve_col_14641_div_16(image<T>& out, const image<T>& im, TValid valid);
+
+  template <class T, class TValid>
+  void convolve_row_14641_div_16(image<T>& out, const image<T>& im, TValid valid);
+
+  template <class T, class TValid>
+  void gauss(image<T>& im, TValid valid);
+
+  typedef std::vector<uint32_t> histogram_t;
+
+  histogram_t make_histogram(const image<uint8_t>& im);
+
+  histogram_t make_histogram(const image<uint8_t>& im, int x, int y, int w, int h);
+
+  int64_t get_histogram_weight(histogram_t::const_iterator begin, histogram_t::const_iterator end);
+
+  int otsu_threshold(const histogram_t& histogram);
+
+  void threshold_image_region(image<uint8_t>& im, int x, int y, int w, int h, uint8_t threshold);
+
+  image<uint8_t> make_binary_image(const image<uint8_t>& im, int steps_w, int steps_h);
+
+  image<uint8_t> make_binary_image(const image<uint8_t>& im, uint8_t threshold);
+
+  image<uint32_t> three_gray_to_uint32_t(const image<uint8_t>& r, const image<uint8_t>& g, const image<uint8_t>& b);
 
   template <class T>
   class image
@@ -230,6 +272,45 @@ namespace jtk
 
   namespace details
     {
+    inline float horizontal_min_ps(__m128 x)
+      {
+      __m128 max1 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 0, 3, 2));
+      __m128 max2 = _mm_min_ps(x, max1);
+      __m128 max3 = _mm_shuffle_ps(max2, max2, _MM_SHUFFLE(0, 0, 0, 1));
+      __m128 max4 = _mm_min_ps(max2, max3);
+      float result = _mm_cvtss_f32(max4);
+      return result;
+      }
+
+    inline float horizontal_max_ps(__m128 x)
+      {
+      __m128 max1 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 0, 3, 2));
+      __m128 max2 = _mm_max_ps(x, max1);
+      __m128 max3 = _mm_shuffle_ps(max2, max2, _MM_SHUFFLE(0, 0, 0, 1));
+      __m128 max4 = _mm_max_ps(max2, max3);
+      float result = _mm_cvtss_f32(max4);
+      return result;
+      }
+
+    inline __m128 set_data_128(float value)
+      {
+      return _mm_set1_ps(value);
+      }
+
+    inline __m128 set_data_128(uint8_t value)
+      {
+      return _mm_castsi128_ps(_mm_set1_epi8(value));
+      }
+
+    inline __m128 set_data_128(uint16_t value)
+      {
+      return _mm_castsi128_ps(_mm_set1_epi16(value));
+      }
+
+    inline __m128 set_data_128(uint32_t value)
+      {
+      return _mm_castsi128_ps(_mm_set1_epi32(value));
+      }
 
     inline std::string pnm_read_line(std::ifstream& file)
       {
@@ -322,6 +403,36 @@ namespace jtk
       }
     }
 
+  template <class T>
+  void draw_box(T* raw, int x, int y, int box_width, int box_height, const uint32_t w, const uint32_t h, const uint32_t stride, const T& color)
+    {
+    using namespace details;
+
+    int x0 = x;
+    int y0 = y;
+    int x1 = x + box_width - 1;
+    int y1 = y + box_height - 1;
+
+    if (x0 < 0)
+      x0 = 0;
+    if (x1 >= w)
+      x1 = w - 1;
+    if (y0 < 0)
+      y0 = 0;
+    if (y1 >= h)
+      y1 = h - 1;
+
+    for (int xx = x0; xx <= x1; ++xx)
+      {
+      put_pixel(raw, xx, y0, stride, color);
+      put_pixel(raw, xx, y1, stride, color);
+      }
+    for (int yy = y0 + 1; yy < y1; ++yy)
+      {
+      put_pixel(raw, x0, yy, stride, color);
+      put_pixel(raw, x1, yy, stride, color);
+      }
+    }
 
 
   template <class T>
@@ -416,4 +527,328 @@ namespace jtk
     file.close();
     return true;
     }
+    
+  template <class T>
+  inline void fill_image(image<T>& im, T value)
+    {
+    using namespace details;
+    const int w = (int)im.width();
+    const int s = (int)im.stride();
+    const int h = (int)im.height();
+    assert(sizeof(T) <= 16);
+    assert(16 % sizeof(T) == 0);
+    uint32_t offset = 16 / sizeof(T);
+    __m128 data = set_data_128(value);
+    for (int y = 0; y < h; ++y)
+      {
+      T* p_im = im.data() + y * s;
+      for (int x = 0; x < w; x += offset, p_im += offset)
+        {
+        _mm_store_ps((float*)p_im, data);
+        }
+      }
+    }
+  
+  inline image<uint8_t> image_to_gray(const image<uint32_t>& im)
+    {
+    image<uint8_t> out(im.width(), im.height(), false);
+    for (int y = 0; y < (int)im.height(); ++y)
+      {
+      const uint32_t* p_f = im.data() + im.stride()*y;
+      uint8_t* p_g = out.data() + out.stride() * y;
+      for (int x = 0; x < (int)im.width(); ++x, ++p_f, ++p_g)
+        {
+        *p_g = (*p_f >> 8) & 0xff;
+        }
+      }
+    return out;
+    }
+  
+  inline void minmax(float& min, float& max, const image<float>& im, bool skip_infinity)
+    {
+    using namespace details;
+    const int w = (int)im.width();
+    const int s = (int)im.stride();
+    const int h = (int)im.height();
+
+    float single_min = std::numeric_limits<float>::max();
+    float single_max = -std::numeric_limits<float>::max();
+
+    __m128 current_min = _mm_set1_ps(std::numeric_limits<float>::max());
+    __m128 current_max = _mm_set1_ps(-std::numeric_limits<float>::max());
+
+    __m128 inf = _mm_set1_ps(std::numeric_limits<float>::infinity());
+
+    for (int y = 0; y < h; ++y)
+      {
+      __m128* p_im = (__m128*)(im.data() + y * s);
+      int x = 0;
+      for (; x < w - 4; x += 4)
+        {
+        __m128 val_min = *p_im;
+        __m128 val_max = val_min;
+        if (skip_infinity)
+          {
+          __m128 mask = _mm_cmp_ps(val_min, inf, 0);
+          val_min = _mm_blendv_ps(val_min, current_min, mask);
+          val_max = _mm_blendv_ps(val_max, current_max, mask);
+          }
+        current_min = _mm_min_ps(current_min, val_min);
+        current_max = _mm_max_ps(current_max, val_max);
+        ++p_im;
+        }
+      const float* p_imf = im.data() + y * s + x;
+      for (; x < w; ++x)
+        {
+        if (!skip_infinity || (*p_imf != std::numeric_limits<float>::infinity()))
+          {
+          single_min = std::min<float>(single_min, *p_imf);
+          single_max = std::max<float>(single_max, *p_imf);
+          }
+        ++p_imf;
+        }
+      }
+
+    min = std::min<float>(single_min, horizontal_min_ps(current_min));
+    max = std::max<float>(single_max, horizontal_max_ps(current_max));
+    }
+
+  inline image<uint8_t> image_to_gray(const image<float>& im)
+    {
+    image<uint8_t> out(im.width(), im.height(), false);
+    float fmin, fmax;
+    minmax(fmin, fmax, im, true);
+    float s = 1.f;
+    if (fmin != fmax)
+      s = 255.f / (fmax - fmin);
+    for (int y = 0; y < (int)im.height(); ++y)
+      {
+      const float* p_f = im.data() + im.stride()*y;
+      uint8_t* p_g = out.data() + out.stride() * y;
+      for (int x = 0; x < (int)im.width(); ++x, ++p_f, ++p_g)
+        {
+        *p_g = uint8_t((*p_f - fmin)*s);
+        }
+      }
+    return out;
+    }
+    
+    
+template <class T, class TValid>
+void convolve_col_14641_div_16(image<T>& out, const image<T>& im, TValid valid)
+  {
+  int w = im.width();
+  int h = im.height();
+  out = image<T>(w, h);
+  std::array<T, 5> vals;
+  std::array<T, 5> coeff = { { T(1), T(4), T(6), T(4), T(1) } };
+  for (int u = 0; u < w; ++u)
+    {
+    for (int v = 0; v < h; ++v)
+      {
+      if (!valid(im(u, v), u, v))
+        continue;
+      T denom = T(0);
+      for (int i = 0; i < 5; ++i)
+        {
+        int vv = v + i - 2;
+        if (vv >= 0 && vv < h && valid(im(u, vv), u, vv))
+          {
+          vals[i] = im(u, vv);
+          denom += coeff[i];
+          }
+        else
+          vals[i] = T(0);
+        }
+      out(u, v) = (vals[0] * coeff[0] + vals[1] * coeff[1] + vals[2] * coeff[2] + vals[3] * coeff[3] + vals[4] * coeff[4]) / denom;
+      }
+    }
+  }
+
+template <class T, class TValid>
+void convolve_row_14641_div_16(image<T>& out, const image<T>& im, TValid valid)
+  {
+  int w = im.width();
+  int h = im.height();
+  out = image<T>(w, h);
+  std::array<T, 5> vals;
+  std::array<T, 5> coeff = { { T(1), T(4), T(6), T(4), T(1) } };
+  for (int v = 0; v < h; ++v)
+    {
+    for (int u = 0; u < w; ++u)
+      {
+      if (!valid(im(u, v), u, v))
+        continue;
+      T denom = T(0);
+      for (int i = 0; i < 5; ++i)
+        {
+        int uu = u + i - 2;
+        if (uu >= 0 && uu < w && valid(im(uu, v), uu, v))
+          {
+          vals[i] = im(uu, v);
+          denom += coeff[i];
+          }
+        else
+          vals[i] = T(0);
+        }
+      out(u, v) = (vals[0] * coeff[0] + vals[1] * coeff[1] + vals[2] * coeff[2] + vals[3] * coeff[3] + vals[4] * coeff[4]) / denom;
+      }
+    }
+  }
+
+  template <class T, class TValid>
+  void gauss(image<T>& im, TValid valid)
+    {
+    image<T> temp;
+    convolve_col_14641_div_16(temp, im, valid);
+    convolve_row_14641_div_16(im, temp, valid);
+    }
+
+inline histogram_t make_histogram(const image<uint8_t>& im)
+  {
+  histogram_t hist(256, 0);
+  for (auto val : im)
+    ++hist[size_t(val)];
+  return hist;
+  }
+
+inline histogram_t make_histogram(const image<uint8_t>& im, int x, int y, int w, int h)
+  {
+  histogram_t hist(256, 0);
+  if (x + w > (int)im.width())
+    w = (int)im.width() - x;
+  if (y + h > (int)im.height())
+    h = (int)im.height() - y;
+  for (int yy = 0; yy < h; ++yy)
+    {
+    const uint8_t* p_val = im.data() + (y + yy)*im.stride() + x;
+    for (int xx = 0; xx < w; ++xx, ++p_val)
+      {
+      ++hist[size_t(*p_val)];
+      }
+    }
+  return hist;
+  }
+
+inline int64_t get_histogram_weight(histogram_t::const_iterator begin, histogram_t::const_iterator end)
+  {
+  int64_t w = 0;
+  for (auto it = begin; it != end; ++it)
+    w += *it;
+  return w;
+  }
+
+inline int otsu_threshold(const histogram_t& histogram)
+  {
+  int level = 125;
+  int64_t total = get_histogram_weight(histogram.begin(), histogram.end());
+  int64_t sumB = 0;
+  int64_t wB = 0;
+  double maximum = 0.0;
+  int64_t sum1 = 0;
+  for (int i = 0; i < histogram.size(); ++i)
+    sum1 += i * histogram[i];
+  for (int i = 0; i < histogram.size(); ++i)
+    {
+    wB += histogram[i];
+    if (wB == 0)
+      continue;
+    int64_t wF = total - wB;
+    if (wF == 0)
+      break;
+    sumB += i * histogram[i];
+    double mB = double(sumB) / double(wB);
+    double mF = double(sum1 - sumB) / double(wF);
+    double between = wB * wF*(mB - mF)*(mB - mF);
+    if (between >= maximum)
+      {
+      level = i;
+      maximum = between;
+      }
+    }
+  return level;
+  }
+
+inline void threshold_image_region(image<uint8_t>& im, int x, int y, int w, int h, uint8_t threshold)
+  {
+  if (x + w > (int)im.width())
+    w = (int)im.width() - x;
+  if (y + h > (int)im.height())
+    h = (int)im.height() - y;
+  for (int yy = 0; yy < h; ++yy)
+    {
+    uint8_t* p_val = im.data() + (y + yy)*im.stride() + x;
+    for (int xx = 0; xx < w; ++xx, ++p_val)
+      {
+      if (*p_val > threshold)
+        *p_val = 255;
+      else
+        *p_val = 0;
+      }
+    }
+  }
+
+inline image<uint8_t> make_binary_image(const image<uint8_t>& im, int steps_w, int steps_h)
+  {
+  image<uint8_t> out = im;
+
+  const int w = (int)im.width();
+  const int h = (int)im.height();
+
+  const auto rect_w = w / steps_w;
+  const auto rect_h = h / steps_h;
+
+  const auto steps_x = w / rect_w + 1;
+  const auto steps_y = h / rect_h + 1;
+
+  for (int step_y = 0; step_y < steps_y; ++step_y)
+    {
+    for (int step_x = 0; step_x < steps_x; ++step_x)
+      {
+      const auto x = step_x * rect_w;
+      const auto y = step_y * rect_h;
+      auto hist = make_histogram(im, x, y, rect_w, rect_h);
+      int ot = otsu_threshold(hist);
+      uint8_t threshold = clamp<uint8_t, int>(ot);
+      threshold_image_region(out, x, y, rect_w, rect_h, threshold);
+      }
+    }
+  return out;
+  }
+
+inline image<uint8_t> make_binary_image(const image<uint8_t>& im, uint8_t threshold)
+  {
+  image<uint8_t> out(im.width(), im.height());
+  const uint8_t* it = im.begin();
+  const uint8_t* it_end = im.end();
+  uint8_t* o = out.begin();
+  for (; it != it_end; ++it, ++o)
+    {
+    if (*it > threshold)
+      *o = 255;
+    }
+  return out;
+  }
+
+inline image<uint32_t> three_gray_to_uint32_t(const image<uint8_t>& r, const image<uint8_t>& g, const image<uint8_t>& b)
+  {
+  assert(r.width() == g.width());
+  assert(r.width() == b.width());
+  assert(r.height() == g.height());
+  assert(r.height() == b.height());
+  image<uint32_t> out(r.width(), r.height());
+  uint32_t* c = out.data();
+  const uint8_t* pr = r.data();
+  const uint8_t* pg = g.data();
+  const uint8_t* pb = b.data();
+  const uint32_t* const c_end = c + r.width()*r.height();
+  for (; c != c_end; ++c, ++pr, ++pg, ++pb)
+    {
+    uint32_t clr = 0xff000000 | ((uint32_t)*pb << 16) | ((uint32_t)*pg << 8) | ((uint32_t)*pr);
+    *c = clr;
+    }
+  return out;
+  }
+    
+      
   } // namespace jtk

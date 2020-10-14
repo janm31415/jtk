@@ -1,5 +1,7 @@
 
 set(HDRS
+alsc.h
+clamp.h
 concurrency.h
 file_utils.h
 fitting.h
