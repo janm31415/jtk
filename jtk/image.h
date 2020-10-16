@@ -911,14 +911,14 @@ namespace jtk
         const int pos = y * s + x;
         for (int p = 0; p < 16; ++p)
           {
-          *descriptor_it = *(p_im + census_samples[2 * p] * s + census_samples[2 * p + 1]);
+          *descriptor_it = *(p_im + census_samples[2 * p] + census_samples[2 * p + 1] * s);
           ++descriptor_it;
           }
         const __m128i r1 = _mm_cmpgt_epi8(descriptor1, value128);
         descriptor_it = (uint8_t*)&descriptor2;
         for (int p = 16; p < ns; ++p)
           {
-          *descriptor_it = *(p_im + census_samples[2 * p] * s + census_samples[2 * p + 1]);
+          *descriptor_it = *(p_im + census_samples[2 * p] + census_samples[2 * p + 1] * s);
           ++descriptor_it;
           }
         const __m128i r2 = _mm_cmpgt_epi8(descriptor2, value128);
@@ -972,7 +972,7 @@ namespace jtk
         const int pos = y * s + x;
         for (int p = 0; p < 16; ++p)
           {
-          const uint32_t color = *(p_im + census_samples[2 * p] * s + census_samples[2 * p + 1]);
+          const uint32_t color = *(p_im + census_samples[2 * p] + census_samples[2 * p + 1] * s);
           *descriptor_red_it = color & 0xff;
           *descriptor_green_it = (color >> 8) & 0xff;
           *descriptor_blue_it = (color >> 16) & 0xff;
@@ -988,7 +988,7 @@ namespace jtk
         descriptor_blue_it = (uint8_t*)&descriptor2_blue;
         for (int p = 16; p < ns; ++p)
           {
-          const uint32_t color = *(p_im + census_samples[2 * p] * s + census_samples[2 * p + 1]);
+          const uint32_t color = *(p_im + census_samples[2 * p] + census_samples[2 * p + 1] * s);
           *descriptor_red_it = color & 0xff;
           *descriptor_green_it = (color >> 8) & 0xff;
           *descriptor_blue_it = (color >> 16) & 0xff;

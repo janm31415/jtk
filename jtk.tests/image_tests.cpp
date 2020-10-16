@@ -66,7 +66,7 @@ namespace jtk
           const int pos = y * s + x;
           for (int p = 0; p < ns; p++)
             {
-            *descriptor_it = *(p_im + census_samples[2 * p] * s + census_samples[2 * p + 1]);
+            *descriptor_it = *(p_im + census_samples[2 * p] + census_samples[2 * p + 1] * s);
             ++descriptor_it;
             }
           const __m256i r1 = _mm256_cmpgt_epi8(descriptor, value256);
@@ -113,7 +113,7 @@ namespace jtk
           const int pos = y * s + x;
           for (int p = 0; p < ns; p++)
             {
-            const uint32_t color = *(p_im + census_samples[2 * p] * s + census_samples[2 * p + 1]);
+            const uint32_t color = *(p_im + census_samples[2 * p] + census_samples[2 * p + 1] * s);
             *descriptor_red_it = color & 0xff;
             *descriptor_green_it = (color >> 8) & 0xff;
             *descriptor_blue_it = (color >> 16) & 0xff;
