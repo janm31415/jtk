@@ -1435,7 +1435,7 @@ namespace jtk
     std::wstring wresult(path);
     std::string out = jtk::convert_wstring_to_string(wresult);
   #else
-    std::string out(getenv(name.c_str()));
+    std::string out(::getenv(name.c_str()));
   #endif
     return out;
     }
