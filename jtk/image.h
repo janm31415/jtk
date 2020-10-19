@@ -451,6 +451,11 @@ namespace jtk
     if (y1 >= h)
       y1 = h - 1;
 
+    if (x1 < x0)
+      return;
+    if (y1 < y0)
+      return;
+
     for (int xx = x0; xx <= x1; ++xx)
       {
       put_pixel(raw, xx, y0, stride, color);
