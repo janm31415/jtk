@@ -31,6 +31,7 @@ namespace jtk
   std::string get_folder(const std::string& path);
   std::string get_filename(const std::string& path);
   std::string getenv(const std::string& name);
+  void putenv(const std::string& name, const std::string& value);
 
   void csv_read(std::vector<std::vector<std::string>>& data, FILE* stream, const char* separator = ",");
   bool csv_read(std::vector<std::vector<std::string>>& data, const char* filename, const char* separator = ",");
@@ -1438,6 +1439,17 @@ namespace jtk
     std::string out(::getenv(name.c_str()));
   #endif
     return out;
+    }
+
+  inline void putenv(const std::string& name, const std::string& value)
+    {
+#ifdef _WIN32
+    std::wstring wvalue = jtk::convert_string_to_wstring(value);
+    std::wstring wname = jtk::convert_string_to_wstring(name);
+    _wputenv_s(wname.c_str(), wvalue.c_str());
+#else
+    ::setenv(name.c_str(), value.c_str(), 1);
+#endif
     }
 
   namespace details
