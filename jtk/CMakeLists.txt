@@ -1,3 +1,11 @@
+set(JTK_THREADING "std" CACHE STRING  "Choose your threading library: tbb is Intel's Threading Building Blocks library, ppl is Windows' concurrency library, std uses std::thread, and none does not use threading.")
+ 
+set_property(CACHE JTK_THREADING PROPERTY STRINGS tbb ppl std none)
+
+option(JTK_MAT_PARALLEL "Certain matrix operations (e.g. conjugate gradients) run in parallel" ON)
+
+set(JTK_TARGET "x64" CACHE STRING  "Choose your target platform: x64 compatible pc or arm.")
+set_property(CACHE JTK_TARGET PROPERTY STRINGS x64 arm)
 
 set(HDRS
 alsc.h

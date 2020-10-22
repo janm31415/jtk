@@ -9,8 +9,8 @@ if (UNIX)
 endif (UNIX)
 
 if (APPLE)
-  set(TBB_INCLUDE_DIR "")
-  set(TBB_LIBRARIES "")
+  set(TBB_INCLUDE_DIR "/usr/local/include" "/usr/include")
+  set(TBB_LIBRARIES "/usr/local/lib/libtbb.dylib")
 endif (APPLE)
 
 set(HDRS
@@ -60,10 +60,9 @@ endif (APPLE)
 add_definitions(-D_SCL_SECURE_NO_WARNINGS)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-add_definitions(-D_MAT_PARALLEL)
-#add_definitions(-D_ENABLE_TBB)
-#add_definitions(-D_ENABLE_PPL)
-add_definitions(-D_ENABLE_THREADS)
+#add_definitions(-D_MAT_PARALLEL)
+
+include ("../jtk/jtk.cmake")
 
 add_definitions(-DMEMORY_LEAK_TRACKING)
 
@@ -83,12 +82,13 @@ source_group("Source Files" FILES ${srcs})
 
 
 
-target_include_directories(jtk.tests
-    PRIVATE
-    ${TBB_INCLUDE_DIR}
-    )
-	
-target_link_libraries(jtk.tests
-    PRIVATE
-    ${TBB_LIBRARIES}
-    )	
+if (${JTK_THREADING} STREQUAL "tbb")
+  target_include_directories(jtk.tests
+      PRIVATE
+      ${TBB_INCLUDE_DIR}
+      )
+  target_link_libraries(jtk.tests
+      PRIVATE
+      ${TBB_LIBRARIES}
+      )
+endif (${JTK_THREADING} STREQUAL "tbb")
