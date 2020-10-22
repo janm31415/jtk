@@ -60,8 +60,6 @@ endif (APPLE)
 add_definitions(-D_SCL_SECURE_NO_WARNINGS)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-#add_definitions(-D_MAT_PARALLEL)
-
 include ("../jtk/jtk.cmake")
 
 add_definitions(-DMEMORY_LEAK_TRACKING)
