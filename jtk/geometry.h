@@ -99,6 +99,8 @@ namespace jtk
 
   void compute_triangle_normals(std::vector<vec3<float>>& triangle_normals, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles);
 
+  void compute_vertex_normals(std::vector<vec3<float>>& vertex_normals, const vec3<float>* triangle_normals, const vec3<float>* vertices, const uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles);
+
   vec3<float> normal(uint32_t triangle_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles);
 
   vec3<float> normal(uint32_t vertex_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle = 0.86602540f);
@@ -701,7 +703,7 @@ namespace jtk
     {
     if (clrs.empty())
       {
-      return write_ply(filename, pts);      
+      return write_ply(filename, pts);
       }
     FILE* fp = fopen(filename, "wt");
     if (!fp)
@@ -731,11 +733,11 @@ namespace jtk
     {
     if (normals.empty())
       {
-      return write_ply(filename, pts, clrs);      
+      return write_ply(filename, pts, clrs);
       }
     if (clrs.empty())
       {
-      return write_ply(filename, pts, normals);      
+      return write_ply(filename, pts, normals);
       }
     FILE* fp = fopen(filename, "wt");
     if (!fp)
@@ -1206,6 +1208,66 @@ namespace jtk
           const auto n = normalize(cross(V1 - V0, V2 - V0));
           triangle_normals[t] = n;
           });
+    }
+
+  inline void compute_vertex_normals(std::vector<jtk::vec3<float>>& vertex_normals, const jtk::vec3<float>* triangle_normals,
+    const jtk::vec3<float>* vertices, const uint32_t nr_of_vertices, const jtk::vec3<uint32_t>* triangles, const uint32_t nr_of_triangles)
+    {
+    vertex_normals.resize(nr_of_vertices, vec3<float>(0.f, 0.f, 0.f));
+
+    std::vector<uint32_t> vertex_occurence(nr_of_vertices + 1, 0);
+    for (uint32_t t = 0; t < nr_of_triangles; ++t)
+      {
+      ++vertex_occurence[triangles[t][0]];
+      ++vertex_occurence[triangles[t][1]];
+      ++vertex_occurence[triangles[t][2]];
+      }
+
+    uint32_t prev_value = vertex_occurence[0];
+    vertex_occurence[0] = 0;
+    for (uint32_t v = 0; v < nr_of_vertices; ++v)
+      {
+      uint32_t current = vertex_occurence[v + 1];
+      vertex_occurence[v + 1] = vertex_occurence[v] + prev_value;
+      prev_value = current;
+      }
+
+    std::vector<uint32_t> vertex_count(nr_of_vertices, 0);
+    std::vector<uint32_t> triangle_list(vertex_occurence.back());
+    for (uint32_t t = 0; t < nr_of_triangles; ++t)
+      {
+      for (int j = 0; j < 3; ++j)
+        {
+        const uint32_t v = triangles[t][j];
+        const uint32_t pos = vertex_occurence[v];
+        const uint32_t off = vertex_count[v]++;
+        triangle_list[pos + off] = t;
+        }
+      }
+
+    for (uint32_t v = 0; v < nr_of_vertices; ++v)
+      {
+      uint32_t *it = triangle_list.data() + vertex_occurence[v];
+      const uint32_t *it_end = triangle_list.data() + vertex_occurence[v + 1];
+      auto vn = vec3<float>(0.f);
+      for (; it != it_end; ++it)
+        {
+        const uint32_t t = *it;
+        const auto nn = triangle_normals[t];
+        auto v0 = triangles[t][0];
+        auto v1 = triangles[t][1];
+        auto v2 = triangles[t][2];
+        vec3<float> V0(vertices[v0][0], vertices[v0][1], vertices[v0][2]);
+        vec3<float> V1(vertices[v1][0], vertices[v1][1], vertices[v1][2]);
+        vec3<float> V2(vertices[v2][0], vertices[v2][1], vertices[v2][2]);
+        float twice_triangle_length = length(jtk::cross(V1 - V0, V2 - V0));
+        vn = vn + nn * twice_triangle_length;
+        }
+      auto length = std::sqrt(dot(vn, vn));
+      if (length)
+        vn = vn / length;
+      vertex_normals[v] = vn;
+      }
     }
 
   inline std::vector<uint32_t> triangle_indices_from_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list)
@@ -2266,7 +2328,7 @@ namespace jtk
     std::vector<std::vector<vec3<float>>> pts(depth - 1);
 
     parallel_for(int(0), int(depth - 1), [&](int z)
-    //for (int z = 0; z < int(depth - 1); ++z)
+      //for (int z = 0; z < int(depth - 1); ++z)
       {
       for (int y = 0; y<int(height - 1); ++y)
         {

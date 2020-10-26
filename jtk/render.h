@@ -509,8 +509,7 @@ namespace jtk
   template <class TCallBack>
   inline void present(render_data& rd, uint32_t color, TCallBack callback)
     {
-    rgb_value rgb;
-    rgb.color = color;
+    rgb_value rgb;    
     _draw(rd);
     const int border = rd.point_size;
 
@@ -549,8 +548,7 @@ namespace jtk
     const float* p_vert_y = (const float*)rd.vertices_y.data();
     const float* p_vert_z = (const float*)rd.vertices_z.data();
 
-#ifdef _AVX2
-    __m256i colors = _mm256_set1_epi32(color);
+#ifdef _AVX2   
 
     const __m256i zero = _mm256_set1_epi32(0);
     const __m256i wh = _mm256_set1_epi32(rd.fb.w*rd.fb.h);
@@ -568,6 +566,8 @@ namespace jtk
     const __m256i ff3 = _mm256_set1_epi32(0xff000000);
     for (uint32_t i = 0; i < sz; i += 8)
       {
+      __m256i colors = _mm256_set1_epi32(color);
+
       const float* px = p_vert_x + i;
       const __m256 *m = (const __m256*)px;
       __m256 x = m[0];
@@ -686,8 +686,7 @@ namespace jtk
 
         }
       }
-#else
-    __m128i colors = _mm_set1_epi32(color);
+#else    
 
     const __m128i zero = _mm_set1_epi32(0);
     const __m128i wh = _mm_set1_epi32(rd.fb.w*rd.fb.h);
@@ -705,6 +704,7 @@ namespace jtk
     const __m128i ff3 = _mm_set1_epi32(0xff000000);
     for (uint32_t i = 0; i < sz; i += 4)
       {
+      __m128i colors = _mm_set1_epi32(color);
       const float* px = p_vert_x + i;
       const __m128 *m = (const __m128*)px;
       __m128 x = m[0];
@@ -811,6 +811,8 @@ namespace jtk
       int Y = (int)(rd.vertices_y[i]);
       if (X < border || Y < border || X > rd.fb.w - 1 - border || Y > rd.fb.h - 1 - border)
         continue;
+
+      rgb.color = color;
 
       if (rd.obj.colors)
         {
