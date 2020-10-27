@@ -9,7 +9,7 @@
 namespace jtk
   {
 
-  void TEST_HashedHeapBasicTest()
+  void test_HashedHeapBasicTest()
     {
     std::vector<std::pair<size_t, double>> vec;
     vec.push_back({ 0, 1. });
@@ -32,7 +32,7 @@ namespace jtk
       }
     }
 
-  void TEST_HashedHeapRepeatedLessTest()
+  void test_HashedHeapRepeatedLessTest()
     {
     std::vector<std::pair<size_t, double>> vec;
     vec.push_back({ 0, 1. });
@@ -57,7 +57,7 @@ namespace jtk
       }
     }
 
-  void TEST_HashedHeapRepeatedGreaterTest()
+  void test_HashedHeapRepeatedGreaterTest()
     {
     std::vector<std::pair<size_t, double>> vec;
     vec.push_back({ 0, .4 });
@@ -82,7 +82,7 @@ namespace jtk
       }
     }
 
-  void TEST_HashedHeapNonDefaultKeyTest()
+  void test_HashedHeapNonDefaultKeyTest()
     {
     typedef std::array<size_t, 2> edge;
     struct edge_equal
@@ -123,7 +123,7 @@ namespace jtk
       }
     }
 
-  void TEST_HashedHeapNonDefaultKeyAndDataTest()
+  void test_HashedHeapNonDefaultKeyAndDataTest()
     {
     typedef std::array<size_t, 2> edge;
     struct edge_equal
@@ -173,74 +173,7 @@ namespace jtk
       }
     }
 
-
-  void TEST_aligned_vector_test_1()
-    {
-    aligned_vector<double> v(5);
-    TEST_EQ(5, v.size());
-    v.push_back(3.0);
-    TEST_EQ(3.0, v[5]);
-    aligned_vector<double> v2;
-    TEST_ASSERT(v2.empty());
-    }
-
-  void TEST_aligned_vector_test_2()
-    {
-    aligned_vector<double> v;
-    v.reserve(100);
-    TEST_EQ(100, v.capacity());
-    }
-
-  void TEST_aligned_vector_test_3()
-    {
-    aligned_vector<double> v;
-    v.push_back(1.0);
-    v.push_back(2.0);
-    v.push_back(3.0);
-    v.push_back(4.0);
-    v.push_back(5.0);
-    auto it = v.begin();
-    auto it_end = v.end();
-    double val = 1.0;
-    for (; it != it_end; ++it)
-      {
-      TEST_EQ(val, *it);
-      val += 1.0;
-      }
-
-    aligned_vector<double> v2(v);
-    it = v.begin();
-    val = 1.0;
-    for (; it != it_end; ++it)
-      {
-      TEST_EQ(val, *it);
-      val += 1.0;
-      }
-
-    for (auto& value : v2)
-      value *= 2.0;
-    it = v2.begin();
-    it_end = v2.end();
-    val = 1.0;
-    for (; it != it_end; ++it)
-      {
-      TEST_EQ(val*2.0, *it);
-      val += 1.0;
-      }
-    }
-
-  void TEST_aligned_vector_test_4()
-    {
-    aligned_vector<double> v(5, 3.14);
-    TEST_EQ(5, v.size());
-    TEST_EQ(3.14, v[0]);
-    TEST_EQ(3.14, v[1]);
-    TEST_EQ(3.14, v[2]);
-    TEST_EQ(3.14, v[3]);
-    TEST_EQ(3.14, v[4]);
-    }
-
-  void TEST_typed_memory_pool_init()
+  void test_typed_memory_pool_init()
     {
     typed_memory_pool<uint64_t, 16> pool;
     TEST_EQ(1 << 16, pool.available());
@@ -264,7 +197,7 @@ namespace jtk
     TEST_EQ(54, *entry);
     }
 
-  void TEST_concurrent_typed_memory_pool_init()
+  void test_concurrent_typed_memory_pool_init()
     {
     concurrent_typed_memory_pool<uint64_t, 16> pool;
     TEST_EQ(1 << 16, pool.available());
@@ -289,7 +222,7 @@ namespace jtk
     }
 
 
-  void TEST_memory_pool_init()
+  void test_memory_pool_init()
     {
     memory_pool<sizeof(uint64_t), 16> pool;
     TEST_EQ(1 << 16, pool.available());
@@ -316,7 +249,7 @@ namespace jtk
     TEST_EQ(value, actual);
     }
 
-  void TEST_concurrent_memory_pool_init()
+  void test_concurrent_memory_pool_init()
     {
     concurrent_memory_pool<sizeof(uint64_t), 16> pool;
     TEST_EQ(1 << 16, pool.available());
@@ -1103,21 +1036,16 @@ namespace jtk
 void run_all_container_tests()
   {
   using namespace jtk;
-  TEST_HashedHeapBasicTest();
-  TEST_HashedHeapRepeatedLessTest();
-  TEST_HashedHeapRepeatedGreaterTest();
-  TEST_HashedHeapNonDefaultKeyTest();
-  TEST_HashedHeapNonDefaultKeyAndDataTest();
+  test_HashedHeapBasicTest();
+  test_HashedHeapRepeatedLessTest();
+  test_HashedHeapRepeatedGreaterTest();
+  test_HashedHeapNonDefaultKeyTest();
+  test_HashedHeapNonDefaultKeyAndDataTest();
 
-  TEST_aligned_vector_test_1();
-  TEST_aligned_vector_test_2();
-  TEST_aligned_vector_test_3();
-  TEST_aligned_vector_test_4();
-
-  TEST_typed_memory_pool_init();
-  TEST_concurrent_typed_memory_pool_init();
-  TEST_memory_pool_init();
-  TEST_concurrent_memory_pool_init();
+  test_typed_memory_pool_init();
+  test_concurrent_typed_memory_pool_init();
+  test_memory_pool_init();
+  test_concurrent_memory_pool_init();
 
   flat_map_1();
   flat_map_2();
