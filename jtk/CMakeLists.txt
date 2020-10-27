@@ -17,6 +17,7 @@ geometry.h
 image.h
 mat.h
 pipe.h
+point_tree.h
 qbvh.h
 render.h
 sse2neon.h
