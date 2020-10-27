@@ -8,10 +8,6 @@
 
 #include "concurrency.h"
 
-#ifdef _JTK_FOR_ARM
-#include "sse2neon.h"
-#endif
-
 namespace jtk
   {
 
