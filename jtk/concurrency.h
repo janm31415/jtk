@@ -2,14 +2,14 @@
 
 #if defined(_ENABLE_TBB)
 #include <tbb/combinable.h>
-//#include <tbb/enumerable_thread_specific.h>
 #undef min
 #undef max
 #include <thread>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_sort.h>
 #include <tbb/concurrent_vector.h>
-//#include <tbb/spin_rw_mutex.h>
+#include <tbb/spin_mutex.h>
+#include <tbb/spin_rw_mutex.h>
 #include <cassert>
 #include <exception>
 #elif defined(_ENABLE_PPL)
@@ -26,13 +26,27 @@
 #include <vector>
 #include <functional>
 #include <cstring>
-#include <atomic>
 #else
 #include <vector>
 #include <cassert>
 #include <exception>
 #include <algorithm>
 #endif
+
+#include <atomic>
+#ifndef _JTK_FOR_ARM
+#include <immintrin.h>
+#endif
+
+#ifdef _WIN32
+#include <windows.h>
+#undef min
+#undef max
+#elif defined(unix)
+#include <pthread.h>
+#elif defined(__APPLE__)
+#include <pthread.h>
+#endif 
 
 namespace jtk
   {
@@ -51,10 +65,24 @@ namespace jtk
   template<typename RandomAccessIterator>
   void parallel_sort(RandomAccessIterator begin, RandomAccessIterator end);
 
+  unsigned long get_thread_id();
 
   /////////////////////////////////////////////////////////////////////////
   // implementations
   /////////////////////////////////////////////////////////////////////////
+
+  inline unsigned long get_thread_id()
+    {
+#ifdef _WIN32
+    return GetCurrentThreadId();
+#elif defined(unix)
+    return pthread_self();
+#elif defined(__APPLE__)
+    uint64_t tid;
+    pthread_threadid_np(NULL, &tid);
+    return (unsigned long)tid;
+#endif 
+    }
 
   inline unsigned int hardware_concurrency()
     {
@@ -187,7 +215,7 @@ namespace jtk
 #ifndef _WIN32 // linux alignment in gcc
       __attribute__((aligned(64)))
 #endif
-      ;
+        ;
 #pragma warning(pop)
 
       static _Ty _DefaultInit()
@@ -308,7 +336,7 @@ namespace jtk
       /**/
       _Ty& local()
         {
-        unsigned long _Key = _get_thread_id();
+        unsigned long _Key = get_thread_id();
         size_t _Index;
         _Node* _ExistingNode = _FindLocalItem(_Key, &_Index);
         if (_ExistingNode == nullptr)
@@ -335,7 +363,7 @@ namespace jtk
       /**/
       _Ty& local(bool& _Exists)
         {
-        unsigned long _Key = _get_thread_id();
+        unsigned long _Key = get_thread_id();
         size_t _Index;
         _Node* _ExistingNode = _FindLocalItem(_Key, &_Index);
         if (_ExistingNode == nullptr)
@@ -547,22 +575,8 @@ namespace jtk
           _NewNode->_M_chain = _TopNode;
           } //while (_InterlockedCompareExchangePointer(reinterpret_cast<void * volatile *>(&_M_buckets[_Index]), _NewNode, _TopNode) != _TopNode);
         while (!_M_buckets[_Index].compare_exchange_strong(_TopNode, _NewNode));
-        return _NewNode;
-        }
-
-      unsigned long _get_thread_id() const
-        {
-#ifdef _WIN32
-        return GetCurrentThreadId();
-#elif defined(unix)
-        return pthread_self();
-#elif defined(__APPLE__)
-        //pthread_t tid = pthread_self();
-        uint64_t tid;
-        pthread_threadid_np(NULL, &tid);
-            return (unsigned long)tid;
-#endif 
-        }
+          return _NewNode;
+        }      
 
     private:
       std::atomic<_Node*> volatile * _M_buckets;
@@ -573,7 +587,7 @@ namespace jtk
   template <typename T>
   class combinable
     {
-    private:      
+    private:
       T _local;
       bool _exists;
 
@@ -590,14 +604,14 @@ namespace jtk
 
       combinable(combinable&& other) : _local(std::move(other._local)), _exists(other._exists) { }
 
-      combinable & operator=(const combinable & other) 
+      combinable & operator=(const combinable & other)
         {
         _local = other._local;
         _exists = other._exists;
         return *this;
         }
 
-      combinable & operator=(combinable && other) 
+      combinable & operator=(combinable && other)
         {
         _local = std::move(other._local);
         _exists = other._exists;
@@ -619,5 +633,179 @@ namespace jtk
       void combine_each(combine_func_t f_combine) { f_combine(_local); }
 
     };
+#endif  
+
+#if defined(_ENABLE_TBB)
+  using spinlock = tbb::spin_mutex;
+  using spinlock_rw = tbb::spin_rw_mutex;
+#else
+  // source: https://rigtorp.se/spinlock/
+  struct spinlock
+    {
+    std::atomic<bool> lock_ = { 0 };
+
+    void lock() noexcept {
+      for (;;) {
+        // Optimistically assume the lock is free on the first try
+        if (!lock_.exchange(true, std::memory_order_acquire)) {
+          return;
+          }
+        // Wait for lock to be released without generating cache misses
+        while (lock_.load(std::memory_order_relaxed)) {
+          // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
+          // hyper-threads
+#ifdef _JTK_FOR_ARM
+          __yield();
+#else
+          _mm_pause();
 #endif
+          }
+        }
+      }
+
+    bool try_lock() noexcept {
+      // First do a relaxed load to check if lock is free in order to prevent
+      // unnecessary cache misses if someone does while(!try_lock())
+      return !lock_.load(std::memory_order_relaxed) &&
+        !lock_.exchange(true, std::memory_order_acquire);
+      }
+
+    void unlock() noexcept {
+      lock_.store(false, std::memory_order_release);
+      }
+    };
+
+  struct spinlock_rw
+    {
+    std::atomic<int> lock_ = { 0 };
+
+    void lock_read() noexcept 
+      {
+      for (;;) 
+        {
+        int expected = lock_.load(std::memory_order_relaxed);
+        if (expected >= 0)
+          {
+          int desired = expected + 1;
+          if (std::atomic_compare_exchange_weak_explicit(&lock_, &expected, desired, std::memory_order_relaxed, std::memory_order_relaxed)) {
+            break;
+            }
+          }
+        // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
+        // hyper-threads
+#ifdef _JTK_FOR_ARM
+        __yield();
+#else
+        _mm_pause();
+#endif        
+        }
+      std::atomic_thread_fence(std::memory_order_acquire); // sync
+      }
+
+    void lock() noexcept 
+      {
+      for (;;) {
+        // Optimistically assume the lock is free on the first try
+        int expected = lock_.load(std::memory_order_relaxed);
+        if (expected == 0)
+          {
+          int desired = -1;
+          std::atomic_thread_fence(std::memory_order_acquire); // sync
+          if (std::atomic_compare_exchange_weak_explicit(&lock_, &expected, desired, std::memory_order_relaxed, std::memory_order_relaxed)) 
+            {
+            break;
+            }
+          }
+        // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
+        // hyper-threads
+#ifdef _JTK_FOR_ARM
+        __yield();
+#else
+        _mm_pause();
+#endif        
+        }
+      }
+
+    void unlock() noexcept
+      {
+      for (;;) 
+        {
+        int expected = lock_.load(std::memory_order_relaxed);
+        if (expected > 0)
+          {
+          int desired = expected - 1;
+          std::atomic_thread_fence(std::memory_order_release); // sync
+          if (std::atomic_compare_exchange_weak_explicit(&lock_, &expected, desired, std::memory_order_relaxed, std::memory_order_relaxed))
+            break; // success
+          }
+        else if (expected == -1)
+          {
+          int desired = 0;
+          std::atomic_thread_fence(std::memory_order_release); // sync
+          if (std::atomic_compare_exchange_weak_explicit(&lock_, &expected, desired, std::memory_order_relaxed, std::memory_order_relaxed))
+            break; // success
+          }
+        // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
+        // hyper-threads
+#ifdef _JTK_FOR_ARM
+        __yield();
+#else
+        _mm_pause();
+#endif        
+        }
+      }
+    };
+#endif
+
+  class scoped_lock
+    {
+    public:
+      typedef scoped_lock self_type;
+
+      scoped_lock(spinlock& m) : _spinlock(m)
+        {
+        _spinlock.lock();
+        }
+
+      ~scoped_lock()
+        {
+        _spinlock.unlock();
+        }
+
+      scoped_lock(self_type const&) = delete;
+      scoped_lock(self_type&&) = delete;
+      scoped_lock& operator=(self_type const&) = delete;
+      scoped_lock& operator=(self_type&&) = delete;
+
+    private:
+      spinlock& _spinlock;
+    };
+
+  class scoped_lock_rw
+    {
+    public:
+      typedef scoped_lock_rw self_type;
+
+      scoped_lock_rw(spinlock_rw& m, bool write = true) : _spinlock(m)
+        {
+        if (write)
+          _spinlock.lock();
+        else
+          _spinlock.lock_read();
+        }
+
+      ~scoped_lock_rw()
+        {
+        _spinlock.unlock();
+        }
+
+      scoped_lock_rw(self_type const&) = delete;
+      scoped_lock_rw(self_type&&) = delete;
+      scoped_lock_rw& operator=(self_type const&) = delete;
+      scoped_lock_rw& operator=(self_type&&) = delete;
+
+    private:
+      spinlock_rw& _spinlock;
+    };
+  
   } // namespace jtk

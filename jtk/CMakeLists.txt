@@ -11,6 +11,7 @@ set(HDRS
 alsc.h
 clamp.h
 concurrency.h
+containers.h
 file_utils.h
 fitting.h
 geometry.h
