@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <list>
 #include <unordered_map>
 #include <vector>
 #include <cassert>
