@@ -363,9 +363,9 @@ namespace jtk
       }
     }
 
-  void sparse_vector_1()
+  void sparse_buffer_1()
     {
-    sparse_vector<uint64_t> m(1024);
+    sparse_buffer<uint64_t> m(1024);
 
     for (int i = 0; i < 5000; ++i)
       m.put(i) = i * 3;
@@ -374,9 +374,9 @@ namespace jtk
       TEST_EQ(i * 3, m.get(i));
     }
 
-  void sparse_vector_2()
+  void sparse_buffer_2()
     {
-    sparse_vector<uint64_t> m(1024);
+    sparse_buffer<uint64_t> m(1024);
 
     for (int i = 0; i < 5000; ++i)
       m.put(i) = i * 3;
@@ -390,9 +390,9 @@ namespace jtk
       }
     }
 
-  void concurrent_sparse_vector_1()
+  void concurrent_sparse_buffer_1()
     {
-    concurrent_sparse_vector<uint64_t> m(1024);
+    concurrent_sparse_buffer<uint64_t> m(1024);
 
     for (int i = 0; i < 5000; ++i)
       m.put(i) = i * 3;
@@ -401,9 +401,9 @@ namespace jtk
       TEST_EQ(i * 3, m.get(i));
     }
 
-  void concurrent_sparse_vector_2()
+  void concurrent_sparse_buffer_2()
     {
-    concurrent_sparse_vector<uint64_t> m(1024);
+    concurrent_sparse_buffer<uint64_t> m(1024);
 
     for (int i = 0; i < 5000; ++i)
       m.put(i) = i * 3;
@@ -1053,10 +1053,10 @@ void run_all_container_tests()
 
   hash_1();
   hash_2();
-  sparse_vector_1();
-  sparse_vector_2();
-  concurrent_sparse_vector_1();
-  concurrent_sparse_vector_2();
+  sparse_buffer_1();
+  sparse_buffer_2();
+  concurrent_sparse_buffer_1();
+  concurrent_sparse_buffer_2();
 
   test_circular_buffer_construction();
   test_circular_buffer_pushback();

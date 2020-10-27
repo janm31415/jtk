@@ -1692,10 +1692,10 @@ namespace jtk
 
 
   //////////////////////////////////////
-  // sparse_vector
+  // sparse_buffer
   //////////////////////////////////////
 
-  namespace sparse_vector_details
+  namespace sparse_buffer_details
     {
 
     template <int A>
@@ -1712,20 +1712,20 @@ namespace jtk
     }
 
 
-  template <typename T, typename sparse_vector_type>
-  class sparse_vector_const_iterator
+  template <typename T, typename sparse_buffer_type>
+  class sparse_buffer_const_iterator
     {
     public:
-      typedef sparse_vector_const_iterator<T, sparse_vector_type> self_type;
+      typedef sparse_buffer_const_iterator<T, sparse_buffer_type> self_type;
       typedef std::forward_iterator_tag iterator_category;
       typedef T value_type;
       typedef const T& reference;
       typedef std::ptrdiff_t difference_type;
       typedef typename std::pair<uint64_t, T> bucket;
 
-      sparse_vector_const_iterator() : _si(nullptr) {}
+      sparse_buffer_const_iterator() : _si(nullptr) {}
 
-      sparse_vector_const_iterator(const sparse_vector_type* si) : _si(si)
+      sparse_buffer_const_iterator(const sparse_buffer_type* si) : _si(si)
         {
         if (_si)
           {
@@ -1781,20 +1781,20 @@ namespace jtk
         }
 
     private:
-      const sparse_vector_type* _si;
+      const sparse_buffer_type* _si;
       typename std::vector<bucket>::const_iterator v_it;
       typename indexmap<T>::const_iterator m_it;
     };
 
   template <class T, int cluster_power = 1>
-  class sparse_vector
+  class sparse_buffer
     {
     public:
-      typedef sparse_vector<T, cluster_power> self_type;
-      typedef sparse_vector_const_iterator<T, sparse_vector<T, cluster_power>> const_iterator;
+      typedef sparse_buffer<T, cluster_power> self_type;
+      typedef sparse_buffer_const_iterator<T, sparse_buffer<T, cluster_power>> const_iterator;
       typedef std::pair<uint64_t, T> value_type;
 
-      sparse_vector(uint32_t nr_of_buckets = 4096) : m(nr_of_buckets)
+      sparse_buffer(uint32_t nr_of_buckets = 4096) : m(nr_of_buckets)
         {
         if (nr_of_buckets == 0)
           nr_of_buckets = 4096;
@@ -1804,15 +1804,15 @@ namespace jtk
         mask = nr_of_buckets - 1;
         }
 
-      ~sparse_vector()
+      ~sparse_buffer()
         {
         }
 
-      sparse_vector(const self_type& other) : v(other.v), mask(other.mask), m(other.m)
+      sparse_buffer(const self_type& other) : v(other.v), mask(other.mask), m(other.m)
         {
         }
 
-      sparse_vector(self_type&& other) : sparse_vector()
+      sparse_buffer(self_type&& other) : sparse_buffer()
         {
         swap(other);
         }
@@ -1920,7 +1920,7 @@ namespace jtk
       inline T& get_entry(uint64_t index)
         {
         uint64_t ind = (index & mask) << cluster_power;
-        for (int i = 0; i < sparse_vector_details::get_power_two<cluster_power>::value; ++i, ++ind)
+        for (int i = 0; i < sparse_buffer_details::get_power_two<cluster_power>::value; ++i, ++ind)
           {
           if (v[ind].first == (uint64_t)-1)
             {
@@ -1936,7 +1936,7 @@ namespace jtk
       inline const T& get_entry(uint64_t index) const
         {
         uint64_t ind = (index & mask) << cluster_power;
-        for (int i = 0; i < sparse_vector_details::get_power_two<cluster_power>::value; ++i, ++ind)
+        for (int i = 0; i < sparse_buffer_details::get_power_two<cluster_power>::value; ++i, ++ind)
           {
           if (v[ind].first == index)
             return v[ind].second;
@@ -1947,7 +1947,7 @@ namespace jtk
       inline bool has_entry(uint64_t index) const
         {
         uint64_t ind = (index & mask) << cluster_power;
-        for (int i = 0; i < sparse_vector_details::get_power_two<cluster_power>::value; ++i, ++ind)
+        for (int i = 0; i < sparse_buffer_details::get_power_two<cluster_power>::value; ++i, ++ind)
           {
           if (v[ind].first == (uint64_t)-1)
             return false;
@@ -1962,16 +1962,16 @@ namespace jtk
       indexmap<T> m;
       std::vector<value_type> v;
 
-      template <typename OtherT, typename sparse_vector_type>
-      friend class sparse_vector_const_iterator;
+      template <typename OtherT, typename sparse_buffer_type>
+      friend class sparse_buffer_const_iterator;
     };
 
 
   ///////////////////////////////////////
-  // concurrent_sparse_vector
+  // concurrent_sparse_buffer
   ///////////////////////////////////////
 
-  namespace concurrent_sparse_vector_details
+  namespace concurrent_sparse_buffer_details
     {
 
     template <int A>
@@ -1988,20 +1988,20 @@ namespace jtk
     }
 
 
-  template <typename T, typename concurrent_sparse_vector_type>
-  class concurrent_sparse_vector_const_iterator
+  template <typename T, typename concurrent_sparse_buffer_type>
+  class concurrent_sparse_buffer_const_iterator
     {
     public:
-      typedef concurrent_sparse_vector_const_iterator<T, concurrent_sparse_vector_type> self_type;
+      typedef concurrent_sparse_buffer_const_iterator<T, concurrent_sparse_buffer_type> self_type;
       typedef std::forward_iterator_tag iterator_category;
       typedef T value_type;
       typedef const T& reference;
       typedef std::ptrdiff_t difference_type;
       typedef typename std::pair<uint64_t, T> bucket;
 
-      concurrent_sparse_vector_const_iterator() : _si(nullptr) {}
+      concurrent_sparse_buffer_const_iterator() : _si(nullptr) {}
 
-      concurrent_sparse_vector_const_iterator(const concurrent_sparse_vector_type* si) : _si(si)
+      concurrent_sparse_buffer_const_iterator(const concurrent_sparse_buffer_type* si) : _si(si)
         {
         if (_si)
           {
@@ -2077,22 +2077,22 @@ namespace jtk
         }
 
     private:
-      const concurrent_sparse_vector_type* _si;
+      const concurrent_sparse_buffer_type* _si;
       typename std::vector<std::pair<uint64_t, T>>::const_iterator v_it;
       typename std::vector<flat_list_map<uint64_t, T>>::const_iterator bucket_it;
       typename flat_list_map<uint64_t, T>::const_iterator entry_it;
     };
 
   template <class T, int cluster_power = 1>
-  class concurrent_sparse_vector
+  class concurrent_sparse_buffer
     {
     public:
-      typedef concurrent_sparse_vector<T, cluster_power> self_type;
-      typedef concurrent_sparse_vector_const_iterator<T, concurrent_sparse_vector<T, cluster_power>> const_iterator;
+      typedef concurrent_sparse_buffer<T, cluster_power> self_type;
+      typedef concurrent_sparse_buffer_const_iterator<T, concurrent_sparse_buffer<T, cluster_power>> const_iterator;
       typedef std::pair<uint64_t, T> value_type;
       typedef flat_list_map<uint64_t, T> bucket;
 
-      concurrent_sparse_vector(uint32_t nr_of_buckets = 4096)
+      concurrent_sparse_buffer(uint32_t nr_of_buckets = 4096)
         {
         if (nr_of_buckets == 0)
           nr_of_buckets = 4096;
@@ -2104,17 +2104,17 @@ namespace jtk
         mask = nr_of_buckets - 1;
         }
 
-      ~concurrent_sparse_vector()
+      ~concurrent_sparse_buffer()
         {
         delete[] locks;
         }
 
-      concurrent_sparse_vector(const self_type& other) : v(other.v), mask(other.mask), table(other.table)
+      concurrent_sparse_buffer(const self_type& other) : v(other.v), mask(other.mask), table(other.table)
         {
         locks = new spinlock[mask + 1];
         }
 
-      concurrent_sparse_vector(self_type&& other) : concurrent_sparse_vector()
+      concurrent_sparse_buffer(self_type&& other) : concurrent_sparse_buffer()
         {
         swap(other);
         }
@@ -2247,7 +2247,7 @@ namespace jtk
       inline T& get_entry(uint64_t index)
         {
         uint64_t ind = (index & mask) << cluster_power;
-        for (int i = 0; i < concurrent_sparse_vector_details::get_power_two<cluster_power>::value; ++i, ++ind)
+        for (int i = 0; i < concurrent_sparse_buffer_details::get_power_two<cluster_power>::value; ++i, ++ind)
           {
           if (v[ind].first == (uint64_t)-1)
             {
@@ -2263,7 +2263,7 @@ namespace jtk
       inline const T& get_entry(uint64_t index) const
         {
         uint64_t ind = (index & mask) << cluster_power;
-        for (int i = 0; i < concurrent_sparse_vector_details::get_power_two<cluster_power>::value; ++i, ++ind)
+        for (int i = 0; i < concurrent_sparse_buffer_details::get_power_two<cluster_power>::value; ++i, ++ind)
           {
           if (v[ind].first == index)
             return v[ind].second;
@@ -2274,7 +2274,7 @@ namespace jtk
       inline bool has_entry(uint64_t index) const
         {
         uint64_t ind = (index & mask) << cluster_power;
-        for (int i = 0; i < concurrent_sparse_vector_details::get_power_two<cluster_power>::value; ++i, ++ind)
+        for (int i = 0; i < concurrent_sparse_buffer_details::get_power_two<cluster_power>::value; ++i, ++ind)
           {
           if (v[ind].first == (uint64_t)-1)
             return false;
@@ -2300,8 +2300,8 @@ namespace jtk
       std::vector<value_type> v;
       mutable spinlock* locks;
 
-      template <typename OtherT, typename concurrent_sparse_vector_type>
-      friend class concurrent_sparse_vector_const_iterator;
+      template <typename OtherT, typename concurrent_sparse_buffer_type>
+      friend class concurrent_sparse_buffer_const_iterator;
     };
 
 
