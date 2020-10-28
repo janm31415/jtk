@@ -189,7 +189,7 @@ namespace jtk
   inline int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values);
   inline int4 operator & (const int4& left, const int4& right);
   inline int4 operator | (const int4& left, const int4& right);
-#ifndef __ANDROID__
+#ifndef _JTK_FOR_ARM
   inline int4 operator >> (const int4& a, int n);
   inline int4 operator << (const int4& a, int n);
 #endif
@@ -1079,7 +1079,7 @@ namespace jtk
     return _mm_and_si128(left.m128i, right.m128i);
     }
 
-#ifndef __ANDROID__
+#ifndef _JTK_FOR_ARM
   inline int4 operator >> (const int4& a, int n)
     {
     return _mm_srai_epi32(a.m128i, n);

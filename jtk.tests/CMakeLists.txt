@@ -70,7 +70,7 @@ add_definitions(-DMEMORY_LEAK_TRACKING)
 
 add_executable(jtk.tests ${HDRS} ${SRCS})
 source_group("Header Files" FILES ${hdrs})
-source_group("Source Files" FILES ${srcs})
+source_group("Source Files" FILES ${srcs})	
 
 #if (WIN32)
 #add_custom_command(TARGET jtk.tests POST_BUILD 
