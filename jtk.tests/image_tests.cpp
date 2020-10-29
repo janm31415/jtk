@@ -53,7 +53,7 @@ namespace jtk
 
       const int cs = (int)ct.stride();
 
-      for (int y = 3; y < h - 3; ++y)
+      for (int y = 4; y < h - 4; ++y)
         {
         __m256i descriptor = _mm256_setzero_si256();
         const uint8_t* p_im = im.data() + s * y;
@@ -94,7 +94,7 @@ namespace jtk
 
       const int cs = (int)ct.stride();
 
-      for (int y = 3; y < h - 3; ++y)
+      for (int y = 4; y < h - 4; ++y)
         {
         __m256i descriptor_red = _mm256_setzero_si256();
         __m256i descriptor_green = _mm256_setzero_si256();

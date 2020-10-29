@@ -902,7 +902,7 @@ namespace jtk
 
     const int cs = (int)ct.stride();
 
-    for (int y = 3; y < h - 3; ++y)
+    for (int y = 4; y < h - 4; ++y)
       {
       __m128i descriptor1;
       __m128i descriptor2 = _mm_setzero_si128();
@@ -953,7 +953,7 @@ namespace jtk
 
     const int cs = (int)census_red.stride();
 
-    for (int y = 3; y < h - 3; ++y)
+    for (int y = 4; y < h - 4; ++y)
       {
       __m128i descriptor1_red;
       __m128i descriptor1_green;
@@ -974,7 +974,6 @@ namespace jtk
         const __m128i red128 = _mm_set1_epi8(value & 0xff);
         const __m128i green128 = _mm_set1_epi8((value >> 8) & 0xff);
         const __m128i blue128 = _mm_set1_epi8((value >> 16) & 0xff);
-        const int pos = y * s + x;
         for (int p = 0; p < 16; ++p)
           {
           const uint32_t color = *(p_im + census_samples[2 * p] + census_samples[2 * p + 1] * s);
