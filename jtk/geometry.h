@@ -473,10 +473,14 @@ namespace jtk
     char buffer[256];
     while (fgets(buffer, 256, f) != nullptr)
       {
-      if (buffer[0] == 'v' && buffer[1] == ' ')
+      int first_non_whitespace_index = 0;
+      while (first_non_whitespace_index < 250 && (buffer[first_non_whitespace_index] == ' ' || buffer[first_non_whitespace_index] == '\t'))
+        ++first_non_whitespace_index;
+
+      if (buffer[first_non_whitespace_index + 0] == 'v' && buffer[first_non_whitespace_index + 1] == ' ')
         {
         float x, y, z;
-        auto err = sscanf(buffer, "v %f %f %f\n", &x, &y, &z);
+        auto err = sscanf(buffer + first_non_whitespace_index, "v %f %f %f\n", &x, &y, &z);
         if (err != 3)
           {
           fclose(f);
@@ -484,32 +488,64 @@ namespace jtk
           }
         vertices.push_back(vec3<float>(x, y, z));
         }
-      else if (buffer[0] == 'f' && buffer[1] == ' ')
+      else if (buffer[first_non_whitespace_index + 0] == 'f' && buffer[first_non_whitespace_index + 1] == ' ')
         {
-        uint32_t t0, t1, t2, v0, v1, v2;
-        auto err = sscanf(buffer, "f %d/%d %d/%d %d/%d\n", &t0, &v0, &t1, &v1, &t2, &v2);
+        uint32_t t0, t1, t2, t3, v0, v1, v2, v3;
+        auto err = sscanf(buffer + first_non_whitespace_index, "f %d/%d %d/%d %d/%d %d/%d\n", &t0, &v0, &t1, &v1, &t2, &v2, &t3, &v3);
         if (err == 6)
           {
           triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
           }
+        else if (err == 8)
+          {
+          triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+          triangles.push_back(vec3<uint32_t>(t0 - 1, t2 - 1, t3 - 1));
+          }
         else
           {
-          err = sscanf(buffer, "f %d//%d %d//%d %d//%d\n", &t0, &v0, &t1, &v1, &t2, &v2);
-          if (err != 6)
+          err = sscanf(buffer + first_non_whitespace_index, "f %d//%d %d//%d %d//%d %d//%d\n", &t0, &v0, &t1, &v1, &t2, &v2, &t3, &v3);
+          if (err == 6)
             {
-            err = sscanf(buffer, "f %d %d %d\n", &t0, &t1, &t2);
-            if (err != 3)
+            triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+            }
+          else if (err == 8)
+            {
+            triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+            triangles.push_back(vec3<uint32_t>(t0 - 1, t2 - 1, t3 - 1));
+            }
+          else
+            {
+            err = sscanf(buffer + first_non_whitespace_index, "f %d %d %d %d\n", &t0, &t1, &t2, &t3);
+            if (err == 3)
               {
-              uint32_t tx0, tx1, tx2;
-              err = sscanf(buffer, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &t0, &v0, &tx0, &t1, &v1, &tx1, &t2, &v2, &tx2);
-              if (err != 9)
+              triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+              }
+            else if (err == 4)
+              {
+              triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+              triangles.push_back(vec3<uint32_t>(t0 - 1, t2 - 1, t3 - 1));
+              }
+            else
+              {
+              uint32_t tx0, tx1, tx2, tx3;
+              err = sscanf(buffer + first_non_whitespace_index, "f %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d\n", &t0, &v0, &tx0, &t1, &v1, &tx1, &t2, &v2, &tx2, &t3, &v3, &tx3);
+              if (err == 9)
+                {
+                triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+                }
+              else if (err == 12)
+                {
+                triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+                triangles.push_back(vec3<uint32_t>(t0 - 1, t2 - 1, t3 - 1));
+                }
+              else
                 {
                 fclose(f);
                 return false;
                 }
+
               }
             }
-          triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
           }
         }
       }
@@ -529,7 +565,7 @@ namespace jtk
       int first_non_whitespace_index = 0;
       while (first_non_whitespace_index < 250 && (buffer[first_non_whitespace_index] == ' ' || buffer[first_non_whitespace_index] == '\t'))
         ++first_non_whitespace_index;
-      if (buffer[first_non_whitespace_index+0] == 'm' && buffer[first_non_whitespace_index + 1] == 'a' && buffer[first_non_whitespace_index + 2] == 'p' && buffer[first_non_whitespace_index + 3] == '_' && buffer[first_non_whitespace_index + 4] == 'K' && buffer[first_non_whitespace_index + 5] == 'd')
+      if (buffer[first_non_whitespace_index + 0] == 'm' && buffer[first_non_whitespace_index + 1] == 'a' && buffer[first_non_whitespace_index + 2] == 'p' && buffer[first_non_whitespace_index + 3] == '_' && buffer[first_non_whitespace_index + 4] == 'K' && buffer[first_non_whitespace_index + 5] == 'd')
         {
         char texture[256];
         auto scan_err = sscanf(buffer + first_non_whitespace_index, "map_Kd %s\n", texture);
@@ -560,19 +596,23 @@ namespace jtk
     char buffer[256];
     while (fgets(buffer, 256, f) != nullptr)
       {
-      if (buffer[0] == 'm' && buffer[1] == 't' && buffer[2] == 'l' && buffer[3] == 'l' && buffer[4] == 'i' && buffer[5] == 'b')
+      int first_non_whitespace_index = 0;
+      while (first_non_whitespace_index < 250 && (buffer[first_non_whitespace_index] == ' ' || buffer[first_non_whitespace_index] == '\t'))
+        ++first_non_whitespace_index;
+
+      if (buffer[first_non_whitespace_index + 0] == 'm' && buffer[first_non_whitespace_index + 1] == 't' && buffer[first_non_whitespace_index + 2] == 'l' && buffer[first_non_whitespace_index + 3] == 'l' && buffer[first_non_whitespace_index + 4] == 'i' && buffer[first_non_whitespace_index + 5] == 'b')
         {
         char mtlfile[256];
-        auto scan_err = sscanf(buffer, "mtllib %s\n", mtlfile);
+        auto scan_err = sscanf(buffer + first_non_whitespace_index, "mtllib %s\n", mtlfile);
         if (scan_err == 1)
           {
           mtl_filename = std::string(mtlfile);
           }
         }
-      if (buffer[0] == 'v' && buffer[1] == ' ')
+      if (buffer[first_non_whitespace_index + 0] == 'v' && buffer[first_non_whitespace_index + 1] == ' ')
         {
         float x, y, z;
-        auto err = sscanf(buffer, "v %f %f %f\n", &x, &y, &z);
+        auto err = sscanf(buffer + first_non_whitespace_index, "v %f %f %f\n", &x, &y, &z);
         if (err != 3)
           {
           fclose(f);
@@ -580,10 +620,10 @@ namespace jtk
           }
         vertices.push_back(vec3<float>(x, y, z));
         }
-      else if (buffer[0] == 'v' && buffer[1] == 't' && buffer[2] == ' ')
+      else if (buffer[first_non_whitespace_index + 0] == 'v' && buffer[first_non_whitespace_index + 1] == 't' && buffer[2] == ' ')
         {
         float x, y;
-        auto err = sscanf(buffer, "vt %f %f\n", &x, &y);
+        auto err = sscanf(buffer + first_non_whitespace_index, "vt %f %f\n", &x, &y);
         if (err != 2)
           {
           fclose(f);
@@ -591,41 +631,71 @@ namespace jtk
           }
         tex.push_back(vec2<float>(x, y));
         }
-      else if (buffer[0] == 'f' && buffer[1] == ' ')
+      else if (buffer[first_non_whitespace_index + 0] == 'f' && buffer[first_non_whitespace_index + 1] == ' ')
         {
-        uint32_t t0, t1, t2, v0, v1, v2;
-        auto err = sscanf(buffer, "f %d/%d %d/%d %d/%d\n", &t0, &v0, &t1, &v1, &t2, &v2);
+        uint32_t t0, t1, t2, t3, v0, v1, v2, v3;
+        auto err = sscanf(buffer + first_non_whitespace_index, "f %d/%d %d/%d %d/%d %d/%d\n", &t0, &v0, &t1, &v1, &t2, &v2, &t3, &v3);
         if (err == 6)
           {
           tria_uv.push_back(vec3<uint32_t>(v0 - 1, v1 - 1, v2 - 1));
           triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
           }
+        else if (err == 8)
+          {
+          tria_uv.push_back(vec3<uint32_t>(v0 - 1, v1 - 1, v2 - 1));
+          triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+          tria_uv.push_back(vec3<uint32_t>(v0 - 1, v2 - 1, v3-1));
+          triangles.push_back(vec3<uint32_t>(t0 - 1, t2 - 1, t3 - 1));
+          }
         else
           {
-          err = sscanf(buffer, "f %d//%d %d//%d %d//%d\n", &t0, &v0, &t1, &v1, &t2, &v2);
+          err = sscanf(buffer + first_non_whitespace_index, "f %d//%d %d//%d %d//%d %d//%d\n", &t0, &v0, &t1, &v1, &t2, &v2, &t3, &v3);
           if (err == 6)
             {
             tria_uv.push_back(vec3<uint32_t>(v0 - 1, v1 - 1, v2 - 1));
             triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
             }
+          else if (err == 8)
+            {
+            tria_uv.push_back(vec3<uint32_t>(v0 - 1, v1 - 1, v2 - 1));
+            triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+            tria_uv.push_back(vec3<uint32_t>(v0 - 1, v2 - 1, v3 - 1));
+            triangles.push_back(vec3<uint32_t>(t0 - 1, t2 - 1, t3 - 1));
+            }
           else
             {
-            err = sscanf(buffer, "f %d %d %d\n", &t0, &t1, &t2);
+            err = sscanf(buffer + first_non_whitespace_index, "f %d %d %d %d\n", &t0, &t1, &t2, &t3);
             if (err == 3)
               {
               triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
               }
+            else if (err == 4)
+              {
+              triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+              triangles.push_back(vec3<uint32_t>(t0 - 1, t2 - 1, t3 - 1));
+              }
             else
               {
-              uint32_t tx0, tx1, tx2;
-              err = sscanf(buffer, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &t0, &v0, &tx0, &t1, &v1, &tx1, &t2, &v2, &tx2);
-              if (err != 9)
+              uint32_t tx0, tx1, tx2, tx3;
+              err = sscanf(buffer + first_non_whitespace_index, "f %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d\n", &t0, &v0, &tx0, &t1, &v1, &tx1, &t2, &v2, &tx2, &t3, &v3, &tx3);
+              if (err == 9)
+                {
+                tria_uv.push_back(vec3<uint32_t>(v0 - 1, v1 - 1, v2 - 1));
+                triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+                }
+              else if (err == 12)
+                {
+                tria_uv.push_back(vec3<uint32_t>(v0 - 1, v1 - 1, v2 - 1));
+                triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+                tria_uv.push_back(vec3<uint32_t>(v0 - 1, v2 - 1, v3 - 1));
+                triangles.push_back(vec3<uint32_t>(t0 - 1, t2 - 1, t3 - 1));
+                }
+              else
                 {
                 fclose(f);
                 return false;
                 }
-              tria_uv.push_back(vec3<uint32_t>(v0 - 1, v1 - 1, v2 - 1));
-              triangles.push_back(vec3<uint32_t>(t0 - 1, t1 - 1, t2 - 1));
+
               }
             }
           }
