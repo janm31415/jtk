@@ -526,10 +526,13 @@ namespace jtk
     char buffer[256];
     while (fgets(buffer, 256, f) != nullptr)
       {
-      if (buffer[0] == 'm' && buffer[1] == 'a' && buffer[2] == 'p' && buffer[3] == '_' && buffer[4] == 'K' && buffer[5] == 'd')
+      int first_non_whitespace_index = 0;
+      while (first_non_whitespace_index < 250 && (buffer[first_non_whitespace_index] == ' ' || buffer[first_non_whitespace_index] == '\t'))
+        ++first_non_whitespace_index;
+      if (buffer[first_non_whitespace_index+0] == 'm' && buffer[first_non_whitespace_index + 1] == 'a' && buffer[first_non_whitespace_index + 2] == 'p' && buffer[first_non_whitespace_index + 3] == '_' && buffer[first_non_whitespace_index + 4] == 'K' && buffer[first_non_whitespace_index + 5] == 'd')
         {
         char texture[256];
-        auto scan_err = sscanf(buffer, "map_Kd %s\n", texture);
+        auto scan_err = sscanf(buffer + first_non_whitespace_index, "map_Kd %s\n", texture);
         scan_err;
         texture_file = std::string(texture);
         fclose(f);
