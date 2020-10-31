@@ -5,8 +5,10 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <sys/stat.h>
 #ifdef _WIN32
 #include <algorithm>
+#include <sys/types.h>
 #endif
 
 namespace jtk
@@ -38,6 +40,8 @@ namespace jtk
 
   void csv_write(const std::vector<std::vector<std::string>>& data, FILE* stream, const char* separator = ",");
   bool csv_write(const std::vector<std::vector<std::string>>& data, const char* filename, const char* separator = ",");
+
+  long long file_size(const std::string& filename);
 
   } // namespace jtk
 
@@ -1597,4 +1601,29 @@ namespace jtk
     fclose(f);
     return true;
     }
+
+#ifdef _WIN32
+  inline long long file_size(const std::string& filename)
+    {
+    struct _stat64 st;
+
+    std::wstring wfilename = convert_string_to_wstring(filename);
+
+    if (_wstat64(wfilename.c_str(), &st) == 0)
+      return st.st_size;
+
+    return -1;
+    }
+#else
+  inline long long file_size(const std::string& filename)
+    {
+    struct stat st;
+
+    if (stat(filename, &st) == 0)
+      return st.st_size;
+
+    return -1;
+    }
+#endif
+
   } // namespace jtk
