@@ -1619,7 +1619,7 @@ namespace jtk
     {
     struct stat st;
 
-    if (stat(filename, &st) == 0)
+    if (stat(filename.c_str(), &st) == 0)
       return st.st_size;
 
     return -1;

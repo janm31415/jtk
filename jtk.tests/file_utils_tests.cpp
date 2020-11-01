@@ -36,8 +36,11 @@ namespace jtk
     TEST_EQ(std::string("the"), data[1][1]);
     TEST_EQ(std::string("second"), data[1][2]);
     TEST_EQ(std::string("line"), data[1][3]);
-
+#ifdef _WIN32
     TEST_EQ(37, file_size("csvfile.csv"));
+#else
+    TEST_EQ(35, file_size("csvfile.csv"));
+#endif    
     }
 
   void test_conversions_wstring_string()
