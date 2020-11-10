@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <iterator>
 #include <queue>
 #include <set>
 #include <string>
