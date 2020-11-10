@@ -1325,6 +1325,16 @@ namespace jtk
         return has_key(key);
         }
 
+      void erase(const Key& key)
+        {
+        value_type dummy(key, T());
+        auto it = std::lower_bound(m.begin(), m.end(), dummy, [&](const value_type& left, const value_type& right)
+          {
+          return left.first < right.first;
+          });
+        m.erase(it);
+        }
+
       iterator begin()
         {
         return iterator(this, true);
@@ -2146,6 +2156,36 @@ namespace jtk
         T& res = get_entry(index);
         unlock_bucket(index);
         return res;
+        }
+
+      void erase(uint64_t index)
+        {
+        lock_bucket(index);
+        /*
+        uint64_t ind = (index & mask) << cluster_power;
+        for (int i = 0; i < concurrent_sparse_buffer_details::get_power_two<cluster_power>::value; ++i, ++ind)
+          {
+          if (v[ind].first == index)
+            return v[ind].second;
+          }
+        return table[index & mask].get(index);
+        */
+        uint64_t ind = (index & mask) << cluster_power;
+        for (int i = 0; i < concurrent_sparse_buffer_details::get_power_two<cluster_power>::value; ++i, ++ind)
+          {
+          if (v[ind].first == index)
+            {
+            v[ind].first = (uint64_t)-1;
+            for (int j = i + 1; j < concurrent_sparse_buffer_details::get_power_two<cluster_power>::value; ++j)
+              {
+              v[ind + j - 1] = v[ind + j];
+              }
+            unlock_bucket(index);
+            return;
+            }
+          }
+        table[index & mask].erase(index);
+        unlock_bucket(index);
         }
 
       void put_safe(uint64_t index, const T& value)
