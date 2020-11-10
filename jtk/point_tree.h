@@ -159,7 +159,7 @@ namespace jtk
     template<class _Ty, class _Result_type>
     struct k_set_compare
       {
-      bool operator () (const std::pair<_Ty, _Result_type>& _Left, const std::pair<_Ty, _Result_type>& _Right)
+      bool operator () (const std::pair<_Ty, _Result_type>& _Left, const std::pair<_Ty, _Result_type>& _Right) const
         {
         return _Left.first < _Right.first;
         }
