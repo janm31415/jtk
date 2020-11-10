@@ -65,22 +65,22 @@ namespace jtk
   template<typename RandomAccessIterator>
   void parallel_sort(RandomAccessIterator begin, RandomAccessIterator end);
 
-  unsigned long get_thread_id();
+  uint64_t get_thread_id();
 
   /////////////////////////////////////////////////////////////////////////
   // implementations
   /////////////////////////////////////////////////////////////////////////
 
-  inline unsigned long get_thread_id()
+  inline uint64_t get_thread_id()
     {
 #ifdef _WIN32
-    return GetCurrentThreadId();
+    return (uint64_t)GetCurrentThreadId();
 #elif defined(unix)
-    return pthread_self();
+    return (uint64_t)pthread_self();
 #elif defined(__APPLE__)
     uint64_t tid;
     pthread_threadid_np(NULL, &tid);
-    return (unsigned long)tid;
+    return tid;
 #endif 
     }
 
