@@ -570,7 +570,7 @@ namespace jtk
         {
         char texture[256];
         auto scan_err = sscanf(buffer + first_non_whitespace_index, "map_Kd %s\n", texture);
-        (void*)scan_err;
+        (void)scan_err;
         texture_file = std::string(texture);
         fclose(f);
         return true;
