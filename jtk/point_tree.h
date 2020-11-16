@@ -421,8 +421,8 @@ namespace jtk
         }
       else
         {
-        value_type _Min_d1 = _Kd[_Kd_node._Child_1]._Node.distance_sqr<_Traits::dimension>(point);
-        value_type _Min_d2 = _Kd[_Kd_node._Child_2]._Node.distance_sqr<_Traits::dimension>(point);
+        value_type _Min_d1 = _Kd[_Kd_node._Child_1]._Node.distance_sqr(point);
+        value_type _Min_d2 = _Kd[_Kd_node._Child_2]._Node.distance_sqr(point);
         if (_Rad_2 > _Min_d2)
           _St.push_back(_Kd_node._Child_2);
         if (_Rad_2 > _Min_d1)
@@ -501,8 +501,8 @@ namespace jtk
         }
       else
         {
-        value_type _Min_d1 = _Kd[_Kd_node._Child_1]._Node.distance_sqr<_Traits::dimension>(point);
-        value_type _Min_d2 = _Kd[_Kd_node._Child_2]._Node.distance_sqr<_Traits::dimension>(point);
+        value_type _Min_d1 = _Kd[_Kd_node._Child_1]._Node.distance_sqr(point);
+        value_type _Min_d2 = _Kd[_Kd_node._Child_2]._Node.distance_sqr(point);
         if (_K_best_d > _Min_d2 || _Candidates.size() < k)
           _St.push_back(_Kd_node._Child_2);
         if (_K_best_d > _Min_d1 || _Candidates.size() < k)
