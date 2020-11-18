@@ -94,6 +94,8 @@ namespace jtk
 
   void remove_free_vertices(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
 
+  bool edge_swap(uint32_t v, uint32_t v2, std::vector<jtk::vec3<uint32_t>>& triangles, jtk::mutable_adjacency_list& adj_list);
+
   std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles);
 
   std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles);
@@ -139,6 +141,9 @@ namespace jtk
   enum class shell_connectivity { vertex, edge, manifold };
   std::vector<uint32_t> shells(const uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles, shell_connectivity conn = shell_connectivity::edge);
 
+  std::vector<std::vector<uint32_t>> holes(const adjacency_list& adj_list, const vec3<uint32_t>* triangles);
+
+  std::vector<std::vector<uint32_t>> holes(const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles);
 
   struct trivial_ear
     {
@@ -1179,6 +1184,66 @@ namespace jtk
     vertices.swap(new_vertices);
     }
 
+  inline bool edge_swap(uint32_t v, uint32_t v2, std::vector<jtk::vec3<uint32_t>>& triangles, jtk::mutable_adjacency_list& adj_list)
+    {
+    auto tria = jtk::triangle_indices_from_edge(v, v2, adj_list);
+    if (tria.size() != 2)
+      return false;
+
+    auto t1 = triangles[tria[0]];
+    auto t2 = triangles[tria[1]];
+    int t1v = 0;
+    while (t1[t1v] == v || t1[t1v] == v2)
+      ++t1v;
+    int t2v = 0;
+    while (t2[t2v] == v || t2[t2v] == v2)
+      ++t2v;
+
+    int vpos = 0;
+    while (t1[vpos] != v)
+      ++vpos;
+    int v2pos = 0;
+    while (t1[v2pos] != v2)
+      ++v2pos;
+
+    if ((v2pos + 1) % 3 == vpos)
+      {
+      std::swap(tria[0], tria[1]);
+      std::swap(t1, t2);
+      std::swap(t1v, t2v);
+      }
+
+    uint32_t T1v = t1[t1v];
+    uint32_t T2v = t2[t2v];
+
+    if (!jtk::triangle_indices_from_edge(T1v, T2v, adj_list).empty())
+      return false;
+
+    adj_list.remove_triangle_from_vertex(v2, tria[0]);
+    adj_list.remove_triangle_from_vertex(v, tria[1]);
+
+    t1[0] = T1v;
+    t1[1] = v;
+    t1[2] = T2v;
+
+    t2[0] = T1v;
+    t2[1] = T2v;
+    t2[2] = v2;
+
+    triangles[tria[0]] = t1;
+    triangles[tria[1]] = t2;
+
+    adj_list.add_triangle_to_vertex(T1v, tria[1]);
+    adj_list.add_triangle_to_vertex(T2v, tria[0]);
+
+    assert(jtk::triangle_indices_from_edge(T1v, T2v, adj_list).size() == 2);
+    assert(jtk::triangle_indices_from_edge(T1v, v2, adj_list).size() == 2);
+    assert(jtk::triangle_indices_from_edge(v2, T2v, adj_list).size() == 2);
+    assert(jtk::triangle_indices_from_edge(T1v, v, adj_list).size() == 2);
+    assert(jtk::triangle_indices_from_edge(v, T2v, adj_list).size() == 2);
+    return true;
+    }
+
   inline std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles)
     {
     std::vector<uint32_t> one_ring;
@@ -1798,70 +1863,91 @@ namespace jtk
       }
     }
 
-  template <class Ear>
-  void fill_holes(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, uint32_t max_holes_size)
+  namespace hole_filling_details
     {
-    mutable_adjacency_list adj_list((uint32_t)vertices.size(), triangles.data(), (uint32_t)triangles.size());
-    std::vector<bool> vertex_treated(vertices.size(), false);
-    std::vector<std::vector<uint32_t>> holes;
-    for (uint32_t v = 0; v < (uint32_t)vertex_treated.size(); ++v)
+    template <class TAdjList>
+    std::vector<std::vector<uint32_t>> _holes(const TAdjList& adj_list, const vec3<uint32_t>* triangles)
       {
-      if (!vertex_treated[v])
+      std::vector<bool> vertex_treated(adj_list.size(), false);
+      std::vector<std::vector<uint32_t>> holes;
+      for (uint32_t v = 0; v < (uint32_t)vertex_treated.size(); ++v)
         {
-        vertex_treated[v] = true;
-        if (is_boundary_vertex(v, adj_list, triangles.data()))
+        if (!vertex_treated[v])
           {
-          std::vector<uint32_t> hole;
-          hole.push_back(v);
-          std::queue<uint32_t> qu;
-          auto neighbouring_vertices = one_ring_vertices_from_vertex(v, adj_list, triangles.data());
-          for (auto v2 : neighbouring_vertices)
+          vertex_treated[v] = true;
+          if (is_boundary_vertex(v, adj_list, triangles))
             {
-            if (!vertex_treated[v2] && is_boundary_edge(v, v2, adj_list))
-              {
-              qu.push(v2);
-              break;
-              }
-            }
-          while (!qu.empty())
-            {
-            uint32_t current_vertex = qu.front();
-            assert(!vertex_treated[current_vertex]);
-            hole.push_back(current_vertex);
-            vertex_treated[current_vertex] = true;
-            qu.pop();
-            neighbouring_vertices = one_ring_vertices_from_vertex(current_vertex, adj_list, triangles.data());
+            std::vector<uint32_t> hole;
+            hole.push_back(v);
+            std::queue<uint32_t> qu;
+            auto neighbouring_vertices = one_ring_vertices_from_vertex(v, adj_list, triangles);
             for (auto v2 : neighbouring_vertices)
               {
-              if (!vertex_treated[v2] && is_boundary_edge(current_vertex, v2, adj_list))
+              if (!vertex_treated[v2] && is_boundary_edge(v, v2, adj_list))
                 {
                 qu.push(v2);
                 break;
                 }
               }
-            }
-          bool valid_hole = hole.size() > 2;
-          if (valid_hole)
-            {
-            neighbouring_vertices = one_ring_vertices_from_vertex(v, adj_list, triangles.data());
-            bool found_last = false;
-            for (auto v2 : neighbouring_vertices)
+            while (!qu.empty())
               {
-              if (v2 == hole.back())
+              uint32_t current_vertex = qu.front();
+              assert(!vertex_treated[current_vertex]);
+              hole.push_back(current_vertex);
+              vertex_treated[current_vertex] = true;
+              qu.pop();
+              neighbouring_vertices = one_ring_vertices_from_vertex(current_vertex, adj_list, triangles);
+              for (auto v2 : neighbouring_vertices)
                 {
-                found_last = true;
-                break;
+                if (!vertex_treated[v2] && is_boundary_edge(current_vertex, v2, adj_list))
+                  {
+                  qu.push(v2);
+                  break;
+                  }
                 }
               }
-            valid_hole = found_last;
+            bool valid_hole = hole.size() > 2;
+            if (valid_hole)
+              {
+              neighbouring_vertices = one_ring_vertices_from_vertex(v, adj_list, triangles);
+              bool found_last = false;
+              for (auto v2 : neighbouring_vertices)
+                {
+                if (v2 == hole.back())
+                  {
+                  found_last = true;
+                  break;
+                  }
+                }
+              valid_hole = found_last;
+              }
+            if (valid_hole)
+              holes.push_back(hole);
             }
-          if (valid_hole)
-            holes.push_back(hole);
           }
         }
+      return holes;
       }
+    }
 
-    for (auto& hole : holes)
+  inline std::vector<std::vector<uint32_t>> holes(const adjacency_list& adj_list, const vec3<uint32_t>* triangles)
+    {
+    return hole_filling_details::_holes<adjacency_list>(adj_list, triangles);
+    }
+
+  inline std::vector<std::vector<uint32_t>> holes(const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles)
+    {
+    return hole_filling_details::_holes<mutable_adjacency_list>(adj_list, triangles);
+    }
+
+  template <class Ear>
+  void fill_holes(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, uint32_t max_holes_size)
+    {
+    mutable_adjacency_list adj_list((uint32_t)vertices.size(), triangles.data(), (uint32_t)triangles.size());
+
+    std::vector<std::vector<uint32_t>> holes_found = holes(adj_list, triangles.data());
+    
+    for (auto& hole : holes_found)
       {
       if (hole.size() < max_holes_size)
         {
