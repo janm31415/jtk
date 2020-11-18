@@ -887,14 +887,88 @@ namespace jtk
     aligned_vector_test_3();
     aligned_vector_test_4();
     }
+
+  void sphere_intersection_1()
+    {
+    vec3<float4> sphere_origin(float4(3.0), float4(0.0), float4(0.0));
+    float4 sphere_radius(1.0);
+    vec3<float4> ray_orig(float4(0.0), float4(0.0), float4(0.0));
+    vec3<float4> ray_dir(float4(1.0), float4(0.0), float4(0.0));
+    float4 t_near(0.0);
+    float4 t_far(5.0);
+    spherehit4 h;
+    intersect_sphere(sphere_origin, sphere_radius, ray_orig, ray_dir, t_near, t_far, h);
+    TEST_ASSERT(all(h.found));
+    for (int i = 0; i < 4; ++i)
+      TEST_EQ(h.distance[i], 2.f);
+    }
+
+  void sphere_intersection_2()
+    {
+    vec3<float4> sphere_origin(float4(-0.5), float4(0.0), float4(0.0));
+    float4 sphere_radius(1.0);
+    vec3<float4> ray_orig(float4(0.0), float4(0.0), float4(0.0));
+    vec3<float4> ray_dir(float4(1.0), float4(0.0), float4(0.0));
+    float4 t_near(0.0);
+    float4 t_far(5.0);
+    spherehit4 h;
+    intersect_sphere(sphere_origin, sphere_radius, ray_orig, ray_dir, t_near, t_far, h);
+    TEST_ASSERT(all(h.found));
+    for (int i = 0; i < 4; ++i)
+      TEST_EQ(h.distance[i], 0.5f);
+    }
+
+  void sphere_intersection_3()
+    {
+    vec3<float4> sphere_origin(float4(3.0), float4(0.0), float4(0.0));
+    float4 sphere_radius(1.0, 2.0, 2.5, 0.5);
+    vec3<float4> ray_orig(float4(0.0), float4(0.0), float4(0.0));
+    vec3<float4> ray_dir(float4(1.0), float4(0.0), float4(0.0));
+    float4 t_near(0.0);
+    float4 t_far(5.0);
+    spherehit4 h;
+    intersect_sphere(sphere_origin, sphere_radius, ray_orig, ray_dir, t_near, t_far, h);
+    TEST_ASSERT(all(h.found));
+    TEST_EQ(h.distance[0], 2.f);
+    TEST_EQ(h.distance[1], 1.f);
+    TEST_EQ(h.distance[2], 0.5f);
+    TEST_EQ(h.distance[3], 2.5f);
+    }
+
+  void sphere_intersection_4()
+    {
+    vec3<float4> sphere_origin(float4(-1.5f), float4(0.0), float4(0.0));
+    float4 sphere_radius(1.0, 2.0, 2.5, 0.5);
+    vec3<float4> ray_orig(float4(0.0), float4(0.0), float4(0.0));
+    vec3<float4> ray_dir(float4(1.0), float4(0.0), float4(0.0));
+    float4 t_near(0.0);
+    float4 t_far(5.0);
+    spherehit4 h;
+    intersect_sphere(sphere_origin, sphere_radius, ray_orig, ray_dir, t_near, t_far, h);
+    TEST_EQ(0, h.found[0]);
+    TEST_EQ(-1, h.found[1]);
+    TEST_EQ(-1, h.found[2]);
+    TEST_EQ(0, h.found[3]);
+    TEST_EQ(h.distance[1], 0.5f);
+    TEST_EQ(h.distance[2], 1.f);    
+    }
+
+  void run_all_sphere_intersection_tests()
+    {
+    sphere_intersection_1();
+    sphere_intersection_2();
+    sphere_intersection_3();
+    sphere_intersection_4();
+    }
   }
 
 
 void run_all_qbvh_tests()
   {
   using namespace jtk;
-  run_all_simd_tests();
-  run_all_bvh_tests();
-  run_all_parallel_partition_tests();
-  run_all_vector_tests();
+  //run_all_simd_tests();
+  //run_all_bvh_tests();
+  //run_all_parallel_partition_tests();
+  //run_all_vector_tests();
+  run_all_sphere_intersection_tests();
   }

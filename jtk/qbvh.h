@@ -321,6 +321,18 @@ namespace jtk
     bool4 found;
     };
 
+  struct spherehit
+    {    
+    float distance;
+    int32_t found;
+    };
+
+  struct spherehit4
+    {    
+    float4 distance;
+    bool4 found;
+    };
+
   struct ray
     {
     float4 orig;
@@ -405,6 +417,8 @@ namespace jtk
     };
 
   inline qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles);
+  inline qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres);
+
   struct qbvh_node
     {
     float4 bbox[2 * 3]; // 96 bytes  
@@ -439,6 +453,48 @@ namespace jtk
       inline qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
       inline hit find_closest_triangle(uint32_t& triangle_id, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const;
       inline hit find_closest_triangle(uint32_t& triangle_id, const vec3<float>& point, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const;
+
+    private:
+      inline void _build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb);
+      inline typename int4::value_type construct_tree_single(aligned_vector<qbvh_node>& local_nodes, uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+
+      struct tree_stack
+        {
+        qbvh_voxel bb_child[4], centroid_child[4];
+        uint32_t sizes[4];
+        typename int4::value_type child[4];
+        int level;
+        std::vector<uint32_t>::iterator first;
+        std::vector<uint32_t>::iterator last;
+        std::vector<uint32_t>::iterator mid0, mid1, mid2;
+        };
+
+      inline typename int4::value_type construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep);
+      inline typename int4::value_type construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+
+    public:
+      aligned_vector<qbvh_node> nodes;
+      uint32_t root_id;
+      std::vector<uint32_t>::iterator start;
+      const properties props;
+      std::vector<uint32_t> _ids;
+    };
+
+  class sphere_qbvh
+    {
+    public:
+
+      struct properties
+        {
+        uint32_t leaf_size;
+        int parallel_level;
+        properties() : leaf_size(32), parallel_level(2) {}
+        };
+
+      inline sphere_qbvh(const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres);
+      inline sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
+      inline sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
+      inline spherehit find_closest_sphere(uint32_t& sphere_id, ray r, const vec3<float>* origins, const float* radii) const;
 
     private:
       inline void _build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb);
@@ -1549,7 +1605,7 @@ namespace jtk
     out.Sy = r_dir[out.ky] * out.Sz;
 
     return out;
-    }
+    }  
 
   inline void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h)
     {
@@ -1635,6 +1691,29 @@ namespace jtk
     res &= (txmin <= t_far);
     res &= (txmax >= t_near);
     return res;
+    }
+
+  inline void intersect_sphere(const vec3<float4>& sphere_origin, const float4& sphere_radius, const vec3<float4>& r_orig, const vec3<float4>& ray_dir, const float4& t_near, const float4& t_far, spherehit4& h)
+    {
+    h.found = bool4(true);
+    const vec3<float4> L = sphere_origin - r_orig;
+    const float4 tca = dot(L, ray_dir);
+    const float4 d2 = dot(L, L) - tca * tca;
+    const float4 sphere_radius_sqr = sphere_radius * sphere_radius;
+    h.found &= (d2 < sphere_radius_sqr);
+    if (none(h.found))
+      return;
+    const float4 thc = sqrt(sphere_radius_sqr - d2);
+    const float4 t0 = tca - thc;
+    const float4 t1 = tca + thc;
+    const bool4 t0_is_valid = (t_near <= t0) & (t0 <= t_far);
+    const bool4 t1_is_valid = (t_near <= t1) & (t1 <= t_far);
+    h.found &= t0_is_valid | t1_is_valid;
+    if (none(h.found))
+      return;
+    const bool4 t0_is_closest = abs(t0) < abs(t1);
+    const float4 t_closest = masked_update(t0_is_closest, t1, t0);
+    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t1_is_valid & (!t0_is_valid), t0, t1), t_closest);
     }
 
   /////////////////////////////////////////////////////////////////////////
@@ -2205,7 +2284,7 @@ I'm following the same algorithm steps, but do everything in place.
   inline void qbvh_voxel::operator delete[](void* ptr) { aligned_free(ptr); }
 
 
-    inline qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+  inline qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
     {
     qbvh_voxel* lst = new qbvh_voxel[nr_of_triangles];
     total_bb.bbox_min = std::numeric_limits<float>::max();
@@ -2247,6 +2326,45 @@ I'm following the same algorithm steps, but do everything in place.
     return lst;
     }
 
+  inline qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
+    {
+    qbvh_voxel* lst = new qbvh_voxel[nr_of_spheres];
+    total_bb.bbox_min = std::numeric_limits<float>::max();
+    total_bb.bbox_max = -std::numeric_limits<float>::max();
+    centroid_bb.bbox_min = total_bb.bbox_min;
+    centroid_bb.bbox_max = total_bb.bbox_max;
+    const unsigned int number_of_threads = hardware_concurrency();
+
+    aligned_vector<qbvh_voxel> total_bbs(number_of_threads, total_bb);
+    aligned_vector<qbvh_voxel> total_centroids(number_of_threads, centroid_bb);
+    parallel_for((unsigned int)0, number_of_threads, [&](unsigned int i)
+      {
+      uint32_t s = (uint32_t)((uint64_t)i * (uint64_t)(nr_of_spheres) / (uint64_t)number_of_threads);
+      const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(nr_of_spheres) / (uint64_t)number_of_threads);
+      for (uint32_t t = s; t < e; ++t)
+        {
+        const float4 v(origins[t][0], origins[t][1], origins[t][2], 1);        
+        lst[t].bbox_min = v - float4(radii[t], radii[t], radii[t], 0.f);
+        lst[t].bbox_max = v + float4(radii[t], radii[t], radii[t], 0.f);
+        lst[t].centroid = v;
+        total_bbs[i].bbox_min = min(total_bbs[i].bbox_min, lst[t].bbox_min);
+        total_bbs[i].bbox_max = max(total_bbs[i].bbox_max, lst[t].bbox_max);
+        total_centroids[i].bbox_min = min(total_centroids[i].bbox_min, lst[t].centroid);
+        total_centroids[i].bbox_max = max(total_centroids[i].bbox_max, lst[t].centroid);
+        }
+      });
+
+    for (uint32_t i = 0; i < number_of_threads; ++i)
+      {
+      total_bb.bbox_min = min(total_bb.bbox_min, total_bbs[i].bbox_min);
+      total_bb.bbox_max = max(total_bb.bbox_max, total_bbs[i].bbox_max);
+      centroid_bb.bbox_min = min(centroid_bb.bbox_min, total_centroids[i].bbox_min);
+      centroid_bb.bbox_max = max(centroid_bb.bbox_max, total_centroids[i].bbox_max);
+      }
+    total_bb.centroid = (total_bb.bbox_min + total_bb.bbox_max)*0.5;
+    centroid_bb.centroid = (centroid_bb.bbox_min + centroid_bb.bbox_max)*0.5;
+    return lst;
+    }
 
   inline void unite_four_aabbs(float4* out, float4* in, int k)
     {
@@ -3290,6 +3408,476 @@ I'm following the same algorithm steps, but do everything in place.
     return id;
     }
 
+  /////////////////////////////////////////////////////////////////////////
+  // sphere_qbvh
+  /////////////////////////////////////////////////////////////////////////
+
+  inline sphere_qbvh::sphere_qbvh(const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
+    {
+    qbvh_voxel total_bb, centroid_bb;
+    auto qbvh_voxels = build_sphere_qbvh_voxels(total_bb, centroid_bb, origins, radii, nr_of_spheres);
+    _build(qbvh_voxels, nr_of_spheres, total_bb, centroid_bb);
+    delete[] qbvh_voxels;
+    }
+
+  inline sphere_qbvh::sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
+    {
+    assert(props.leaf_size > 1);
+    _ids = ids;
+    _build(voxels, nr_of_items, total_bb, centroid_bb);
+    }
+
+  inline sphere_qbvh::sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
+    {
+    assert(props.leaf_size > 1);
+    _build(voxels, nr_of_items, total_bb, centroid_bb);
+    }
+
+  inline spherehit sphere_qbvh::find_closest_sphere(uint32_t& sphere_id, ray r, const vec3<float>* origins, const float* radii) const
+    {
+    spherehit h;
+    h.found = 0;
+    h.distance = std::numeric_limits<float>::max();
+
+    vec3<float4> ray_origin(r.orig[0], r.orig[1], r.orig[2]);
+    vec3<float4> ray_dir(r.dir[0], r.dir[1], r.dir[2]);
+
+    int32_t ray_dir_sign[3];
+    float4 ray_inverse_dir_tmp = reciprocal(r.dir);
+    if (fabs(ray_inverse_dir_tmp[0]) == std::numeric_limits<float>::infinity())
+      ray_inverse_dir_tmp[0] = std::numeric_limits<float>::max();
+    if (fabs(ray_inverse_dir_tmp[1]) == std::numeric_limits<float>::infinity())
+      ray_inverse_dir_tmp[1] = std::numeric_limits<float>::max();
+    if (fabs(ray_inverse_dir_tmp[2]) == std::numeric_limits<float>::infinity())
+      ray_inverse_dir_tmp[2] = std::numeric_limits<float>::max();
+    vec3<float4> ray_inverse_dir(ray_inverse_dir_tmp[0], ray_inverse_dir_tmp[1], ray_inverse_dir_tmp[2]);
+    float4 t_near(r.t_near);
+    float4 t_far(r.t_far);
+    ray_dir_sign[0] = r.dir[0] < 0 ? 1 : 0;
+    ray_dir_sign[1] = r.dir[1] < 0 ? 1 : 0;
+    ray_dir_sign[2] = r.dir[2] < 0 ? 1 : 0;
+
+    std::vector<int32_t> stack;
+    stack.reserve(512);
+    stack.push_back((int32_t)root_id);
+    while (!stack.empty())
+      {
+      const auto node = nodes[stack.back()];
+      stack.pop_back();
+
+      const uint32_t order_pos = (ray_dir_sign[node.axis0] << 2) | (ray_dir_sign[node.axis1] << 1) | (ray_dir_sign[node.axis2]);
+      const uint32_t* local_order = order[order_pos];
+
+      auto isct = intersect(node.bbox, ray_origin, t_near, t_far, ray_dir_sign, ray_inverse_dir);
+
+      if (any(isct))
+        {
+        const int4 is_leaf = node.child & sign_mask;
+        const int contains_at_least_one_leaf = any(is_leaf);
+        if (contains_at_least_one_leaf)
+          {
+          const int4 index = node.child & bit_mask;
+          for (int i = 0; i < 4; ++i)
+            {
+            const uint32_t o = local_order[i];
+            if (isct[o])
+              {
+              if (is_leaf[o])
+                {
+                const uint32_t d = ((uint32_t)node.nr_of_primitives[o] + 3) >> 2;
+                if (d) // not empty
+                  {
+                  uint64_t ind = index[o];
+                  for (uint16_t k = 0; k < d; ++k)
+                    {
+                    
+                    const vec3<float>* orig0 = origins + _ids[ind];
+                    const float* r0 = radii + _ids[ind];
+                    const vec3<float>* orig1 = origins + _ids[++ind];
+                    const float* r1 = radii + _ids[ind];
+                    const vec3<float>* orig2 = origins + _ids[++ind];
+                    const float* r2 = radii + _ids[ind];
+                    const vec3<float>* orig3 = origins + _ids[++ind];
+                    const float* r3 = radii + _ids[ind];
+                    
+                    const float4 o0((*orig0)[0], (*orig1)[0], (*orig2)[0], (*orig3)[0]);
+                    const float4 o1((*orig0)[1], (*orig1)[0], (*orig2)[0], (*orig3)[0]);
+                    const float4 o2((*orig0)[2], (*orig1)[0], (*orig2)[0], (*orig3)[0]);                    
+
+                    vec3<float4> origin(o0, o1, o2);
+                    float4 rad(*r0, *r1, *r2, *r3);
+
+                    spherehit4 local_h;
+                    intersect_sphere(origin, rad, ray_origin, ray_dir, t_near, t_far, local_h);                    
+                    const bool4 mask = (abs(local_h.distance) < float4(std::abs(h.distance))) & local_h.found;
+                    if (any(mask))
+                      {
+                      for (int m = 0; m < 4; ++m)
+                        {
+                        if (mask[m])
+                          {
+                          if (std::abs(local_h.distance[m]) < std::abs(h.distance))
+                            {
+                            h.found = -1;
+                            h.distance = local_h.distance[m];
+                            sphere_id = _ids[index[o] + k * 4 + m]; 
+                            (h.distance > 0) ? t_far = float4(h.distance) : t_near = float4(h.distance);
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              else
+                stack.push_back((int32_t)node.child[o]);
+              }
+            }
+          }
+        else
+          {
+          for (int i = 0; i < 4; ++i)
+            {
+            const uint32_t o = local_order[i];
+            if (isct[o])
+              {
+              stack.push_back((int32_t)node.child[o]);
+              }
+            }
+          }
+        }
+      }
+    return h;
+    }
+
+
+  inline void sphere_qbvh::_build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb)
+    {
+    assert(props.leaf_size < uint32_t(std::numeric_limits<uint16_t>::max() - 3));
+    // max number of nodes is 4n-3 with n the number of triangles
+    uint32_t sz;
+    nodes.reserve(4 * nr_of_items / props.leaf_size);
+
+    std::vector<uint32_t> local_ids;
+    local_ids.reserve(nr_of_items + 3);
+    local_ids.resize(nr_of_items);
+    std::iota(local_ids.begin(), local_ids.end(), 0);
+
+    start = local_ids.begin();
+    root_id = construct_tree(sz, voxels, total_bb, centroid_bb, local_ids.begin(), local_ids.end());
+    if ((int32_t)root_id < 0)
+      {
+      qbvh_node n;
+      n.axis0 = 0;
+      n.axis1 = 0;
+      n.axis2 = 0;
+      n.nr_of_primitives[0] = (uint16_t)sz;
+      n.nr_of_primitives[1] = 0;
+      n.nr_of_primitives[2] = 0;
+      n.nr_of_primitives[3] = 0;
+      n.bbox[0] = float4(1);
+      n.bbox[1] = float4(1);
+      n.bbox[2] = float4(1);
+      n.bbox[3] = float4(-1);
+      n.bbox[4] = float4(-1);
+      n.bbox[5] = float4(-1);
+
+      const auto it = local_ids.begin();
+      const auto it_end = it + sz;
+      if (voxels)
+        get_bbox(n.bbox, voxels, it, it_end, 0);
+
+      n.child[0] = root_id;
+      n.child[1] = std::numeric_limits<int32_t>::min();
+      n.child[2] = std::numeric_limits<int32_t>::min();
+      n.child[3] = std::numeric_limits<int32_t>::min();
+      root_id = 0;
+      nodes.push_back(n);
+      }
+
+    if (!local_ids.empty())
+      {
+      auto last_id = local_ids.back();
+      local_ids.push_back(last_id);
+      local_ids.push_back(last_id);
+      local_ids.push_back(last_id);
+      }
+
+    if (_ids.empty())
+      {
+      _ids.swap(local_ids);
+      }
+    else
+      {
+      for (auto& li : local_ids)
+        {
+        const uint32_t v = _ids[li];
+        li = v;
+        }
+      _ids.swap(local_ids);
+      }
+    }
+
+  typename int4::value_type sphere_qbvh::construct_tree_single(aligned_vector<qbvh_node>& local_nodes, uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+    {
+    assert(first <= last);
+    if (first == last)
+      {
+      sz = 0;
+      return std::numeric_limits<int32_t>::min();
+      }
+    sz = (uint32_t)std::distance(first, last);
+    if (sz <= props.leaf_size)
+      {
+      typename int4::value_type index = (typename int4::value_type)std::distance(start, first);
+      index |= sign_bit;
+      return (typename int4::value_type)index;
+      }
+    else
+      {
+      uint8_t dim;
+      qbvh_node n;
+      std::vector<uint32_t>::iterator mid0, mid1, mid2;
+
+      qbvh_voxel bb_left, bb_right, centroid_left, centroid_right;
+
+      qbvh_voxel bb_child[4], centroid_child[4];
+
+      sah_optimized<16>(mid0, bb_left, bb_right, centroid_left, centroid_right, dim, total_bb, centroid_bb, voxels, first, last);
+      n.axis0 = dim;
+      sah_optimized<16>(mid1, bb_child[0], bb_child[1], centroid_child[0], centroid_child[1], dim, bb_left, centroid_left, voxels, first, mid0);
+      n.axis1 = dim;
+      sah_optimized<16>(mid2, bb_child[2], bb_child[3], centroid_child[2], centroid_child[3], dim, bb_right, centroid_right, voxels, mid0, last);
+      n.axis2 = dim;
+
+      uint32_t sizes[4];
+
+      n.child[0] = construct_tree_single(local_nodes, sizes[0], voxels, bb_child[0], centroid_child[0], first, mid1);
+      n.child[1] = construct_tree_single(local_nodes, sizes[1], voxels, bb_child[1], centroid_child[1], mid1, mid0);
+      n.child[2] = construct_tree_single(local_nodes, sizes[2], voxels, bb_child[2], centroid_child[2], mid0, mid2);
+      n.child[3] = construct_tree_single(local_nodes, sizes[3], voxels, bb_child[3], centroid_child[3], mid2, last);
+
+      for (int i = 0; i < 4; ++i)
+        {
+        if (n.child[i] >= 0)
+          {
+          unite_four_aabbs(n.bbox, local_nodes[n.child[i]].bbox, i);
+          n.nr_of_primitives[i] = 0;
+          }
+        else
+          {
+          n.nr_of_primitives[i] = (uint16_t)sizes[i];
+          n.bbox[0][i] = bb_child[i].bbox_min[0];
+          n.bbox[1][i] = bb_child[i].bbox_min[1];
+          n.bbox[2][i] = bb_child[i].bbox_min[2];
+          n.bbox[3][i] = bb_child[i].bbox_max[0];
+          n.bbox[4][i] = bb_child[i].bbox_max[1];
+          n.bbox[5][i] = bb_child[i].bbox_max[2];
+          }
+        }
+      uint32_t node_id = (uint32_t)local_nodes.size();
+      local_nodes.push_back(n);
+      return (int32_t)node_id;
+      }
+    }
+
+
+  inline typename int4::value_type sphere_qbvh::construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep)
+    {
+    assert(first <= last);
+    if (first == last)
+      {
+      sz = 0;
+      return std::numeric_limits<int32_t>::min();
+      }
+    sz = (uint32_t)std::distance(first, last);
+    if (sz <= props.leaf_size)
+      {
+      typename int4::value_type index = (typename int4::value_type)std::distance(start, first);
+      index |= sign_bit;
+      return (typename int4::value_type)index;
+      }
+    else
+      {
+      tree_stack st;
+      uint32_t stack_id;
+
+
+      qbvh_node n;
+      uint32_t sizes[4];
+
+      if (prep)
+        {
+        uint8_t dim;
+        stack_id = (uint32_t)stack.size();
+        stack.emplace_back();
+
+        qbvh_voxel bb_left, bb_right, centroid_left, centroid_right;
+        st.first = first;
+        st.last = last;
+        sah_parallel<16>(st.mid0, bb_left, bb_right, centroid_left, centroid_right, dim, total_bb, centroid_bb, voxels, st.first, st.last);
+        n.axis0 = dim;
+        sah_parallel<16>(st.mid1, st.bb_child[0], st.bb_child[1], st.centroid_child[0], st.centroid_child[1], dim, bb_left, centroid_left, voxels, st.first, st.mid0);
+        n.axis1 = dim;
+        sah_parallel<16>(st.mid2, st.bb_child[2], st.bb_child[3], st.centroid_child[2], st.centroid_child[3], dim, bb_right, centroid_right, voxels, st.mid0, st.last);
+        n.axis2 = dim;
+        st.level = level;
+        }
+      else
+        {
+        stack_id = stack_index++;
+        st = stack[stack_id];
+        }
+      assert(st.level == level);
+      if (level == props.parallel_level)
+        {
+        if (!prep)
+          {
+          for (int i = 0; i < 4; ++i)
+            {
+            n.child[i] = st.child[i];
+            sizes[i] = st.sizes[i];
+            }
+          }
+        }
+      else
+        {
+        n.child[0] = construct_tree_prep(stack, sizes[0], stack_index, node_index, voxels, st.bb_child[0], st.centroid_child[0], st.first, st.mid1, level + 1, prep);
+        n.child[1] = construct_tree_prep(stack, sizes[1], stack_index, node_index, voxels, st.bb_child[1], st.centroid_child[1], st.mid1, st.mid0, level + 1, prep);
+        n.child[2] = construct_tree_prep(stack, sizes[2], stack_index, node_index, voxels, st.bb_child[2], st.centroid_child[2], st.mid0, st.mid2, level + 1, prep);
+        n.child[3] = construct_tree_prep(stack, sizes[3], stack_index, node_index, voxels, st.bb_child[3], st.centroid_child[3], st.mid2, st.last, level + 1, prep);
+        st.child[0] = n.child[0];
+        st.child[1] = n.child[1];
+        st.child[2] = n.child[2];
+        st.child[3] = n.child[3];
+        st.sizes[0] = sizes[0];
+        st.sizes[1] = sizes[1];
+        st.sizes[2] = sizes[2];
+        st.sizes[3] = sizes[3];
+        }
+      if (!prep)
+        {
+        for (int i = 0; i < 4; ++i)
+          {
+          if (n.child[i] >= 0)
+            {
+            unite_four_aabbs(n.bbox, nodes[n.child[i]].bbox, i);
+            }
+          else
+            {
+            n.nr_of_primitives[i] = uint16_t(sizes[i]);
+            n.bbox[0][i] = st.bb_child[i].bbox_min[0];
+            n.bbox[1][i] = st.bb_child[i].bbox_min[1];
+            n.bbox[2][i] = st.bb_child[i].bbox_min[2];
+            n.bbox[3][i] = st.bb_child[i].bbox_max[0];
+            n.bbox[4][i] = st.bb_child[i].bbox_max[1];
+            n.bbox[5][i] = st.bb_child[i].bbox_max[2];
+            }
+          }
+        }
+      if (prep)
+        {
+        uint32_t node_id = (uint32_t)nodes.size();
+        nodes.push_back(n);
+        stack[stack_id] = st;
+        return node_id;
+        }
+      else
+        {
+        n.axis0 = nodes[node_index].axis0;
+        n.axis1 = nodes[node_index].axis1;
+        n.axis2 = nodes[node_index].axis2;
+        nodes[node_index] = n;
+        ++node_index;
+        return node_index - 1;
+        }
+      //return 0; // unreachable
+      }
+    }
+
+
+  inline typename int4::value_type sphere_qbvh::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+    {
+    std::vector<tree_stack> stack;
+    uint32_t stack_index = 0;
+    uint32_t node_index = 0;
+    const auto id = construct_tree_prep(stack, sz, stack_index, node_index, voxels, total_bb, centroid_bb, first, last, 0, true);
+    const uint32_t stack_size = (uint32_t)stack.size();
+
+    std::vector<uint32_t> subtrees;
+    subtrees.reserve(stack_size);
+    for (uint32_t i = 0; i < stack_size; ++i)
+      {
+      if (stack[i].level == props.parallel_level)
+        subtrees.push_back(i);
+      }
+
+    std::sort(subtrees.begin(), subtrees.end(), [&](uint32_t left, uint32_t right)
+      {
+      return std::distance(stack[left].first, stack[left].last) > std::distance(stack[right].first, stack[right].last);
+      });
+
+    const uint32_t subtree_size = (uint32_t)subtrees.size();
+
+    std::vector<aligned_vector<qbvh_node>> local_nodes(subtree_size * 4, nodes);
+    int32_t front_size = (int32_t)nodes.size();
+    parallel_for(uint32_t(0), subtree_size * 4, [&](uint32_t i)
+      {
+      const uint32_t subtree_id = i / 4;
+      const uint32_t j = i & 3;
+      tree_stack& st = stack[subtrees[subtree_id]];
+      switch (j)
+        {
+        case 0: st.child[0] = construct_tree_single(local_nodes[i], st.sizes[0], voxels, st.bb_child[0], st.centroid_child[0], st.first, st.mid1); break;
+        case 1: st.child[1] = construct_tree_single(local_nodes[i], st.sizes[1], voxels, st.bb_child[1], st.centroid_child[1], st.mid1, st.mid0); break;
+        case 2: st.child[2] = construct_tree_single(local_nodes[i], st.sizes[2], voxels, st.bb_child[2], st.centroid_child[2], st.mid0, st.mid2); break;
+        case 3: st.child[3] = construct_tree_single(local_nodes[i], st.sizes[3], voxels, st.bb_child[3], st.centroid_child[3], st.mid2, st.last); break;
+        }
+      });
+
+    uint64_t reserve_nodes_size = front_size;
+    for (uint32_t i = 0; i < subtree_size * 4; ++i)
+      {
+      reserve_nodes_size += (local_nodes[i].size() - front_size);
+      }
+    nodes.reserve(reserve_nodes_size);
+
+    for (uint32_t i = 0; i < subtree_size * 4; ++i)
+      {
+      const uint32_t subtree_id = i / 4;
+      const uint32_t j = i & 3;
+      tree_stack& st = stack[subtrees[subtree_id]];
+      int32_t offset = (int32_t)nodes.size() - front_size;
+
+      switch (j)
+        {
+        case 0: if (st.child[0] >= 0) st.child[0] += offset; break;
+        case 1: if (st.child[1] >= 0) st.child[1] += offset; break;
+        case 2: if (st.child[2] >= 0) st.child[2] += offset; break;
+        case 3: if (st.child[3] >= 0) st.child[3] += offset; break;
+        }
+
+      for (int32_t k = front_size; k < local_nodes[i].size(); ++k)
+        {
+        auto& n = local_nodes[i][k];
+        if (n.child[0] >= front_size)
+          n.child[0] += offset;
+        if (n.child[1] >= front_size)
+          n.child[1] += offset;
+        if (n.child[2] >= front_size)
+          n.child[2] += offset;
+        if (n.child[3] >= front_size)
+          n.child[3] += offset;
+        nodes.push_back(n);
+        }
+      }
+
+    const auto id2 = construct_tree_prep(stack, sz, stack_index, node_index, voxels, total_bb, centroid_bb, first, last, 0, false);
+    (void)id2; // avoid unused variable warning in release build
+    assert(id == id2);
+
+    return id;
+    }
 
   /////////////////////////////////////////////////////////////////////////
   // qbvh_two_level
