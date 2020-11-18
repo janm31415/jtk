@@ -322,13 +322,13 @@ namespace jtk
     };
 
   struct spherehit
-    {    
+    {
     float distance;
     int32_t found;
     };
 
   struct spherehit4
-    {    
+    {
     float4 distance;
     bool4 found;
     };
@@ -1605,7 +1605,7 @@ namespace jtk
     out.Sy = r_dir[out.ky] * out.Sz;
 
     return out;
-    }  
+    }
 
   inline void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h)
     {
@@ -2284,7 +2284,7 @@ I'm following the same algorithm steps, but do everything in place.
   inline void qbvh_voxel::operator delete[](void* ptr) { aligned_free(ptr); }
 
 
-  inline qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+    inline qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
     {
     qbvh_voxel* lst = new qbvh_voxel[nr_of_triangles];
     total_bb.bbox_min = std::numeric_limits<float>::max();
@@ -2343,7 +2343,7 @@ I'm following the same algorithm steps, but do everything in place.
       const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(nr_of_spheres) / (uint64_t)number_of_threads);
       for (uint32_t t = s; t < e; ++t)
         {
-        const float4 v(origins[t][0], origins[t][1], origins[t][2], 1);        
+        const float4 v(origins[t][0], origins[t][1], origins[t][2], 1);
         lst[t].bbox_min = v - float4(radii[t], radii[t], radii[t], 0.f);
         lst[t].bbox_max = v + float4(radii[t], radii[t], radii[t], 0.f);
         lst[t].centroid = v;
@@ -3439,8 +3439,10 @@ I'm following the same algorithm steps, but do everything in place.
     h.found = 0;
     h.distance = std::numeric_limits<float>::max();
 
+    float r_dir_length = std::sqrt(r.dir[0] * r.dir[0] + r.dir[1] * r.dir[1] + r.dir[2] * r.dir[2]);
+
     vec3<float4> ray_origin(r.orig[0], r.orig[1], r.orig[2]);
-    vec3<float4> ray_dir(r.dir[0], r.dir[1], r.dir[2]);
+    vec3<float4> ray_dir(r.dir[0] / r_dir_length, r.dir[1] / r_dir_length, r.dir[2] / r_dir_length);
 
     int32_t ray_dir_sign[3];
     float4 ray_inverse_dir_tmp = reciprocal(r.dir);
@@ -3490,7 +3492,7 @@ I'm following the same algorithm steps, but do everything in place.
                   uint64_t ind = index[o];
                   for (uint16_t k = 0; k < d; ++k)
                     {
-                    
+
                     const vec3<float>* orig0 = origins + _ids[ind];
                     const float* r0 = radii + _ids[ind];
                     const vec3<float>* orig1 = origins + _ids[++ind];
@@ -3499,16 +3501,17 @@ I'm following the same algorithm steps, but do everything in place.
                     const float* r2 = radii + _ids[ind];
                     const vec3<float>* orig3 = origins + _ids[++ind];
                     const float* r3 = radii + _ids[ind];
-                    
+                    ++ind;
+
                     const float4 o0((*orig0)[0], (*orig1)[0], (*orig2)[0], (*orig3)[0]);
-                    const float4 o1((*orig0)[1], (*orig1)[0], (*orig2)[0], (*orig3)[0]);
-                    const float4 o2((*orig0)[2], (*orig1)[0], (*orig2)[0], (*orig3)[0]);                    
+                    const float4 o1((*orig0)[1], (*orig1)[1], (*orig2)[1], (*orig3)[1]);
+                    const float4 o2((*orig0)[2], (*orig1)[2], (*orig2)[2], (*orig3)[2]);
 
                     vec3<float4> origin(o0, o1, o2);
                     float4 rad(*r0, *r1, *r2, *r3);
 
                     spherehit4 local_h;
-                    intersect_sphere(origin, rad, ray_origin, ray_dir, t_near, t_far, local_h);                    
+                    intersect_sphere(origin, rad, ray_origin, ray_dir, t_near, t_far, local_h);
                     const bool4 mask = (abs(local_h.distance) < float4(std::abs(h.distance))) & local_h.found;
                     if (any(mask))
                       {
@@ -3520,7 +3523,7 @@ I'm following the same algorithm steps, but do everything in place.
                             {
                             h.found = -1;
                             h.distance = local_h.distance[m];
-                            sphere_id = _ids[index[o] + k * 4 + m]; 
+                            sphere_id = _ids[index[o] + k * 4 + m];
                             (h.distance > 0) ? t_far = float4(h.distance) : t_near = float4(h.distance);
                             }
                           }

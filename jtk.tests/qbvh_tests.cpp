@@ -966,9 +966,9 @@ namespace jtk
 void run_all_qbvh_tests()
   {
   using namespace jtk;
-  //run_all_simd_tests();
-  //run_all_bvh_tests();
-  //run_all_parallel_partition_tests();
-  //run_all_vector_tests();
+  run_all_simd_tests();
+  run_all_bvh_tests();
+  run_all_parallel_partition_tests();
+  run_all_vector_tests();
   run_all_sphere_intersection_tests();
   }
