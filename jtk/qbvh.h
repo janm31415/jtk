@@ -1695,12 +1695,13 @@ namespace jtk
 
   inline void intersect_sphere(const vec3<float4>& sphere_origin, const float4& sphere_radius, const vec3<float4>& r_orig, const vec3<float4>& ray_dir, const float4& t_near, const float4& t_far, spherehit4& h)
     {
+#if 0
     h.found = bool4(true);
     const vec3<float4> L = sphere_origin - r_orig;
     const float4 tca = dot(L, ray_dir);
     const float4 d2 = dot(L, L) - tca * tca;
     const float4 sphere_radius_sqr = sphere_radius * sphere_radius;
-    h.found &= (d2 < sphere_radius_sqr);
+    h.found &= (d2 <= sphere_radius_sqr);
     if (none(h.found))
       return;
     const float4 thc = sqrt(sphere_radius_sqr - d2);
@@ -1713,7 +1714,40 @@ namespace jtk
       return;
     const bool4 t0_is_closest = abs(t0) < abs(t1);
     const float4 t_closest = masked_update(t0_is_closest, t1, t0);
-    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t1_is_valid & (!t0_is_valid), t0, t1), t_closest);
+    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
+#else
+    /*
+    Precision Improvements for Ray/Sphere Intersection
+    Authors:
+      Eric Haines (NVIDIA)
+      Johannes Gunther (Intel)
+      Tomas Akenine-Möller
+    Publication Date:
+      Friday, March 1, 2019
+    Published in:
+      Ray Tracing Gems
+    */
+    h.found = bool4(true);
+    const vec3<float4> f = sphere_origin - r_orig;
+    const float4 sphere_radius_sqr = sphere_radius * sphere_radius;
+    const vec3<float4> l = f - dot(f, ray_dir)*ray_dir;
+    const float4 discr = 4.f*(sphere_radius_sqr - dot(l, l));
+    h.found &= discr >= 0.f;
+    if (none(h.found))
+      return;
+    const float4 b = dot(f, ray_dir);
+    const float4 sqrt_discr_div_2 = sqrt(discr)/2.f;
+    const float4 t0 = b - sqrt_discr_div_2;
+    const float4 t1 = b + sqrt_discr_div_2;
+    const bool4 t0_is_valid = (t_near <= t0) & (t0 <= t_far);
+    const bool4 t1_is_valid = (t_near <= t1) & (t1 <= t_far);
+    h.found &= t0_is_valid | t1_is_valid;
+    if (none(h.found))
+      return;
+    const bool4 t0_is_closest = abs(t0) < abs(t1);
+    const float4 t_closest = masked_update(t0_is_closest, t1, t0);
+    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
+#endif
     }
 
   /////////////////////////////////////////////////////////////////////////
@@ -3440,9 +3474,10 @@ I'm following the same algorithm steps, but do everything in place.
     h.distance = std::numeric_limits<float>::max();
 
     float r_dir_length = std::sqrt(r.dir[0] * r.dir[0] + r.dir[1] * r.dir[1] + r.dir[2] * r.dir[2]);
+    r.dir = r.dir / r_dir_length;
 
     vec3<float4> ray_origin(r.orig[0], r.orig[1], r.orig[2]);
-    vec3<float4> ray_dir(r.dir[0] / r_dir_length, r.dir[1] / r_dir_length, r.dir[2] / r_dir_length);
+    vec3<float4> ray_dir(r.dir[0], r.dir[1], r.dir[2]);
 
     int32_t ray_dir_sign[3];
     float4 ray_inverse_dir_tmp = reciprocal(r.dir);
