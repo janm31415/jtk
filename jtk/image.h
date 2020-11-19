@@ -24,6 +24,7 @@ namespace jtk
   class image;
 
   inline bool load_pgm(image<uint16_t>& im, const std::string& filename);
+  inline bool write_pgm(const image<uint16_t>& im, const std::string& filename);
 
   template <class T>
   inline image<T> span_to_image(uint32_t w, uint32_t h, uint32_t stride, const T* p_image);
@@ -559,6 +560,23 @@ namespace jtk
     im = image<uint16_t>(width, height, false);
     file.read((char *)im.data(), width * height * sizeof(uint16_t));
     file.close();
+    return true;
+    }
+
+  inline bool write_pgm(const image<uint16_t>& im, const std::string& filename)
+    {
+    std::ofstream file(filename, std::ios::out | std::ios::binary);
+    if (file.is_open())
+      {
+      file << "P5\n" << im.width() << " " << im.height() << "\n" << "65535\n";
+      for (uint32_t y = 0; y < im.height(); ++y)
+        {
+        file.write((const char*)im.data() + im.stride()*y * sizeof(uint16_t), im.width() * sizeof(uint16_t));
+        }
+      file.close();
+      }
+    else
+      return false;
     return true;
     }
 
