@@ -37,6 +37,7 @@ namespace jtk
   bool write_ply(const char* filename, const std::vector<vec3<T>>& pts, const std::vector<vec3<T>>& normals, const std::vector<uint32_t>& clrs);
   bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles);
   bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles);
+  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles, const std::vector<jtk::vec3<jtk::vec2<float>>>& uv);
 
   class adjacency_list
     {
@@ -908,6 +909,42 @@ namespace jtk
       {
       fwrite(&tria_size, 1, 1, fp);
       fwrite(triangles.data() + i, sizeof(vec3<uint32_t>), 1, fp);
+      }
+    fclose(fp);
+    return true;
+    }
+
+  inline bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles, const std::vector<jtk::vec3<jtk::vec2<float>>>& uv)
+    {
+    FILE* fp = fopen(filename, "wb");
+    if (!fp)
+      return false;
+    fprintf(fp, "ply\n");
+    int n = 1;
+    if (*(char *)&n == 1)
+      fprintf(fp, "format binary_little_endian 1.0\n");
+    else
+      fprintf(fp, "format binary_big_endian 1.0\n");
+    fprintf(fp, "element vertex %d\n", (int)pts.size());
+    fprintf(fp, "property float x\n");
+    fprintf(fp, "property float y\n");
+    fprintf(fp, "property float z\n");
+    fprintf(fp, "element face %d\n", (int)triangles.size());
+    fprintf(fp, "property list uchar int vertex_indices\n");
+    fprintf(fp, "property list uchar float texcoord\n");
+    fprintf(fp, "end_header\n");
+    fwrite(pts.data(), sizeof(vec3<float>), pts.size(), fp);
+    unsigned char tria_size = 3;
+    const unsigned char texcoord_size = 6;
+    for (uint32_t i = 0; i < (uint32_t)triangles.size(); ++i)
+      {
+      fwrite(&tria_size, 1, 1, fp);
+      fwrite((uint32_t*)triangles.data() + 3 * i, sizeof(uint32_t), 3, fp);
+      if (!uv.empty())
+        {
+        fwrite(&texcoord_size, 1, 1, fp);
+        fwrite((float*)uv.data() + 6 * i, sizeof(float), 6, fp);
+        }
       }
     fclose(fp);
     return true;
