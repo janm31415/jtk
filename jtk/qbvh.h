@@ -452,6 +452,7 @@ namespace jtk
       inline qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
       inline qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
       inline hit find_closest_triangle(uint32_t& triangle_id, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const;
+      inline std::vector<hit> find_all_triangles(std::vector<uint32_t>& triangle_ids, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const;
       inline hit find_closest_triangle(uint32_t& triangle_id, const vec3<float>& point, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const;
 
     private:
@@ -495,6 +496,7 @@ namespace jtk
       inline sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
       inline sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
       inline spherehit find_closest_sphere(uint32_t& sphere_id, ray r, const vec3<float>* origins, const float* radii) const;
+      inline std::vector<spherehit> find_all_spheres(std::vector<uint32_t>& sphere_ids, ray r, const vec3<float>* origins, const float* radii) const;
 
     private:
       inline void _build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb);
@@ -1727,6 +1729,8 @@ namespace jtk
     Published in:
       Ray Tracing Gems
     */
+
+    /*
     h.found = bool4(true);
     const vec3<float4> f = sphere_origin - r_orig;
     const float4 sphere_radius_sqr = sphere_radius * sphere_radius;
@@ -1736,9 +1740,32 @@ namespace jtk
     if (none(h.found))
       return;
     const float4 b = dot(f, ray_dir);
-    const float4 sqrt_discr_div_2 = sqrt(discr)/2.f;
+    const float4 sqrt_discr_div_2 = sqrt(discr) / 2.f;
     const float4 t0 = b - sqrt_discr_div_2;
     const float4 t1 = b + sqrt_discr_div_2;
+    const bool4 t0_is_valid = (t_near <= t0) & (t0 <= t_far);
+    const bool4 t1_is_valid = (t_near <= t1) & (t1 <= t_far);
+    h.found &= t0_is_valid | t1_is_valid;
+    if (none(h.found))
+      return;
+    const bool4 t0_is_closest = abs(t0) < abs(t1);
+    const float4 t_closest = masked_update(t0_is_closest, t1, t0);
+    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
+    */
+
+    h.found = bool4(true);
+    const vec3<float4> f = sphere_origin - r_orig;
+    const float4 b = dot(f, ray_dir);
+    const float4 sphere_radius_sqr = sphere_radius * sphere_radius;
+    const vec3<float4> l = b * ray_dir - f;
+    const float4 delta = sphere_radius_sqr - dot(l, l);
+    h.found &= delta >= 0.f;
+    if (none(h.found))
+      return;
+    const float4 c = dot(f, f) - sphere_radius_sqr;
+    const float4 q = b + masked_update(b > float4(0.f), float4(-1.f), float4(1.f))*sqrt(delta);
+    const float4 t0 = c / q;
+    const float4 t1 = q;
     const bool4 t0_is_valid = (t_near <= t0) & (t0 <= t_far);
     const bool4 t1_is_valid = (t_near <= t1) & (t1 <= t_far);
     h.found &= t0_is_valid | t1_is_valid;
@@ -2984,6 +3011,154 @@ I'm following the same algorithm steps, but do everything in place.
     return h;
     }
 
+  inline std::vector<hit> qbvh::find_all_triangles(std::vector<uint32_t>& triangle_ids, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
+    {
+    std::vector<hit> hits;
+
+    auto woop_precomputation = intersect_woop_precompute(r.dir);
+
+    vec3<float4> ray_origin(r.orig[0], r.orig[1], r.orig[2]);
+    vec3<float4> ray_dir(r.dir[0], r.dir[1], r.dir[2]);
+
+    int32_t ray_dir_sign[3];
+    float4 ray_inverse_dir_tmp = reciprocal(r.dir);
+    if (fabs(ray_inverse_dir_tmp[0]) == std::numeric_limits<float>::infinity())
+      ray_inverse_dir_tmp[0] = std::numeric_limits<float>::max();
+    if (fabs(ray_inverse_dir_tmp[1]) == std::numeric_limits<float>::infinity())
+      ray_inverse_dir_tmp[1] = std::numeric_limits<float>::max();
+    if (fabs(ray_inverse_dir_tmp[2]) == std::numeric_limits<float>::infinity())
+      ray_inverse_dir_tmp[2] = std::numeric_limits<float>::max();
+    vec3<float4> ray_inverse_dir(ray_inverse_dir_tmp[0], ray_inverse_dir_tmp[1], ray_inverse_dir_tmp[2]);
+    float4 t_near(r.t_near);
+    float4 t_far(r.t_far);
+    ray_dir_sign[0] = r.dir[0] < 0 ? 1 : 0;
+    ray_dir_sign[1] = r.dir[1] < 0 ? 1 : 0;
+    ray_dir_sign[2] = r.dir[2] < 0 ? 1 : 0;
+
+    std::vector<int32_t> stack;
+    stack.reserve(512);
+    stack.push_back((int32_t)root_id);
+    while (!stack.empty())
+      {
+      const auto node = nodes[stack.back()];
+      stack.pop_back();
+
+      auto isct = intersect(node.bbox, ray_origin, t_near, t_far, ray_dir_sign, ray_inverse_dir);
+
+      if (any(isct))
+        {
+        const int4 is_leaf = node.child & sign_mask;
+        const int contains_at_least_one_leaf = any(is_leaf);
+        if (contains_at_least_one_leaf)
+          {
+          const int4 index = node.child & bit_mask;
+          for (int i = 0; i < 4; ++i)
+            {
+            if (isct[i])
+              {
+              if (is_leaf[i])
+                {
+                const uint32_t d = ((uint32_t)node.nr_of_primitives[i] + 3) >> 2;
+                if (d) // not empty
+                  {
+                  uint64_t ind = index[i];
+                  for (uint16_t k = 0; k < d; ++k)
+                    {
+                    woop_triangle acc;
+                    const vec3<uint32_t>* tria0 = triangles + _ids[ind];
+                    const uint32_t v00 = (*tria0)[0];
+                    const uint32_t v01 = (*tria0)[1];
+                    const uint32_t v02 = (*tria0)[2];
+                    const vec3<uint32_t>* tria1 = triangles + _ids[++ind];
+                    const uint32_t v10 = (*tria1)[0];
+                    const uint32_t v11 = (*tria1)[1];
+                    const uint32_t v12 = (*tria1)[2];
+                    const vec3<uint32_t>* tria2 = triangles + _ids[++ind];
+                    const uint32_t v20 = (*tria2)[0];
+                    const uint32_t v21 = (*tria2)[1];
+                    const uint32_t v22 = (*tria2)[2];
+                    const vec3<uint32_t>* tria3 = triangles + _ids[++ind];
+                    const uint32_t v30 = (*tria3)[0];
+                    const uint32_t v31 = (*tria3)[1];
+                    const uint32_t v32 = (*tria3)[2];
+                    ++ind;
+
+                    _mm_prefetch((char *)(vertices + v00), _MM_HINT_T0);
+                    _mm_prefetch((char *)(vertices + v10), _MM_HINT_T0);
+                    _mm_prefetch((char *)(vertices + v20), _MM_HINT_T0);
+                    _mm_prefetch((char *)(vertices + v30), _MM_HINT_T0);
+
+                    _mm_prefetch((char *)(vertices + v01), _MM_HINT_T0);
+                    _mm_prefetch((char *)(vertices + v11), _MM_HINT_T0);
+                    _mm_prefetch((char *)(vertices + v21), _MM_HINT_T0);
+                    _mm_prefetch((char *)(vertices + v31), _MM_HINT_T0);
+
+                    _mm_prefetch((char *)(vertices + v02), _MM_HINT_T0);
+                    _mm_prefetch((char *)(vertices + v12), _MM_HINT_T0);
+                    _mm_prefetch((char *)(vertices + v22), _MM_HINT_T0);
+                    _mm_prefetch((char *)(vertices + v32), _MM_HINT_T0);
+
+                    acc.v0[0] = float4(vertices[v00][0], vertices[v10][0], vertices[v20][0], vertices[v30][0]);
+                    acc.v0[1] = float4(vertices[v00][1], vertices[v10][1], vertices[v20][1], vertices[v30][1]);
+                    acc.v0[2] = float4(vertices[v00][2], vertices[v10][2], vertices[v20][2], vertices[v30][2]);
+
+
+                    acc.v1[0] = float4(vertices[v01][0], vertices[v11][0], vertices[v21][0], vertices[v31][0]);
+                    acc.v1[1] = float4(vertices[v01][1], vertices[v11][1], vertices[v21][1], vertices[v31][1]);
+                    acc.v1[2] = float4(vertices[v01][2], vertices[v11][2], vertices[v21][2], vertices[v31][2]);
+
+
+                    acc.v2[0] = float4(vertices[v02][0], vertices[v12][0], vertices[v22][0], vertices[v32][0]);
+                    acc.v2[1] = float4(vertices[v02][1], vertices[v12][1], vertices[v22][1], vertices[v32][1]);
+                    acc.v2[2] = float4(vertices[v02][2], vertices[v12][2], vertices[v22][2], vertices[v32][2]);
+
+                    hit4 local_h;
+                    intersect_woop(acc, woop_precomputation, ray_origin, t_near, t_far, local_h);
+
+                    if (any(local_h.found))
+                      {
+                      for (int m = 0; m < 4; ++m)
+                        {
+                        if (local_h.found[m])
+                          {
+                          const uint32_t tria_offset = k * 4 + m;
+                          if (tria_offset < node.nr_of_primitives[i])
+                            {
+                            const uint32_t triangle_id = _ids[index[i] + tria_offset];
+                            hit h;
+                            h.found = -1;
+                            h.distance = local_h.distance[m];
+                            h.u = local_h.u[m];
+                            h.v = local_h.v[m];
+                            hits.push_back(h);
+                            triangle_ids.push_back(triangle_id);
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              else
+                stack.push_back((int32_t)node.child[i]);
+              }
+            }
+          }
+        else
+          {
+          for (int i = 0; i < 4; ++i)
+            {
+            if (isct[i])
+              {
+              stack.push_back((int32_t)node.child[i]);
+              }
+            }
+          }
+        }
+      }
+    return hits;
+    }
+
   inline hit qbvh::find_closest_triangle(uint32_t& triangle_id, const vec3<float>& point, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
     {
     hit h;
@@ -3588,6 +3763,121 @@ I'm following the same algorithm steps, but do everything in place.
     return h;
     }
 
+  inline std::vector<spherehit> sphere_qbvh::find_all_spheres(std::vector<uint32_t>& sphere_ids, ray r, const vec3<float>* origins, const float* radii) const
+    {
+    std::vector<spherehit> hits;
+
+    float r_dir_length = std::sqrt(r.dir[0] * r.dir[0] + r.dir[1] * r.dir[1] + r.dir[2] * r.dir[2]);
+    r.dir = r.dir / r_dir_length;
+
+    vec3<float4> ray_origin(r.orig[0], r.orig[1], r.orig[2]);
+    vec3<float4> ray_dir(r.dir[0], r.dir[1], r.dir[2]);
+
+    int32_t ray_dir_sign[3];
+    float4 ray_inverse_dir_tmp = reciprocal(r.dir);
+    if (fabs(ray_inverse_dir_tmp[0]) == std::numeric_limits<float>::infinity())
+      ray_inverse_dir_tmp[0] = std::numeric_limits<float>::max();
+    if (fabs(ray_inverse_dir_tmp[1]) == std::numeric_limits<float>::infinity())
+      ray_inverse_dir_tmp[1] = std::numeric_limits<float>::max();
+    if (fabs(ray_inverse_dir_tmp[2]) == std::numeric_limits<float>::infinity())
+      ray_inverse_dir_tmp[2] = std::numeric_limits<float>::max();
+    vec3<float4> ray_inverse_dir(ray_inverse_dir_tmp[0], ray_inverse_dir_tmp[1], ray_inverse_dir_tmp[2]);
+    float4 t_near(r.t_near);
+    float4 t_far(r.t_far);
+    ray_dir_sign[0] = r.dir[0] < 0 ? 1 : 0;
+    ray_dir_sign[1] = r.dir[1] < 0 ? 1 : 0;
+    ray_dir_sign[2] = r.dir[2] < 0 ? 1 : 0;
+
+    std::vector<int32_t> stack;
+    stack.reserve(512);
+    stack.push_back((int32_t)root_id);
+    while (!stack.empty())
+      {
+      const auto node = nodes[stack.back()];
+      stack.pop_back();
+
+      auto isct = intersect(node.bbox, ray_origin, t_near, t_far, ray_dir_sign, ray_inverse_dir);
+
+      if (any(isct))
+        {
+        const int4 is_leaf = node.child & sign_mask;
+        const int contains_at_least_one_leaf = any(is_leaf);
+        if (contains_at_least_one_leaf)
+          {
+          const int4 index = node.child & bit_mask;
+          for (int i = 0; i < 4; ++i)
+            {
+            if (isct[i])
+              {
+              if (is_leaf[i])
+                {
+                const uint32_t d = ((uint32_t)node.nr_of_primitives[i] + 3) >> 2;
+                if (d) // not empty
+                  {
+                  uint64_t ind = index[i];
+                  for (uint16_t k = 0; k < d; ++k)
+                    {
+
+                    const vec3<float>* orig0 = origins + _ids[ind];
+                    const float* r0 = radii + _ids[ind];
+                    const vec3<float>* orig1 = origins + _ids[++ind];
+                    const float* r1 = radii + _ids[ind];
+                    const vec3<float>* orig2 = origins + _ids[++ind];
+                    const float* r2 = radii + _ids[ind];
+                    const vec3<float>* orig3 = origins + _ids[++ind];
+                    const float* r3 = radii + _ids[ind];
+                    ++ind;
+
+                    const float4 o0((*orig0)[0], (*orig1)[0], (*orig2)[0], (*orig3)[0]);
+                    const float4 o1((*orig0)[1], (*orig1)[1], (*orig2)[1], (*orig3)[1]);
+                    const float4 o2((*orig0)[2], (*orig1)[2], (*orig2)[2], (*orig3)[2]);
+
+                    vec3<float4> origin(o0, o1, o2);
+                    float4 rad(*r0, *r1, *r2, *r3);
+
+                    spherehit4 local_h;
+                    intersect_sphere(origin, rad, ray_origin, ray_dir, t_near, t_far, local_h);
+                    if (any(local_h.found))
+                      {
+                      for (int m = 0; m < 4; ++m)
+                        {
+                        if (local_h.found[m])
+                          {
+                          const uint32_t off = k * 4 + m;
+                          if (off < node.nr_of_primitives[i])
+                            {
+                            const uint32_t sphere_id = _ids[index[i] + off];
+                            spherehit h;
+                            h.found = -1;
+                            h.distance = local_h.distance[m];
+                            hits.push_back(h);
+                            sphere_ids.push_back(sphere_id);
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              else
+                stack.push_back((int32_t)node.child[i]);
+              }
+            }
+          }
+        else
+          {
+          for (int i = 0; i < 4; ++i)
+            {
+            if (isct[i])
+              {
+              stack.push_back((int32_t)node.child[i]);
+              }
+            }
+          }
+        }
+      }
+    return hits;
+    }
 
   inline void sphere_qbvh::_build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb)
     {
