@@ -1274,10 +1274,10 @@ namespace jtk
     adj_list.add_triangle_to_vertex(T2v, tria[0]);
 
     assert(jtk::triangle_indices_from_edge(T1v, T2v, adj_list).size() == 2);
-    assert(jtk::triangle_indices_from_edge(T1v, v2, adj_list).size() == 2);
-    assert(jtk::triangle_indices_from_edge(v2, T2v, adj_list).size() == 2);
-    assert(jtk::triangle_indices_from_edge(T1v, v, adj_list).size() == 2);
-    assert(jtk::triangle_indices_from_edge(v, T2v, adj_list).size() == 2);
+    assert(jtk::triangle_indices_from_edge(T1v, v2, adj_list).size() <= 2);
+    assert(jtk::triangle_indices_from_edge(v2, T2v, adj_list).size() <= 2);
+    assert(jtk::triangle_indices_from_edge(T1v, v, adj_list).size() <= 2);
+    assert(jtk::triangle_indices_from_edge(v, T2v, adj_list).size() <= 2);
     return true;
     }
 
