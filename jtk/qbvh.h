@@ -3294,7 +3294,7 @@ I'm following the same algorithm steps, but do everything in place.
     assert(props.leaf_size < uint32_t(std::numeric_limits<uint16_t>::max() - 3));
     // max number of nodes is 4n-3 with n the number of triangles
     uint32_t sz;
-    nodes.reserve(4 * nr_of_items / props.leaf_size);
+    //nodes.reserve(4 * nr_of_items / props.leaf_size);
 
     std::vector<uint32_t> local_ids;
     local_ids.reserve(nr_of_items + 3);
@@ -3884,7 +3884,7 @@ I'm following the same algorithm steps, but do everything in place.
     assert(props.leaf_size < uint32_t(std::numeric_limits<uint16_t>::max() - 3));
     // max number of nodes is 4n-3 with n the number of triangles
     uint32_t sz;
-    nodes.reserve(4 * nr_of_items / props.leaf_size);
+    //nodes.reserve(4 * nr_of_items / props.leaf_size);
 
     std::vector<uint32_t> local_ids;
     local_ids.reserve(nr_of_items + 3);
