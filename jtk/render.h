@@ -551,7 +551,7 @@ namespace jtk
 #ifdef _AVX2   
 
     const __m256i zero = _mm256_set1_epi32(0);
-    const __m256i wh = _mm256_set1_epi32(rd.fb.w*rd.fb.h);
+    const __m256i wh_minus_one = _mm256_set1_epi32(rd.fb.w*rd.fb.h - 1);
     const __m256i w_epi32 = _mm256_set1_epi32(rd.fb.w);
     const __m256 halff = _mm256_set1_ps(0.5f);
     const __m256 zerof = _mm256_set1_ps(0.f);
@@ -640,7 +640,7 @@ namespace jtk
           {
           __m256i index = _mm256_add_epi32(_mm256_add_epi32(X, _mm256_set1_epi32(xx)), _mm256_mullo_epi32(w_epi32, _mm256_add_epi32(Y, _mm256_set1_epi32(yy))));
           index = _mm256_max_epi32(zero, index);
-          index = _mm256_min_epi32(wh, index);
+          index = _mm256_min_epi32(wh_minus_one, index);
 
           __m256 previous_depth = _mm256_i32gather_ps(rd.fb.zbuffer, index, 4);
           __m256i previous_colors = _mm256_i32gather_epi32((const int*)rd.fb.pixels, index, 4);
@@ -689,7 +689,7 @@ namespace jtk
 #else    
 
     const __m128i zero = _mm_set1_epi32(0);
-    const __m128i wh = _mm_set1_epi32(rd.fb.w*rd.fb.h);
+    const __m128i wh_minus_one = _mm_set1_epi32(rd.fb.w*rd.fb.h - 1);
     const __m128i w_epi32 = _mm_set1_epi32(rd.fb.w);
     const __m128 halff = _mm_set1_ps(0.5f);
     const __m128 zerof = _mm_set1_ps(0.f);
@@ -770,7 +770,7 @@ namespace jtk
           {
           __m128i index = _mm_add_epi32(_mm_add_epi32(X, _mm_set1_epi32(xx)), _mm_mullo_epi32(w_epi32, _mm_add_epi32(Y, _mm_set1_epi32(yy))));
           index = _mm_max_epi32(zero, index);
-          index = _mm_min_epi32(wh, index);
+          index = _mm_min_epi32(wh_minus_one, index);
 
           const uint32_t i0 = _mm_extract_epi32(index, 0);
           const uint32_t i1 = _mm_extract_epi32(index, 1);

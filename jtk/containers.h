@@ -2703,14 +2703,14 @@ namespace jtk
 
       typedef alloc                             allocator_type;
 
-      typedef typename alloc::value_type        value_type;
-      typedef typename alloc::pointer           pointer;
-      typedef typename alloc::const_pointer     const_pointer;
-      typedef typename alloc::reference         reference;
-      typedef typename alloc::const_reference   const_reference;
+      typedef typename std::allocator_traits<alloc>::value_type          value_type;
+      typedef typename std::allocator_traits<alloc>::pointer             pointer;
+      typedef typename std::allocator_traits<alloc>::const_pointer       const_pointer;
+      typedef typename std::allocator_traits<alloc>::value_type&         reference;
+      typedef typename const std::allocator_traits<alloc>::value_type&   const_reference;
 
-      typedef typename alloc::size_type         size_type;
-      typedef typename alloc::difference_type   difference_type;
+      typedef typename std::allocator_traits<alloc>::size_type         size_type;
+      typedef typename std::allocator_traits<alloc>::difference_type   difference_type;
 
       typedef circular_buffer_iterator<T, self_type> iterator;
       typedef circular_buffer_const_iterator<T, self_type> const_iterator;
@@ -2961,7 +2961,7 @@ namespace jtk
         {
         for (size_type i = 0; i < _size; ++i)
           {
-          _allocator.destroy(_array + _Index(i));
+          std::allocator_traits<alloc>::destroy(_allocator, _array + _Index(i));
           }
         }
 
