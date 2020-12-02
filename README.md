@@ -20,6 +20,7 @@ Header only C++ tookit for proof of concept development of mainly 3d geometry re
 - timer.h: Very simple timer.
 - utf8.h: utf-8 encoding written by Nemanja Trifunovic.
 - vec.h: Simple 2d, 3d, and 4d vector classes, used by some of the other header files.
+- window.h: cross platform simple window class for visualizing images.
 
 ### building
 jtk makes use of three CMake variables:

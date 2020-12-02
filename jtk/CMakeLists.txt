@@ -25,6 +25,7 @@ sse2neon.h
 timer.h
 utf8.h
 vec.h
+window.h
 )
 	
 set(SRCS
