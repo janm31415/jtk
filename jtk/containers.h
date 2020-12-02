@@ -2707,7 +2707,7 @@ namespace jtk
       typedef typename std::allocator_traits<alloc>::pointer             pointer;
       typedef typename std::allocator_traits<alloc>::const_pointer       const_pointer;
       typedef typename std::allocator_traits<alloc>::value_type&         reference;
-      typedef typename const std::allocator_traits<alloc>::value_type&   const_reference;
+      typedef const typename std::allocator_traits<alloc>::value_type&   const_reference;
 
       typedef typename std::allocator_traits<alloc>::size_type         size_type;
       typedef typename std::allocator_traits<alloc>::difference_type   difference_type;
