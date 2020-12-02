@@ -820,19 +820,20 @@ namespace jtk
         t_job_type _job;
         while (!_quit)
           {
+          bool new_job = false;
               {
               std::unique_lock<std::mutex> lock(_queue_mutex);
 
               _query_cv.wait(lock, [&] {return !_queue.empty() || _quit; });
-              if (!_quit)
+              if (!_queue.empty())
                 {
                 _job = _queue.front();
                 _queue.pop();
+                new_job = true;
                 }
               }
-              if (!_quit)
+              if (new_job)
                 {
-                ++_number_of_jobs_pending;
                 _job();
                 if (--_number_of_jobs_pending == 0)
                   _completed_all_jobs_cv.notify_one();
@@ -878,6 +879,7 @@ namespace jtk
       */
       void push(t_job_type job)
         {
+        ++_number_of_jobs_pending;
             {
             std::unique_lock<std::mutex> lock(_queue_mutex);
             _queue.push(job);
