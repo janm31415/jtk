@@ -1189,7 +1189,7 @@ namespace jtk
     out = image<uint8_t>(im.width(), im.height());
     const __m128i* i0 = (const __m128i*)(im.data());
     const int16_t* i1 = im.data() + 1;
-    const int16_t* i2 = im.data() + 2;
+    const int16_t* i2 = im.data();
     const int16_t* i3 = im.data() + 3;
     const int16_t* i4 = im.data() + 4;
     uint8_t* result = out.data();
