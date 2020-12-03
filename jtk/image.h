@@ -1189,7 +1189,7 @@ namespace jtk
     out = image<uint8_t>(im.width(), im.height());
     const __m128i* i0 = (const __m128i*)(im.data());
     const int16_t* i1 = im.data() + 1;
-    const int16_t* i2 = im.data();
+    const int16_t* i2 = im.data() + 2;
     const int16_t* i3 = im.data() + 3;
     const int16_t* i4 = im.data() + 4;
     uint8_t* result = out.data();
@@ -1197,7 +1197,7 @@ namespace jtk
     ++i2; ++result;
     *result = (uint8_t)(*i2 >> 4);
     ++i2; ++result;
-    const int16_t* const end_input = im.data() + im.stride() * im.height();
+    const int16_t* const end_input = im.data() + (im.stride() * im.height()-16);
     __m128i result_register_lo = _mm_setzero_si128();
     __m128i result_register_hi = _mm_setzero_si128();
     for (; i4 < end_input; i0 += 1, i1 += 8, i2 += 8, i3 += 8, i4 += 8, result += 16)
