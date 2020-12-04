@@ -203,11 +203,11 @@ namespace jtk
 #endif
         struct _Node
         {
-        unsigned long _M_key;
+        uint64_t _M_key;
         _Ty _M_value;
         _Node* _M_chain;
 
-        _Node(unsigned long _Key, _Ty _InitialValue)
+        _Node(uint64_t _Key, _Ty _InitialValue)
           : _M_key(_Key),
           _M_value(std::move(_InitialValue)),
           _M_chain(nullptr)
@@ -338,7 +338,7 @@ namespace jtk
       /**/
       _Ty& local()
         {
-        unsigned long _Key = get_thread_id();
+        uint64_t _Key = get_thread_id();
         size_t _Index;
         _Node* _ExistingNode = _FindLocalItem(_Key, &_Index);
         if (_ExistingNode == nullptr)
@@ -365,7 +365,7 @@ namespace jtk
       /**/
       _Ty& local(bool& _Exists)
         {
-        unsigned long _Key = get_thread_id();
+        uint64_t _Key = get_thread_id();
         size_t _Index;
         _Node* _ExistingNode = _FindLocalItem(_Key, &_Index);
         if (_ExistingNode == nullptr)
@@ -549,7 +549,7 @@ namespace jtk
         return _Op._DoCopy(_Other._M_size, _Other);
         }
 
-      _Node* _FindLocalItem(unsigned long _Key, size_t* _PIndex)
+      _Node* _FindLocalItem(uint64_t _Key, size_t* _PIndex)
         {
         assert(_PIndex != nullptr);
 
@@ -567,7 +567,7 @@ namespace jtk
         return nullptr;
         }
 
-      _Node* _AddLocalItem(unsigned long _Key, size_t _Index)
+      _Node* _AddLocalItem(uint64_t _Key, size_t _Index)
         {
         _Node* _NewNode = new _Node(_Key, _M_fnInitialize());
         _Node* _TopNode;
