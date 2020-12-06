@@ -820,29 +820,24 @@ namespace jtk
         t_job_type _job;
         while (!_quit)
           {
-          bool new_job = false;
-              {
-              std::unique_lock<std::mutex> lock(_queue_mutex);
-
-              _query_cv.wait(lock, [&] {return !_queue.empty() || _quit; });
-              if (!_queue.empty())
-                {
-                _job = _queue.front();
-                _queue.pop();
-                new_job = true;
-                }
-              }
-              if (new_job)
-                {
-                _job();
-                if (--_number_of_jobs_pending == 0)
-                  _completed_all_jobs_cv.notify_one();
-                }
+          std::unique_lock<std::mutex> lock(_queue_mutex);
+          _query_cv.wait(lock, [&] {return !_queue.empty() || _quit; });
+          if (!_queue.empty())
+            {
+            ++_busy;
+            _job = _queue.front();
+            _queue.pop();
+            lock.unlock();
+            _job();
+            lock.lock();
+            --_busy;
+            _completed_all_jobs_cv.notify_one();
+            }
           }
         }
 
     public:
-      thread_pool() : _quit(false), _number_of_jobs_pending(0) {}
+      thread_pool() : _quit(false), _busy(0) {}
 
       ~thread_pool()
         {
@@ -877,20 +872,17 @@ namespace jtk
       To push an arbitrary function, use
       push(std::bind(my_class::my_method, my_object));
       */
-      void push(t_job_type job)
+      void push(t_job_type&& job)
         {
-        ++_number_of_jobs_pending;
-            {
-            std::unique_lock<std::mutex> lock(_queue_mutex);
-            _queue.push(job);
-            }
-            _query_cv.notify_one();
+        std::unique_lock<std::mutex> lock(_queue_mutex);
+        _queue.push(job);
+        _query_cv.notify_one();
         }
 
       void wait_until_all_jobs_finished()
         {
-        std::unique_lock<std::mutex> lock(_completed_all_jobs_mutex);
-        _completed_all_jobs_cv.wait(lock);
+        std::unique_lock<std::mutex> lock(_queue_mutex);
+        _completed_all_jobs_cv.wait(lock, [this]() { return _queue.empty() && (_busy == 0); });
         }
 
     private:
@@ -901,7 +893,7 @@ namespace jtk
       std::condition_variable _query_cv;
       std::condition_variable _completed_all_jobs_cv;
       std::queue<t_job_type> _queue;
-      std::atomic<int> _number_of_jobs_pending;
+      int _busy;
       bool _quit;
     };
 
