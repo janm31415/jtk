@@ -271,7 +271,7 @@ namespace jtk
       return (left[0] == right[0] && left[1] == right[1] && left[2] == right[2]);
       };
 
-    std::sort(vert.begin(), vert.end(), less_fie);
+    parallel_sort(vert.begin(), vert.end(), less_fie);
 
     nr_of_vertices = 1;
     auto first = vert.begin();
