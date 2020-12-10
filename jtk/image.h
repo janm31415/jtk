@@ -289,6 +289,13 @@ namespace jtk
         return _access[y];
         }
 
+      void reset_width(uint32_t w)
+        {
+        if (w > _stride)
+          throw std::runtime_error("invalid width (cannot be larger than stride)");
+        _w = w;
+        }
+
     private:
       uint32_t _w, _h, _stride;
       T* _data;
@@ -921,18 +928,26 @@ namespace jtk
     {
     assert(r.width() == g.width());
     assert(r.width() == b.width());
+    assert(r.stride() == g.stride());
+    assert(r.stride() == b.stride());
     assert(r.height() == g.height());
     assert(r.height() == b.height());
-    image<uint32_t> out(r.width(), r.height());
-    uint32_t* c = out.data();
-    const uint8_t* pr = r.data();
-    const uint8_t* pg = g.data();
-    const uint8_t* pb = b.data();
-    const uint32_t* const c_end = c + r.width()*r.height();
-    for (; c != c_end; ++c, ++pr, ++pg, ++pb)
+    const uint32_t w = r.width();
+    const uint32_t h = r.height();
+    image<uint32_t> out(w, h);
+
+    for (uint32_t y = 0; y < h; ++y)
       {
-      uint32_t clr = 0xff000000 | ((uint32_t)*pb << 16) | ((uint32_t)*pg << 8) | ((uint32_t)*pr);
-      *c = clr;
+      uint32_t* c = out.row(y);
+      const uint8_t* pr = r.row(y);
+      const uint8_t* pg = g.row(y);
+      const uint8_t* pb = b.row(y);
+     
+      for (uint32_t x = 0; x < w; ++x, ++c, ++pr, ++pg, ++pb)
+        {
+        uint32_t clr = 0xff000000 | ((uint32_t)*pb << 16) | ((uint32_t)*pg << 8) | ((uint32_t)*pr);
+        *c = clr;
+        }
       }
     return out;
     }
@@ -1068,7 +1083,7 @@ namespace jtk
     {
     using namespace details;
     const int w_chunk = im.stride() / 16;
-    out = image<int16_t>(im.width(), im.height());
+    out = image<int16_t>(im.stride(), im.height());
     __m128i* i0 = (__m128i*)(im.data());
     __m128i* i1 = (__m128i*)(im.data()) + w_chunk * 1;
     __m128i* i2 = (__m128i*)(im.data()) + w_chunk * 2;
@@ -1254,6 +1269,7 @@ namespace jtk
     convolve_col_14641(temp, im);
     image<uint8_t> out;
     convolve_row_14641_div_256(out, temp);
+    out.reset_width(im.width());
     return out;
     }
 
@@ -1283,7 +1299,28 @@ namespace jtk
   inline image<uint8_t> remove_even_col_even_row_sse(const image<uint8_t>& im)
     {
     using namespace details;
-    image<uint8_t> out(im.width() >> 1, (im.height() + im.height() % 2) >> 1);
+    image<uint8_t> out(im.stride() >> 1, (im.height() + im.height() % 2) >> 1);
+    
+    for (uint32_t y = 0; y < out.height(); ++y)
+      {
+      __m128i* result = (__m128i*)(out.row(y));
+
+      const uint8_t* i0 = im.row(2*y);
+      const uint8_t* i1 = i0 + 16;
+      const uint8_t* const end_input = i0 + im.stride();
+      for (; i0 < end_input; i0 += 32, i1 += 32, ++result)
+        {
+        __m128i i0_register = *(const __m128i*)i0;
+        __m128i i1_register = *(const __m128i*)i1;
+        __m128i hi, lo;
+        split_hi_lo(i0_register, i1_register, hi, lo);
+        split_hi_lo(lo, hi, hi, lo);
+        split_hi_lo(lo, hi, hi, lo);
+        split_hi_lo(lo, hi, hi, lo);
+        *result = lo;
+        }
+      }
+    /*
     const int w_chunk = im.stride() / 32;
     const uint8_t* i0 = im.data();
     const uint8_t* i1 = im.data() + 16;
@@ -1303,10 +1340,13 @@ namespace jtk
       if (cnt == w_chunk)
         {
         cnt = 0;
-        i0 += im.width();
-        i1 += im.width();
+        i0 += im.stride();
+        i1 += im.stride();
         }
       }
+    */
+    //out.reset_width(out.stride());
+    out.reset_width(im.width() >> 1);
     return out;
     }
 
