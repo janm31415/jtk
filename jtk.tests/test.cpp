@@ -2,6 +2,7 @@
 #include "concurrency_tests.h"
 #include "container_tests.h"
 #include "file_utils_tests.h"
+#include "geometry_tests.h"
 #include "image_tests.h"
 #include "mat_tests.h"
 #include "qbvh_tests.h"
@@ -14,6 +15,7 @@ int main(int /*argc*/, const char* /*argv*/[])
   InitTestEngine();
 
   auto tic = std::clock();
+  run_all_geometry_tests();
   run_all_concurrency_tests();
   run_all_container_tests();
   run_all_file_utils_tests();

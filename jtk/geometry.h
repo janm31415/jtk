@@ -2,6 +2,7 @@
 
 #include "concurrency.h"
 #include "vec.h"
+#include "point_tree.h"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -194,6 +195,9 @@ namespace jtk
     float isovalue,
     TDistanceFunction fun,
     TValidValue valid_value);
+    
+    
+  bool stitch_points(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, float distance_tolerance);
 
   /////////////////////////////////////////////////////////////////////////
   // implementation
@@ -2659,6 +2663,76 @@ namespace jtk
         triangles.emplace_back(V0, V1, V2);
         }
       }
+    }
+    
+  inline bool stitch_points(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, float distance_tolerance)
+    {
+    if (vertices.empty())
+        return false;
+
+    struct indexed_point
+      {
+      vec3<float> pt;
+      uint32_t idx;
+      float operator[](int i) const { return pt[i]; }
+      float& operator[](int i) { return pt[i]; }
+      };
+      
+    struct point_tree_traits
+      {
+      typedef float value_type;
+      enum { dimension = 3 };
+      typedef indexed_point point_type;
+      };
+      
+    std::vector<indexed_point> points;
+    points.resize(vertices.size());
+    for (uint32_t i = 0; i < (uint32_t)vertices.size(); ++i)
+      {
+      points[i].pt = vertices[i];
+      points[i].idx = i;
+      }
+
+    point_tree<point_tree_traits> tree;
+    tree.efficient_build_tree(points.begin(), points.end());
+    
+    bool did_change = false;
+    
+    uint32_t number_of_vertices = (uint32_t)vertices.size();
+    std::vector<uint32_t> new_indices(number_of_vertices, number_of_vertices);
+    uint32_t new_index = 0;
+    for (uint32_t i = 0; i < number_of_vertices; ++i)
+      {
+      if (new_indices[i] == number_of_vertices)
+        {
+        new_indices[i] = new_index;
+        indexed_point pt;
+        pt.pt = vertices[i];
+        auto closest = tree.find_nearest_within_radius(distance_tolerance, pt);
+        for (auto it = closest.begin(); it != closest.end(); ++it)
+          if (new_indices[it->idx] == number_of_vertices && it->idx != i) {
+            did_change = true;
+            new_indices[it->idx] = new_index;
+          }
+        ++new_index;
+      }
+    }
+    new_index = 0;
+    for (uint32_t i = 0; i < number_of_vertices; ++i)
+      {
+      if (new_indices[i] == new_index)
+        {
+        vertices[new_index] = vertices[i];
+        ++new_index;
+        }
+      }
+    vertices.resize(new_index);
+
+    for (auto& tria : triangles)
+      for (uint32_t j = 0; j < 3; ++j)
+        tria[j] = new_indices[tria[j]];
+
+    return did_change;
     }
 
   } // namespace jtk

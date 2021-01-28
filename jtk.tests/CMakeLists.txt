@@ -17,6 +17,7 @@ set(HDRS
 concurrency_tests.h
 container_tests.h
 file_utils_tests.h
+geometry_tests.h
 image_tests.h
 mat_tests.h
 qbvh_tests.h
@@ -28,6 +29,7 @@ set(SRCS
 concurrency_tests.cpp
 container_tests.cpp
 file_utils_tests.cpp
+geometry_tests.cpp
 image_tests.cpp
 mat_tests.cpp
 qbvh_tests.cpp
