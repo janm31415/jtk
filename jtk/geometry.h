@@ -185,6 +185,7 @@ namespace jtk
   void smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
   void local_smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& vertex_indices, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
   void dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
+  void undo_dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
 
   template <class TDistanceFunction, class TValidValue>
   void marching_cubes(
@@ -2102,8 +2103,6 @@ namespace jtk
 
     std::unordered_map<uint64_t, uint32_t> treated(nr_of_vertices);
 
-    std::sort(triangles.begin(), triangles.end()); // necessary for undo redo after scambling triangles because of bvh
-
     for (const auto& tria : triangles)
       {
       for (int j = 0; j < 3; ++j)
@@ -2142,6 +2141,34 @@ namespace jtk
       tria[1] = edge_points[1];
       tria[2] = edge_points[2];
       }
+    }
+
+  inline void undo_dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
+    {
+    const uint32_t nr_of_vertices = vertices.size();
+    const uint32_t nr_of_triangles = triangles.size();
+
+    assert(nr_of_triangles % 4 == 0);
+
+    uint32_t original_nr_of_vertices = triangles.front()[0];
+    const uint32_t original_nr_of_triangles = nr_of_triangles / 4;
+    for (uint32_t t = 0; t < original_nr_of_triangles; ++t)
+      {
+      original_nr_of_vertices = std::min<uint32_t>(original_nr_of_vertices, triangles[t][0]);
+      original_nr_of_vertices = std::min<uint32_t>(original_nr_of_vertices, triangles[t][1]);
+      original_nr_of_vertices = std::min<uint32_t>(original_nr_of_vertices, triangles[t][2]);
+      }
+    for (uint32_t t = 0; t < original_nr_of_triangles; ++t)
+      {
+      const uint32_t t0 = original_nr_of_triangles + t * 3;
+      const uint32_t t1 = original_nr_of_triangles + t * 3 + 1;
+      const uint32_t t2 = original_nr_of_triangles + t * 3 + 2;
+      triangles[t][0] = triangles[t0][0];
+      triangles[t][1] = triangles[t1][1];
+      triangles[t][2] = triangles[t2][2];
+      }
+    triangles.resize(original_nr_of_triangles);
+    vertices.resize(original_nr_of_vertices);
     }
 
   namespace marching_cubes_details
