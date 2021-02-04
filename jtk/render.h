@@ -6,7 +6,7 @@
 #include "sse2neon.h"
 #else
 #include <immintrin.h>
-//#define _AVX2
+//#define _JTK_AVX2
 #endif
 
 #include <vector>
@@ -84,7 +84,7 @@ namespace jtk
 #endif
   struct render_data
     {
-#ifdef _AVX2
+#ifdef _JTK_AVX2
     __m256 projection_times_camera_times_object_avx[16];
 #else
     __m128 projection_times_camera_times_object_sse[16];
@@ -307,7 +307,7 @@ namespace jtk
     rd.vertices_z.clear();
     rd.vertex_clip_info.clear();
     const float* p_vert = rd.obj.vertices;
-#ifdef _AVX2
+#ifdef _JTK_AVX2
     uint32_t sz = rd.obj.number_of_vertices - (rd.obj.number_of_vertices & 7);
 #else
     uint32_t sz = rd.obj.number_of_vertices - (rd.obj.number_of_vertices & 3);
@@ -518,7 +518,7 @@ namespace jtk
     float tmp[4] = { rd.light_direction[0], rd.light_direction[1], rd.light_direction[2], 0.f };
     invert_orthonormal(inv, rd.camera_position);
     mat_vec_multiply(light, inv, tmp);
-#ifdef _AVX2
+#ifdef _JTK_AVX2
     __m256 light_avx[3] = { _mm256_set1_ps(light[0]), _mm256_set1_ps(light[1]), _mm256_set1_ps(light[2]) };
 #else
     __m128 light_sse[3] = { _mm_set1_ps(light[0]), _mm_set1_ps(light[1]), _mm_set1_ps(light[2]) };
@@ -529,7 +529,7 @@ namespace jtk
     light_color[1] = ((rd.light_color >> 8) & 0xff) / 255.f;
     light_color[2] = ((rd.light_color >> 16) & 0xff) / 255.f;
 
-#ifdef _AVX2
+#ifdef _JTK_AVX2
     __m256 light_color_avx[3];
     light_color_avx[0] = _mm256_set1_ps(light_color[0]);
     light_color_avx[1] = _mm256_set1_ps(light_color[1]);
@@ -548,7 +548,7 @@ namespace jtk
     const float* p_vert_y = (const float*)rd.vertices_y.data();
     const float* p_vert_z = (const float*)rd.vertices_z.data();
 
-#ifdef _AVX2   
+#ifdef _JTK_AVX2
 
     const __m256i zero = _mm256_set1_epi32(0);
     const __m256i wh_minus_one = _mm256_set1_epi32(rd.fb.w*rd.fb.h - 1);
@@ -856,7 +856,7 @@ namespace jtk
 
   inline void present(render_data& rd, uint32_t color)
     {
-#ifdef _AVX2
+#ifdef _JTK_AVX2
     present(rd, color, [](uint32_t, const __m256i&, const __m256i&) {});
 #else
     present(rd, color, [](uint32_t, const __m128i&, const __m128i&) {});
