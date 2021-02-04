@@ -189,8 +189,10 @@ namespace jtk
   void smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
   void local_smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& vertex_indices, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
   void dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
-  void dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& uv);
+  void dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv);
+  void dyadic_subdivide_triangle_indices_vector(std::vector<uint32_t>& triangle_indices, uint32_t original_number_of_triangles);
   void undo_dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
+  void undo_dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv);
   void butterfly(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
 
   template <class TDistanceFunction, class TValidValue>
@@ -2258,6 +2260,19 @@ namespace jtk
       }
     triangle_uv.swap(new_uv_out);
     }
+    
+  inline void dyadic_subdivide_triangle_indices_vector(std::vector<uint32_t>& triangle_indices, uint32_t original_number_of_triangles)
+    {
+    const size_t sz = triangle_indices.size();
+    triangle_indices.reserve(sz*4);
+    for (size_t i = 0; i < sz; ++i)
+      {
+      uint32_t t = triangle_indices[i];
+      triangle_indices.push_back(original_number_of_triangles+t*3);
+      triangle_indices.push_back(original_number_of_triangles+t*3+1);
+      triangle_indices.push_back(original_number_of_triangles+t*3+2);
+      }
+    }
 
   inline void undo_dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
     {
@@ -2285,6 +2300,18 @@ namespace jtk
       }
     triangles.resize(original_nr_of_triangles);
     vertices.resize(original_nr_of_vertices);
+    }
+    
+  inline void undo_dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv)
+    {
+    const uint32_t number_of_original_triangles = (uint32_t)triangle_uv.size() / 4;
+    for (uint32_t t = 0; t < number_of_original_triangles; ++t)
+      {
+      triangle_uv[t][0] = triangle_uv[number_of_original_triangles+3*t][0];
+      triangle_uv[t][1] = triangle_uv[number_of_original_triangles+3*t+1][1];
+      triangle_uv[t][2] = triangle_uv[number_of_original_triangles+3*t+2][2];
+      }
+    triangle_uv.resize(number_of_original_triangles);
     }
     
   inline void butterfly(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
