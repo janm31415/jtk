@@ -14,6 +14,7 @@
 #define JTK_GEOMETRY_H
 
 #include "vec.h"
+#include <cassert>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -774,7 +775,6 @@ namespace jtk
 #include "point_tree.h"
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <list>
 #include <numeric>
 #include <iterator>
