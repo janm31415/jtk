@@ -1,4 +1,5 @@
-#pragma once
+#ifndef JTK_QBVH_H
+#define JTK_QBVH_H
 
 #include "concurrency.h"
 #include "vec.h"
@@ -23,8 +24,8 @@ namespace jtk
   // interfaces
   /////////////////////////////////////////////////////////////////////////
 
-  inline void* aligned_malloc(size_t size, size_t align);
-  inline void aligned_free(void* ptr);
+  void* aligned_malloc(size_t size, size_t align);
+  void aligned_free(void* ptr);
   template<typename T, size_t alignment>
   struct aligned_allocator
     {
@@ -36,10 +37,10 @@ namespace jtk
     typedef std::size_t size_type;
     typedef std::ptrdiff_t difference_type;
 
-    inline pointer allocate(size_type n);
-    inline void deallocate(pointer p, size_type);
-    inline void construct(pointer p, const_reference val);
-    inline void destroy(pointer p);
+    pointer allocate(size_type n);
+    void deallocate(pointer p, size_type);
+    void construct(pointer p, const_reference val);
+    void destroy(pointer p);
     };
 
   template<typename T, typename allocator>
@@ -50,45 +51,45 @@ namespace jtk
       typedef T* iterator;
       typedef const T* const_iterator;
 
-      inline vector_t();
-      inline explicit vector_t(size_t sz);
-      inline explicit vector_t(size_t sz, const allocator& alloc);
-      inline vector_t(size_t sz, const T& val, const allocator& alloc = allocator());
-      inline ~vector_t();
-      inline vector_t(const vector_t& other);
-      inline vector_t(vector_t&& other);
-      inline vector_t& operator=(const vector_t& other);
-      inline vector_t& operator=(vector_t&& other);
-      inline void swap(vector_t& other);
-      inline       iterator begin();
-      inline const_iterator begin() const;
-      inline       iterator end();
-      inline const_iterator end() const;
-      inline bool   empty() const;
-      inline size_t size() const;
-      inline size_t capacity() const;
-      inline void resize(size_t new_size);
-      inline void reserve(size_t new_alloced);
-      inline void shrink_to_fit();
-      inline       T& operator[](size_t i);
-      inline const T& operator[](size_t i) const;
-      inline       T& at(size_t i);
-      inline const T& at(size_t i) const;
-      inline T& front() const;
-      inline T& back() const;
-      inline       T* data();
-      inline const T* data() const;
-      inline void push_back(const T& nt);
-      inline void pop_back();
-      inline void clear();
+      vector_t();
+      explicit vector_t(size_t sz);
+      explicit vector_t(size_t sz, const allocator& alloc);
+      vector_t(size_t sz, const T& val, const allocator& alloc = allocator());
+      ~vector_t();
+      vector_t(const vector_t& other);
+      vector_t(vector_t&& other);
+      vector_t& operator=(const vector_t& other);
+      vector_t& operator=(vector_t&& other);
+      void swap(vector_t& other);
+            iterator begin();
+      const_iterator begin() const;
+            iterator end();
+      const_iterator end() const;
+      bool   empty() const;
+      size_t size() const;
+      size_t capacity() const;
+      void resize(size_t new_size);
+      void reserve(size_t new_alloced);
+      void shrink_to_fit();
+            T& operator[](size_t i);
+      const T& operator[](size_t i) const;
+            T& at(size_t i);
+      const T& at(size_t i) const;
+      T& front() const;
+      T& back() const;
+            T* data();
+      const T* data() const;
+      void push_back(const T& nt);
+      void pop_back();
+      void clear();
       friend bool operator== (const vector_t& a, const vector_t& b);
       friend bool operator!= (const vector_t& a, const vector_t& b);
 
     private:
-      inline void internal_resize_init(size_t new_active);
-      inline void internal_resize_fill(size_t new_active, const T& val);
-      inline void internal_resize(size_t new_active, size_t new_alloced);
-      inline size_t internal_grow_size(size_t new_alloced);
+      void internal_resize_init(size_t new_active);
+      void internal_resize_fill(size_t new_active, const T& val);
+      void internal_resize(size_t new_active, size_t new_alloced);
+      size_t internal_grow_size(size_t new_alloced);
 
     private:
       allocator alloc;
@@ -119,26 +120,26 @@ namespace jtk
     bool4(bool b0, bool b1, bool b2, bool b3);
 
     template <typename T>
-    inline int32_t& operator [](T index);
+    int32_t& operator [](T index);
     template <typename T>
-    inline int32_t operator [](T index) const;
+    int32_t operator [](T index) const;
     }
 #ifndef _WIN32 // linux alignment in gcc
   __attribute__((aligned(16)))
 #endif
     ;
-  inline bool all(const bool4& b);
-  inline bool any(const bool4& b);
-  inline bool none(const bool4& b);
-  inline bool4 operator ! (const bool4& a);
-  inline bool4 operator & (const bool4& a, const bool4& b);
-  inline bool4 operator | (const bool4& a, const bool4& b);
-  inline bool4 operator ^ (const bool4& a, const bool4& b);
-  inline bool4& operator &= (bool4& a, const bool4& b);
-  inline bool4& operator |= (bool4& a, const bool4& b);
-  inline bool4& operator ^= (bool4& a, const bool4& b);
-  inline bool4 operator != (const bool4& a, const bool4& b);
-  inline bool4 operator == (const bool4& a, const bool4& b);
+  bool all(const bool4& b);
+  bool any(const bool4& b);
+  bool none(const bool4& b);
+  bool4 operator ! (const bool4& a);
+  bool4 operator & (const bool4& a, const bool4& b);
+  bool4 operator | (const bool4& a, const bool4& b);
+  bool4 operator ^ (const bool4& a, const bool4& b);
+  bool4& operator &= (bool4& a, const bool4& b);
+  bool4& operator |= (bool4& a, const bool4& b);
+  bool4& operator ^= (bool4& a, const bool4& b);
+  bool4 operator != (const bool4& a, const bool4& b);
+  bool4 operator == (const bool4& a, const bool4& b);
 
 #ifdef _WIN32
   __declspec(align(16))
@@ -171,29 +172,29 @@ namespace jtk
 #endif  
     ;
 
-  inline int4 operator + (const int4& a);
-  inline int4 operator - (const int4& a);
-  inline int4 operator + (const int4& left, const int4& right);
-  inline int4 operator - (const int4& left, const int4& right);
-  inline int4 operator * (const int4& left, const int4& right);
-  inline int4 operator * (const int4& left, int32_t right);
-  inline int4 operator * (int32_t left, const int4& right);
-  inline int4 min(const int4& left, const int4& right);
-  inline int4 max(const int4& left, const int4& right);
-  inline bool4 operator == (const int4& left, const int4& right);
-  inline bool4 operator != (const int4& left, const int4& right);
-  inline bool4 operator < (const int4& left, const int4& right);
-  inline bool4 operator > (const int4& left, const int4& right);
-  inline bool4 operator <= (const int4& left, const int4& right);
-  inline bool4 operator >= (const int4& left, const int4& right);
-  inline int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values);
-  inline int4 operator & (const int4& left, const int4& right);
-  inline int4 operator | (const int4& left, const int4& right);
+  int4 operator + (const int4& a);
+  int4 operator - (const int4& a);
+  int4 operator + (const int4& left, const int4& right);
+  int4 operator - (const int4& left, const int4& right);
+  int4 operator * (const int4& left, const int4& right);
+  int4 operator * (const int4& left, int32_t right);
+  int4 operator * (int32_t left, const int4& right);
+  int4 min(const int4& left, const int4& right);
+  int4 max(const int4& left, const int4& right);
+  bool4 operator == (const int4& left, const int4& right);
+  bool4 operator != (const int4& left, const int4& right);
+  bool4 operator < (const int4& left, const int4& right);
+  bool4 operator > (const int4& left, const int4& right);
+  bool4 operator <= (const int4& left, const int4& right);
+  bool4 operator >= (const int4& left, const int4& right);
+  int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values);
+  int4 operator & (const int4& left, const int4& right);
+  int4 operator | (const int4& left, const int4& right);
 #ifndef _JTK_FOR_ARM
-  inline int4 operator >> (const int4& a, int n);
-  inline int4 operator << (const int4& a, int n);
+  int4 operator >> (const int4& a, int n);
+  int4 operator << (const int4& a, int n);
 #endif
-  inline int any(const int4& a);
+  int any(const int4& a);
 
 #ifdef _WIN32
   __declspec(align(16))
@@ -225,38 +226,38 @@ namespace jtk
   __attribute__((aligned(16)))
 #endif  
     ;
-  inline float4 operator + (const float4& a);
-  inline float4 operator - (const float4& a);
-  inline float4 operator + (const float4& left, const float4& right);
-  inline float4 operator - (const float4& left, const float4& right);
-  inline float4 operator * (const float4& left, const float4& right);
-  inline float4 operator * (const float4& left, float right);
-  inline float4 operator * (float left, const float4& right);
-  inline float4 operator / (const float4& left, const float4& right);
-  inline float4 operator / (const float4& left, float right);
-  inline float4 operator / (float left, const float4& right);
-  inline float4 min(const float4& left, const float4& right);
-  inline float4 max(const float4& left, const float4& right);
-  inline float min_horizontal(const float4& x);
-  inline float max_horizontal(const float4& x);
-  inline float4 cross(const float4& left, const float4& right);
-  inline float dot(const float4& left, const float4& right);
-  inline float dot4(const float4& left, const float4& right);
-  inline float4 abs(const float4& a);
-  inline float4 sqrt(const float4& a);
-  inline float4 rsqrt(const float4& a);
-  inline float4 reciprocal(const float4& a);
-  inline bool4 operator == (const float4& left, const float4& right);
-  inline bool4 operator != (const float4& left, const float4& right);
-  inline bool4 operator < (const float4& left, const float4& right);
-  inline bool4 operator > (const float4& left, const float4& right);
-  inline bool4 operator <= (const float4& left, const float4& right);
-  inline bool4 operator >= (const float4& left, const float4& right);
-  inline float4 unpacklo(const float4& left, const float4& right);
-  inline float4 unpackhi(const float4& left, const float4& right);
-  inline void transpose(float4& r0, float4& r1, float4& r2, float4& r3, const float4& c0, const float4& c1, const float4& c2, const float4& c3);
-  inline float4 masked_update(const bool4& mask, const float4& original, const float4& updated_values);
-  inline float4 masked_update(const int4& mask, const float4& original, const float4& updated_values);
+  float4 operator + (const float4& a);
+  float4 operator - (const float4& a);
+  float4 operator + (const float4& left, const float4& right);
+  float4 operator - (const float4& left, const float4& right);
+  float4 operator * (const float4& left, const float4& right);
+  float4 operator * (const float4& left, float right);
+  float4 operator * (float left, const float4& right);
+  float4 operator / (const float4& left, const float4& right);
+  float4 operator / (const float4& left, float right);
+  float4 operator / (float left, const float4& right);
+  float4 min(const float4& left, const float4& right);
+  float4 max(const float4& left, const float4& right);
+  float min_horizontal(const float4& x);
+  float max_horizontal(const float4& x);
+  float4 cross(const float4& left, const float4& right);
+  float dot(const float4& left, const float4& right);
+  float dot4(const float4& left, const float4& right);
+  float4 abs(const float4& a);
+  float4 sqrt(const float4& a);
+  float4 rsqrt(const float4& a);
+  float4 reciprocal(const float4& a);
+  bool4 operator == (const float4& left, const float4& right);
+  bool4 operator != (const float4& left, const float4& right);
+  bool4 operator < (const float4& left, const float4& right);
+  bool4 operator > (const float4& left, const float4& right);
+  bool4 operator <= (const float4& left, const float4& right);
+  bool4 operator >= (const float4& left, const float4& right);
+  float4 unpacklo(const float4& left, const float4& right);
+  float4 unpackhi(const float4& left, const float4& right);
+  void transpose(float4& r0, float4& r1, float4& r2, float4& r3, const float4& c0, const float4& c1, const float4& c2, const float4& c3);
+  float4 masked_update(const bool4& mask, const float4& original, const float4& updated_values);
+  float4 masked_update(const int4& mask, const float4& original, const float4& updated_values);
 
 
 #ifdef _WIN32
@@ -284,27 +285,27 @@ namespace jtk
   __attribute__((aligned(16)))
 #endif  
     ;
-  inline float4x4 get_identity();
-  inline float4x4 make_translation(float x, float y, float z);
-  inline float4x4 transpose(const float4x4& m);
-  inline float4x4 invert_orthonormal(const float4x4& m);
+  float4x4 get_identity();
+  float4x4 make_translation(float x, float y, float z);
+  float4x4 transpose(const float4x4& m);
+  float4x4 invert_orthonormal(const float4x4& m);
   // for column major matrix
   // we use __m128 to represent 2x2 matrix as A = | A0  A1 |
   //                                              | A2  A3 |
   // 2x2 column major matrix multiply A*B
-  inline __m128 mat2mul(__m128 vec1, __m128 vec2);
+  __m128 mat2mul(__m128 vec1, __m128 vec2);
   // 2x2 column major matrix adjugate multiply (A#)*B
-  inline __m128 mat2adjmul(__m128 vec1, __m128 vec2);
+  __m128 mat2adjmul(__m128 vec1, __m128 vec2);
   // 2x2 column major matrix multiply adjugate A*(B#)
-  inline __m128 mat2muladj(__m128 vec1, __m128 vec2);
-  inline float4x4 invert(const float4x4& m);
-  inline float4 matrix_vector_multiply(const float4x4& m, const float4& v);
-  inline float4x4 matrix_matrix_multiply(const float4x4& left, const float4x4& right);
-  inline float4x4 operator + (const float4x4& left, const float4x4& right);
-  inline float4x4 operator - (const float4x4& left, const float4x4& right);
-  inline float4x4 operator / (const float4x4& left, float value);
-  inline float4x4 operator * (const float4x4& left, float value);
-  inline float4x4 operator * (float value, const float4x4& right);
+  __m128 mat2muladj(__m128 vec1, __m128 vec2);
+  float4x4 invert(const float4x4& m);
+  float4 matrix_vector_multiply(const float4x4& m, const float4& v);
+  float4x4 matrix_matrix_multiply(const float4x4& left, const float4x4& right);
+  float4x4 operator + (const float4x4& left, const float4x4& right);
+  float4x4 operator - (const float4x4& left, const float4x4& right);
+  float4x4 operator / (const float4x4& left, float value);
+  float4x4 operator * (const float4x4& left, float value);
+  float4x4 operator * (float value, const float4x4& right);
 
 
   struct hit
@@ -354,9 +355,9 @@ namespace jtk
     float4 Sx, Sy, Sz;
     };
 
-  inline woop_precompute intersect_woop_precompute(const float4& r_dir);
-  inline void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h);
-  inline bool4 intersect(const float4* aabb, const vec3<float4>& r_origin, const float4& t_near, const float4& t_far, const int32_t* ray_dir_sign, const vec3<float4>& ray_inverse_dir);
+  woop_precompute intersect_woop_precompute(const float4& r_dir);
+  void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h);
+  bool4 intersect(const float4* aabb, const vec3<float4>& r_origin, const float4& t_near, const float4& t_far, const int32_t* ray_dir_sign, const vec3<float4>& ray_inverse_dir);
 
   struct distance4
     {
@@ -364,38 +365,38 @@ namespace jtk
     float4 distance_sqr;
     };
 
-  inline void distance_sqr(const woop_triangle& acc, const vec3<float4>& point, distance4& dist);
-  inline float4 distance_sqr(const float4* aabb, const vec3<float4>& point);
+  void distance_sqr(const woop_triangle& acc, const vec3<float4>& point, distance4& dist);
+  float4 distance_sqr(const float4* aabb, const vec3<float4>& point);
 
-  inline float4x4 make_identity();
-  inline vec3<float> transform(const float4x4& matrix, const vec3<float>& pt);
-  inline vec3<float> transform_vector(const float4x4& matrix, const vec3<float>& vec);
-  inline vec3<float> transform(const float4x4& matrix, const vec3<float>& pt, bool is_vector);
-  inline float4 transform(const float4x4& matrix, const float4& pt);
-  inline float4x4 make_transformation(const vec3<float>& i_origin, const vec3<float>& i_x_axis, const vec3<float>& i_y_axis, const vec3<float>& i_z_axis);
-  inline float4x4 make_rotation(const vec3<float>& i_position, const vec3<float>& i_direction, float i_angle_radians);
-  inline float4x4 make_scale3d(float scale_x, float scale_y, float scale_z);
-  inline float4x4 make_translation(const vec3<float>& i_translation);
-  inline vec3<float> get_translation(const float4x4& matrix);
-  inline void set_x_axis(float4x4& matrix, const vec3<float>& x);
-  inline void set_y_axis(float4x4& matrix, const vec3<float>& y);
-  inline void set_z_axis(float4x4& matrix, const vec3<float>& z);
-  inline void set_translation(float4x4& matrix, const vec3<float>& t);
-  inline vec3<float> get_x_axis(const float4x4& matrix);
-  inline vec3<float> get_y_axis(const float4x4& matrix);
-  inline vec3<float> get_z_axis(const float4x4& matrix);
-  inline float determinant(const float4x4& m);
+  float4x4 make_identity();
+  vec3<float> transform(const float4x4& matrix, const vec3<float>& pt);
+  vec3<float> transform_vector(const float4x4& matrix, const vec3<float>& vec);
+  vec3<float> transform(const float4x4& matrix, const vec3<float>& pt, bool is_vector);
+  float4 transform(const float4x4& matrix, const float4& pt);
+  float4x4 make_transformation(const vec3<float>& i_origin, const vec3<float>& i_x_axis, const vec3<float>& i_y_axis, const vec3<float>& i_z_axis);
+  float4x4 make_rotation(const vec3<float>& i_position, const vec3<float>& i_direction, float i_angle_radians);
+  float4x4 make_scale3d(float scale_x, float scale_y, float scale_z);
+  float4x4 make_translation(const vec3<float>& i_translation);
+  vec3<float> get_translation(const float4x4& matrix);
+  void set_x_axis(float4x4& matrix, const vec3<float>& x);
+  void set_y_axis(float4x4& matrix, const vec3<float>& y);
+  void set_z_axis(float4x4& matrix, const vec3<float>& z);
+  void set_translation(float4x4& matrix, const vec3<float>& t);
+  vec3<float> get_x_axis(const float4x4& matrix);
+  vec3<float> get_y_axis(const float4x4& matrix);
+  vec3<float> get_z_axis(const float4x4& matrix);
+  float determinant(const float4x4& m);
 
   template <typename T>
   struct range
     {
-    inline range();
-    inline range(const T& begin, const T& end);
-    inline T size() const;
-    inline bool empty() const;
-    inline T begin() const;
-    inline T end() const;
-    inline range intersect(const range& r) const;
+    range();
+    range(const T& begin, const T& end);
+    T size() const;
+    bool empty() const;
+    T begin() const;
+    T end() const;
+    range intersect(const range& r) const;
 
     T _begin, _end;
     };
@@ -416,8 +417,8 @@ namespace jtk
     void operator delete[](void* ptr); // for aligned allocation
     };
 
-  inline qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles);
-  inline qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres);
+  qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles);
+  qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres);
 
   struct qbvh_node
     {
@@ -427,15 +428,15 @@ namespace jtk
     uint16_t nr_of_primitives[4]; // 8 bytes
     uint8_t axis0, axis1, axis2, pad; // 4 bytes 
     }; // 128 byte size
-  inline void unite_four_aabbs(float4* out, float4* in, int k);
-  inline void get_bbox(float4* bbox, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int k);
-  inline float calculate_half_surface_area(const float4& left, const float4& right);
-  inline uint8_t find_largest_dimension(const qbvh_voxel& bb);
-  inline std::vector<uint32_t>::iterator partition(qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, const uint32_t dim, const float split_pos, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+  void unite_four_aabbs(float4* out, float4* in, int k);
+  void get_bbox(float4* bbox, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int k);
+  float calculate_half_surface_area(const float4& left, const float4& right);
+  uint8_t find_largest_dimension(const qbvh_voxel& bb);
+  std::vector<uint32_t>::iterator partition(qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, const uint32_t dim, const float split_pos, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
   template <int K>
-  inline void sah_optimized(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+  void sah_optimized(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
   template <int K>
-  inline void sah_parallel(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+  void sah_parallel(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
 
   class qbvh
     {
@@ -448,16 +449,16 @@ namespace jtk
         properties() : leaf_size(32), parallel_level(2) {}
         };
 
-      inline qbvh(const std::vector<vec3<uint32_t>>& triangles, const vec3<float>* vertices);
-      inline qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
-      inline qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
-      inline hit find_closest_triangle(uint32_t& triangle_id, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const;
-      inline std::vector<hit> find_all_triangles(std::vector<uint32_t>& triangle_ids, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const;
-      inline hit find_closest_triangle(uint32_t& triangle_id, const vec3<float>& point, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const;
+      qbvh(const std::vector<vec3<uint32_t>>& triangles, const vec3<float>* vertices);
+      qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
+      qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
+      hit find_closest_triangle(uint32_t& triangle_id, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const;
+      std::vector<hit> find_all_triangles(std::vector<uint32_t>& triangle_ids, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const;
+      hit find_closest_triangle(uint32_t& triangle_id, const vec3<float>& point, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const;
 
     private:
-      inline void _build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb);
-      inline typename int4::value_type construct_tree_single(aligned_vector<qbvh_node>& local_nodes, uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+      void _build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb);
+      typename int4::value_type construct_tree_single(aligned_vector<qbvh_node>& local_nodes, uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
 
       struct tree_stack
         {
@@ -470,8 +471,8 @@ namespace jtk
         std::vector<uint32_t>::iterator mid0, mid1, mid2;
         };
 
-      inline typename int4::value_type construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep);
-      inline typename int4::value_type construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+      typename int4::value_type construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep);
+      typename int4::value_type construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
 
     public:
       aligned_vector<qbvh_node> nodes;
@@ -492,15 +493,15 @@ namespace jtk
         properties() : leaf_size(32), parallel_level(2) {}
         };
 
-      inline sphere_qbvh(const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres);
-      inline sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
-      inline sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
-      inline spherehit find_closest_sphere(uint32_t& sphere_id, ray r, const vec3<float>* origins, const float* radii) const;
-      inline std::vector<spherehit> find_all_spheres(std::vector<uint32_t>& sphere_ids, ray r, const vec3<float>* origins, const float* radii) const;
+      sphere_qbvh(const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres);
+      sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
+      sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr = properties());
+      spherehit find_closest_sphere(uint32_t& sphere_id, ray r, const vec3<float>* origins, const float* radii) const;
+      std::vector<spherehit> find_all_spheres(std::vector<uint32_t>& sphere_ids, ray r, const vec3<float>* origins, const float* radii) const;
 
     private:
-      inline void _build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb);
-      inline typename int4::value_type construct_tree_single(aligned_vector<qbvh_node>& local_nodes, uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+      void _build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb);
+      typename int4::value_type construct_tree_single(aligned_vector<qbvh_node>& local_nodes, uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
 
       struct tree_stack
         {
@@ -513,8 +514,8 @@ namespace jtk
         std::vector<uint32_t>::iterator mid0, mid1, mid2;
         };
 
-      inline typename int4::value_type construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep);
-      inline typename int4::value_type construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+      typename int4::value_type construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep);
+      typename int4::value_type construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
 
     public:
       aligned_vector<qbvh_node> nodes;
@@ -534,7 +535,7 @@ namespace jtk
     uint8_t axis0, axis1, axis2, pad; // 4 bytes  
     };
 
-  inline void unite_four_aabbs(qbvh_voxel& out, const float4* in);
+  void unite_four_aabbs(qbvh_voxel& out, const float4* in);
   class qbvh_two_level
     {
     enum
@@ -543,11 +544,11 @@ namespace jtk
       };
 
     public:
-      inline qbvh_two_level(const qbvh** objects, uint32_t nr_of_objects);
-      inline hit find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const;
+      qbvh_two_level(const qbvh** objects, uint32_t nr_of_objects);
+      hit find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const;
 
     private:
-      inline int32_t construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+      int32_t construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
 
     private:
       std::vector<uint32_t> object_ids;
@@ -556,7 +557,7 @@ namespace jtk
       std::vector<uint32_t>::iterator start;
     };
 
-  inline void transform(qbvh_voxel& voxel, const float4x4& matrix);
+  void transform(qbvh_voxel& voxel, const float4x4& matrix);
   class qbvh_two_level_with_transformations
     {
     enum
@@ -565,11 +566,11 @@ namespace jtk
       };
 
     public:
-      inline qbvh_two_level_with_transformations(const qbvh** objects, const float4x4* transformations, uint32_t nr_of_objects);
-      inline hit find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const float4x4* inverted_transformations, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const;
+      qbvh_two_level_with_transformations(const qbvh** objects, const float4x4* transformations, uint32_t nr_of_objects);
+      hit find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const float4x4* inverted_transformations, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const;
 
     private:
-      inline int32_t construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+      int32_t construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
 
     private:
       std::vector<uint32_t> object_ids;
@@ -577,56 +578,32 @@ namespace jtk
       int32_t root_id;
       std::vector<uint32_t>::iterator start;
     };
-
+    
+    
   /////////////////////////////////////////////////////////////////////////
-  // implementations
+  // template class implementations
   /////////////////////////////////////////////////////////////////////////
-
-  /////////////////////////////////////////////////////////////////////////
-  // aligned allocators
-  /////////////////////////////////////////////////////////////////////////
-
-  inline void* aligned_malloc(size_t size, size_t align)
-    {
-    if (size == 0)
-      return nullptr;
-
-    assert((align & (align - 1)) == 0);
-    void* ptr = _mm_malloc(size, align);
-
-    if (ptr == nullptr)
-      throw std::bad_alloc();
-
-    return ptr;
-    }
-
-  inline void aligned_free(void* ptr)
-    {
-    if (ptr)
-      _mm_free(ptr);
-    }
-
-
+    
   template<typename T, size_t alignment>
-  inline typename aligned_allocator<T, alignment>::pointer aligned_allocator<T, alignment>::allocate(size_type n)
+  typename aligned_allocator<T, alignment>::pointer aligned_allocator<T, alignment>::allocate(size_type n)
     {
     return (pointer)aligned_malloc(n * sizeof(value_type), alignment);
     }
 
   template<typename T, size_t alignment>
-  inline void aligned_allocator<T, alignment>::deallocate(pointer p, size_type)
+  void aligned_allocator<T, alignment>::deallocate(pointer p, size_type)
     {
     return aligned_free(p);
     }
 
   template<typename T, size_t alignment>
-  inline void aligned_allocator<T, alignment>::construct(pointer p, const_reference val)
+  void aligned_allocator<T, alignment>::construct(pointer p, const_reference val)
     {
     new (p) T(val);
     }
 
   template<typename T, size_t alignment>
-  inline void aligned_allocator<T, alignment>::destroy(pointer p)
+  void aligned_allocator<T, alignment>::destroy(pointer p)
     {
     p->~T();
     }
@@ -637,40 +614,40 @@ namespace jtk
 
 
   template<typename T, typename allocator>
-  inline vector_t<T, allocator>::vector_t()
+  vector_t<T, allocator>::vector_t()
     : size_active(0), size_alloced(0), items(nullptr)
     {
     }
 
   template<typename T, typename allocator>
-  inline vector_t<T, allocator>::vector_t(size_t sz)
+  vector_t<T, allocator>::vector_t(size_t sz)
     : size_active(0), size_alloced(0), items(nullptr)
     {
     internal_resize_init(sz);
     }
 
   template<typename T, typename allocator>
-  inline vector_t<T, allocator>::vector_t(size_t sz, const allocator& alloc)
+  vector_t<T, allocator>::vector_t(size_t sz, const allocator& alloc)
     : alloc(alloc), size_active(0), size_alloced(0), items(nullptr)
     {
     internal_resize_init(sz);
     }
 
   template<typename T, typename allocator>
-  inline vector_t<T, allocator>::vector_t(size_t sz, const T& val, const allocator& alloc)
+  vector_t<T, allocator>::vector_t(size_t sz, const T& val, const allocator& alloc)
     : alloc(alloc), size_active(0), size_alloced(0), items(nullptr)
     {
     internal_resize_fill(sz, val);
     }
 
   template<typename T, typename allocator>
-  inline vector_t<T, allocator>::~vector_t()
+  vector_t<T, allocator>::~vector_t()
     {
     clear();
     }
 
   template<typename T, typename allocator>
-  inline vector_t<T, allocator>::vector_t(const vector_t& other)
+  vector_t<T, allocator>::vector_t(const vector_t& other)
     {
     size_active = other.size_active;
     size_alloced = other.size_alloced;
@@ -680,7 +657,7 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline vector_t<T, allocator>::vector_t(vector_t&& other)
+  vector_t<T, allocator>::vector_t(vector_t&& other)
     : alloc(std::move(other.alloc))
     {
     size_active = other.size_active; other.size_active = 0;
@@ -689,7 +666,7 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline vector_t<T, allocator>& vector_t<T, allocator>::operator=(const vector_t& other)
+  vector_t<T, allocator>& vector_t<T, allocator>::operator=(const vector_t& other)
     {
     resize(other.size_active);
     for (size_t i = 0; i < size_active; i++)
@@ -698,7 +675,7 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline vector_t<T, allocator>& vector_t<T, allocator>::operator=(vector_t&& other)
+  vector_t<T, allocator>& vector_t<T, allocator>::operator=(vector_t&& other)
     {
     vector_t temp(std::move(other));
     swap(temp);
@@ -706,7 +683,7 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline void vector_t<T, allocator>::swap(vector_t& other)
+  void vector_t<T, allocator>::swap(vector_t& other)
     {
     std::swap(alloc, other.alloc);
     std::swap(size_active, other.size_active);
@@ -715,29 +692,29 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline typename vector_t<T, allocator>::iterator vector_t<T, allocator>::begin() { return items; };
+  typename vector_t<T, allocator>::iterator vector_t<T, allocator>::begin() { return items; };
   template<typename T, typename allocator>
-  inline typename vector_t<T, allocator>::const_iterator vector_t<T, allocator>::begin() const { return items; };
+  typename vector_t<T, allocator>::const_iterator vector_t<T, allocator>::begin() const { return items; };
 
   template<typename T, typename allocator>
-  inline typename vector_t<T, allocator>::iterator vector_t<T, allocator>::end() { return items + size_active; };
+  typename vector_t<T, allocator>::iterator vector_t<T, allocator>::end() { return items + size_active; };
   template<typename T, typename allocator>
-  inline typename vector_t<T, allocator>::const_iterator vector_t<T, allocator>::end() const { return items + size_active; };
+  typename vector_t<T, allocator>::const_iterator vector_t<T, allocator>::end() const { return items + size_active; };
 
   template<typename T, typename allocator>
-  inline bool vector_t<T, allocator>::empty() const { return size_active == 0; }
+  bool vector_t<T, allocator>::empty() const { return size_active == 0; }
   template<typename T, typename allocator>
-  inline size_t vector_t<T, allocator>::size() const { return size_active; }
+  size_t vector_t<T, allocator>::size() const { return size_active; }
   template<typename T, typename allocator>
-  inline size_t vector_t<T, allocator>::capacity() const { return size_alloced; }
+  size_t vector_t<T, allocator>::capacity() const { return size_alloced; }
 
   template<typename T, typename allocator>
-  inline void vector_t<T, allocator>::resize(size_t new_size) {
+  void vector_t<T, allocator>::resize(size_t new_size) {
     internal_resize(new_size, internal_grow_size(new_size));
     }
 
   template<typename T, typename allocator>
-  inline void vector_t<T, allocator>::reserve(size_t new_alloced)
+  void vector_t<T, allocator>::reserve(size_t new_alloced)
     {
     /* do nothing if container already large enough */
     if (new_alloced <= size_alloced)
@@ -748,32 +725,32 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline void vector_t<T, allocator>::shrink_to_fit() {
+  void vector_t<T, allocator>::shrink_to_fit() {
     internal_resize(size_active, size_active);
     }
 
   template<typename T, typename allocator>
-  inline  T& vector_t<T, allocator>::operator[](size_t i) { assert(i < size_active); return items[i]; }
+   T& vector_t<T, allocator>::operator[](size_t i) { assert(i < size_active); return items[i]; }
   template<typename T, typename allocator>
-  inline const T& vector_t<T, allocator>::operator[](size_t i) const { assert(i < size_active); return items[i]; }
+  const T& vector_t<T, allocator>::operator[](size_t i) const { assert(i < size_active); return items[i]; }
 
   template<typename T, typename allocator>
-  inline       T& vector_t<T, allocator>::at(size_t i) { assert(i < size_active); return items[i]; }
+        T& vector_t<T, allocator>::at(size_t i) { assert(i < size_active); return items[i]; }
   template<typename T, typename allocator>
-  inline const T& vector_t<T, allocator>::at(size_t i) const { assert(i < size_active); return items[i]; }
+  const T& vector_t<T, allocator>::at(size_t i) const { assert(i < size_active); return items[i]; }
 
   template<typename T, typename allocator>
-  inline T& vector_t<T, allocator>::front() const { assert(size_active > 0); return items[0]; };
+  T& vector_t<T, allocator>::front() const { assert(size_active > 0); return items[0]; };
   template<typename T, typename allocator>
-  inline T& vector_t<T, allocator>::back() const { assert(size_active > 0); return items[size_active - 1]; };
+  T& vector_t<T, allocator>::back() const { assert(size_active > 0); return items[size_active - 1]; };
 
   template<typename T, typename allocator>
-  inline       T* vector_t<T, allocator>::data() { return items; };
+        T* vector_t<T, allocator>::data() { return items; };
   template<typename T, typename allocator>
-  inline const T* vector_t<T, allocator>::data() const { return items; };
+  const T* vector_t<T, allocator>::data() const { return items; };
 
   template<typename T, typename allocator>
-  inline void vector_t<T, allocator>::push_back(const T& nt)
+  void vector_t<T, allocator>::push_back(const T& nt)
     {
     const T v = nt; // need local copy as input reference could point to this vector
     internal_resize(size_active, internal_grow_size(size_active + 1));
@@ -781,7 +758,7 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline void vector_t<T, allocator>::pop_back()
+  void vector_t<T, allocator>::pop_back()
     {
     assert(!empty());
     size_active--;
@@ -789,7 +766,7 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline void vector_t<T, allocator>::clear()
+  void vector_t<T, allocator>::clear()
     {
     /* destroy elements */
     for (size_t i = 0; i < size_active; i++)
@@ -817,7 +794,7 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline void vector_t<T, allocator>::internal_resize_init(size_t new_active)
+  void vector_t<T, allocator>::internal_resize_init(size_t new_active)
     {
     assert(size_active == 0);
     assert(size_alloced == 0);
@@ -830,7 +807,7 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline void vector_t<T, allocator>::internal_resize_fill(size_t new_active, const T& val)
+  void vector_t<T, allocator>::internal_resize_fill(size_t new_active, const T& val)
     {
     assert(size_active == 0);
     assert(size_alloced == 0);
@@ -843,7 +820,7 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline void vector_t<T, allocator>::internal_resize(size_t new_active, size_t new_alloced)
+  void vector_t<T, allocator>::internal_resize(size_t new_active, size_t new_alloced)
     {
     assert(new_active <= new_alloced);
 
@@ -878,7 +855,7 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-  inline size_t vector_t<T, allocator>::internal_grow_size(size_t new_alloced)
+  size_t vector_t<T, allocator>::internal_grow_size(size_t new_alloced)
     {
     /* do nothing if container already large enough */
     if (new_alloced <= size_alloced)
@@ -891,6 +868,361 @@ namespace jtk
       if (new_size_alloced == 0) new_size_alloced = 1;
       }
     return new_size_alloced;
+    }
+    
+  /////////////////////////////////////////////////////////////////////////
+  // struct bool4
+  /////////////////////////////////////////////////////////////////////////
+    
+  template <typename T>
+  int32_t& bool4::operator [](T index) { return i[index]; }
+
+  template <typename T>
+  int32_t bool4::operator [](T index) const { return i[index]; }
+  
+  /////////////////////////////////////////////////////////////////////////
+  // struct int4
+  /////////////////////////////////////////////////////////////////////////
+  
+  template <typename T>
+  int32_t& int4::operator [] (T ind)
+    {
+    return i[ind];
+    }
+
+  template <typename T>
+  int32_t int4::operator [] (T ind) const
+    {
+    return i[ind];
+    }
+    
+  /////////////////////////////////////////////////////////////////////////
+  // struct float4
+  /////////////////////////////////////////////////////////////////////////
+
+
+  template <typename T>
+  float& float4::operator [] (T i)
+    {
+    return f[i];
+    }
+
+  template <typename T>
+  float float4::operator [] (T i) const
+    {
+    return f[i];
+    }
+    
+  /////////////////////////////////////////////////////////////////////////
+  // struct float4x4
+  /////////////////////////////////////////////////////////////////////////
+
+  // COLUMN MAJOR 4x4 MATRIX
+
+  template <typename T>
+  float& float4x4::operator [] (T i)
+    {
+    return f[i];
+    }
+
+  template <typename T>
+  float float4x4::operator [] (T i) const
+    {
+    return f[i];
+    }
+    
+  /////////////////////////////////////////////////////////////////////////
+  // parallel partition
+  /////////////////////////////////////////////////////////////////////////
+
+
+  /*
+
+From stack overflow:
+
+I'd treat it as a degenerate case of parallel sample sort. (Parallel code for sample sort can be found here.)
+Let N be the number of items. The degenerate sample sort will require O(N) temporary space, has
+O(N) work, and O(P+ lg N) span (critical path). The last two values are important for analysis,
+since speedup is limited to work/span.
+
+I'm assuming the input is a random-access sequence. The steps are:
+
+1. Allocate a temporary array big enough to hold a copy of the input sequence.
+
+2. Divide the input into K blocks. K is a tuning parameter. For a system with P hardware threads,
+K=max(4*P,L) might be good, where L is a constant for avoiding ridiculously small blocks.
+The "4*P" allows some load balancing.
+
+3. Move each block to its corresponding position in the temporary array and partition it using std::partition.
+Blocks can be processed in parallel. Remember the offset of the "middle" for each block.
+You might want to consider writing a custom routine that both moves (in the C++11 sense) and partitions a block.
+
+4. Compute the offset to where each part of a block should go in the final result. The offsets for
+the first part of each block can be done using an exclusive prefix sum over the offsets of the middles
+from step 3. The offsets for the second part of each block can be computed similarly by using the
+offset of each middle relative to the end of its block. The running sums in the latter case
+become offsets from the end of the final output sequence. Unless you're dealing with more
+than 100 hardware threads, I recommend using a serial exclusive scan.
+
+5. Move the two parts of each block from the temporary array back to the appropriate places in the original sequence.
+Copying each block can be done in parallel.
+
+There is a way to embed the scan of step 4 into steps 3 and 5, so that the span can be
+reduced to O(lg N), but I doubt it's worth the additional complexity.
+
+If using tbb::parallel_for loops to parallelize steps 3 and 5, consider using
+affinity_partitioner to help threads in step 5 pick up what they left in cache from step 3.
+
+Note that partitioning requires only O(N) work for O(N) memory loads and stores.
+Memory bandwidth could easily become the limiting resource for speedup.
+
+
+JanM's notes: The extra array from step 1 kills all performance gain due to extra memory being used. Therefore
+I'm following the same algorithm steps, but do everything in place.
+
+
+*/
+
+  template <typename T>
+  range<T>::range() {}
+
+  template <typename T>
+  range<T>::range(const T& begin, const T& end) : _begin(begin), _end(end) {}
+
+  template <typename T>
+  T range<T>::size() const { return _end - _begin; }
+
+  template <typename T>
+  bool range<T>::empty() const { return _end <= _begin; }
+  template <typename T>
+  T range<T>::begin() const { return _begin; }
+  template <typename T>
+  T range<T>::end() const { return _end; }
+  template <typename T>
+  range<T> range<T>::intersect(const range<T>& r) const
+    {
+    return range(std::max(_begin, r._begin), std::min(_end, r._end));
+    }
+
+  namespace parallel_partition_details
+    {
+    inline const range<uint64_t>* findStartRange(uint64_t& index, const range<uint64_t>* const r)
+      {
+      uint64_t i = 0;
+      while (index >= (uint64_t)r[i].size())
+        {
+        index -= (uint64_t)r[i].size();
+        i++;
+        }
+      return &r[i];
+      }
+    }
+
+  template <class iterator, class predicate>
+  iterator parallel_partition(iterator first, iterator last, predicate pred)
+    {
+    const auto N = last - first;
+
+    if (N < 16384)
+      return std::partition(first, last, pred);
+
+    const unsigned int P = hardware_concurrency();
+    const unsigned int K = std::min<unsigned int>(std::max<unsigned int>(P << 2, 16), 64);
+
+    if (P == 1)
+      return std::partition(first, last, pred);
+
+#ifdef _WIN32
+    _declspec(align(64))
+#endif
+      uint64_t offset_from_first_in_block[64]
+#ifndef _WIN32 // linux alignment in gcc
+      __attribute__((aligned(64)))
+#endif
+      ;
+
+#ifdef _WIN32
+    _declspec(align(64))
+#endif
+      uint64_t offset_from_last_in_block[64]
+#ifndef _WIN32 // linux alignment in gcc
+      __attribute__((aligned(64)))
+#endif
+      ;
+
+    parallel_for((unsigned int)0, K, [&](unsigned int k)
+      {
+      const auto s = (uint64_t)k * N / (uint64_t)K;
+      const auto e = (uint64_t)(k + 1) * N / (uint64_t)K;
+      const auto sz = e - s;
+      auto block_first = first + s;
+      auto block_last = block_first + sz;
+      auto mid = std::partition(block_first, block_last, pred);
+      offset_from_first_in_block[k] = mid - block_first;
+      offset_from_last_in_block[k] = sz - offset_from_first_in_block[k];
+      });
+#ifdef _WIN32
+    _declspec(align(64))
+#endif
+      uint64_t offset_from_first[65]
+#ifndef _WIN32 // linux alignment in gcc
+      __attribute__((aligned(64)))
+#endif
+      ;
+#ifdef _WIN32
+    _declspec(align(64))
+#endif
+      uint64_t offset_from_last[65]
+#ifndef _WIN32 // linux alignment in gcc
+      __attribute__((aligned(64)))
+#endif
+      ;
+    offset_from_first[0] = 0;
+    offset_from_last[0] = 0;
+    for (unsigned int i = 0; i < K; ++i)
+      {
+      offset_from_first[i + 1] = offset_from_first[i] + offset_from_first_in_block[i];
+      offset_from_last[i + 1] = offset_from_last[i] + offset_from_last_in_block[i];
+      }
+
+    const auto mid = first + offset_from_first[K];
+
+    const range<uint64_t> global_left(0, offset_from_first[K]);
+    const range<uint64_t> global_right(offset_from_first[K], N);
+
+    uint64_t numMisplacedRangesLeft = 0;
+    uint64_t numMisplacedRangesRight = 0;
+    uint64_t numMisplacedItemsLeft = 0;
+    uint64_t numMisplacedItemsRight = 0;
+
+#ifdef _WIN32
+    _declspec(align(64))
+#endif
+      range<uint64_t> leftMisplacedRanges[64]
+#ifndef _WIN32 // linux alignment in gcc
+      __attribute__((aligned(64)))
+#endif
+      ;
+#ifdef _WIN32
+    _declspec(align(64))
+#endif
+      range<uint64_t> rightMisplacedRanges[64]
+#ifndef _WIN32 // linux alignment in gcc
+      __attribute__((aligned(64)))
+#endif
+      ;
+
+    for (unsigned int k = 0; k < K; ++k)
+      {
+      const auto s = (uint64_t)k * N / (uint64_t)K;
+      const auto e = (uint64_t)(k + 1) * N / (uint64_t)K;
+      const range<uint64_t> left_range(s, s + offset_from_first_in_block[k]);
+      const range<uint64_t> right_range(s + offset_from_first_in_block[k], e);
+      const range<uint64_t> left_misplaced = global_left.intersect(right_range);
+      const range<uint64_t> right_misplaced = global_right.intersect(left_range);
+      if (!left_misplaced.empty())
+        {
+        numMisplacedItemsLeft += left_misplaced.size();
+        leftMisplacedRanges[numMisplacedRangesLeft++] = left_misplaced;
+        }
+
+      if (!right_misplaced.empty())
+        {
+        numMisplacedItemsRight += right_misplaced.size();
+        rightMisplacedRanges[numMisplacedRangesRight++] = right_misplaced;
+        }
+      }
+    assert(numMisplacedItemsLeft == numMisplacedItemsRight);
+
+    if (numMisplacedItemsLeft == 0)
+      return mid;
+
+    parallel_for((unsigned int)0, K, [&](unsigned int k)
+      {
+      const auto s = (uint64_t)k * numMisplacedItemsLeft / (uint64_t)K;
+      const auto e = (uint64_t)(k + 1) * numMisplacedItemsLeft / (uint64_t)K;
+      uint64_t leftLocalIndex = s;
+      uint64_t rightLocalIndex = s;
+      const range<uint64_t>* l_range = parallel_partition_details::findStartRange(leftLocalIndex, leftMisplacedRanges);
+      const range<uint64_t>* r_range = parallel_partition_details::findStartRange(rightLocalIndex, rightMisplacedRanges);
+      uint64_t l_left = l_range->size() - leftLocalIndex;
+      uint64_t r_left = r_range->size() - rightLocalIndex;
+      iterator l = first + l_range->begin() + leftLocalIndex;
+      iterator r = first + r_range->begin() + rightLocalIndex;
+      uint64_t size = e - s;
+      uint64_t items = std::min<uint64_t>(size, std::min<uint64_t>(l_left, r_left));
+
+      while (size)
+        {
+        if (l_left == 0)
+          {
+          ++l_range;
+          l_left = l_range->size();
+          l = first + l_range->begin();
+          items = std::min<uint64_t>(size, std::min<uint64_t>(l_left, r_left));
+          }
+
+        if (r_left == 0)
+          {
+          ++r_range;
+          r_left = r_range->size();
+          r = first + r_range->begin();
+          items = std::min<uint64_t>(size, std::min<uint64_t>(l_left, r_left));
+          }
+
+        size -= items;
+        l_left -= items;
+        r_left -= items;
+
+        while (items)
+          {
+          --items;
+          const typename iterator::value_type tmp = *l;
+          *l++ = *r;
+          *r++ = tmp;
+          }
+        }
+      });
+
+    return mid;
+    }
+
+  } // namespace jtk
+
+#endif //#ifndef JTK_QBVH_H
+
+
+#ifdef JTK_QBVH_IMPLEMENTATION
+
+namespace jtk
+  {
+
+  /////////////////////////////////////////////////////////////////////////
+  // implementations
+  /////////////////////////////////////////////////////////////////////////
+
+  /////////////////////////////////////////////////////////////////////////
+  // aligned allocators
+  /////////////////////////////////////////////////////////////////////////
+
+  void* aligned_malloc(size_t size, size_t align)
+    {
+    if (size == 0)
+      return nullptr;
+
+    assert((align & (align - 1)) == 0);
+    void* ptr = _mm_malloc(size, align);
+
+    if (ptr == nullptr)
+      throw std::bad_alloc();
+
+    return ptr;
+    }
+
+  void aligned_free(void* ptr)
+    {
+    if (ptr)
+      _mm_free(ptr);
     }
 
   /////////////////////////////////////////////////////////////////////////
@@ -932,54 +1264,48 @@ namespace jtk
   // bool4
   /////////////////////////////////////////////////////////////////////////
 
-  inline bool4::bool4() {}
-  inline bool4::bool4(const __m128 in) : m128(in) {}
-  inline bool4::bool4(const __m128i in) : m128(_mm_castsi128_ps(in)) {}
-  inline bool4::bool4(bool b) : m128(lookup_mask[b ? 15 : 0]) {}
-  inline bool4::bool4(bool b0, bool b1, bool b2, bool b3) : m128(lookup_mask[(uint8_t(b3) << 3) | (uint8_t(b2) << 2) | (uint8_t(b1) << 1) | (uint8_t(b0))]) {}
+  bool4::bool4() {}
+  bool4::bool4(const __m128 in) : m128(in) {}
+  bool4::bool4(const __m128i in) : m128(_mm_castsi128_ps(in)) {}
+  bool4::bool4(bool b) : m128(lookup_mask[b ? 15 : 0]) {}
+  bool4::bool4(bool b0, bool b1, bool b2, bool b3) : m128(lookup_mask[(uint8_t(b3) << 3) | (uint8_t(b2) << 2) | (uint8_t(b1) << 1) | (uint8_t(b0))]) {}
 
-  template <typename T>
-  inline int32_t& bool4::operator [](T index) { return i[index]; }
-
-  template <typename T>
-  inline int32_t bool4::operator [](T index) const { return i[index]; }
-
-  inline bool all(const bool4& b)
+  bool all(const bool4& b)
     {
     return _mm_movemask_ps(b.m128) == 0xf;
     }
 
-  inline bool any(const bool4& b)
+  bool any(const bool4& b)
     {
     return _mm_movemask_ps(b.m128) != 0x0;
     }
 
-  inline bool none(const bool4& b)
+  bool none(const bool4& b)
     {
     return _mm_movemask_ps(b.m128) == 0x0;
     }
 
-  inline bool4 operator ! (const bool4& a)
+  bool4 operator ! (const bool4& a)
     {
     return _mm_xor_ps(a.m128, bool4(true).m128);
     }
 
-  inline bool4 operator & (const bool4& a, const bool4& b)
+  bool4 operator & (const bool4& a, const bool4& b)
     {
     return _mm_and_ps(a.m128, b.m128);
     }
 
-  inline bool4 operator | (const bool4& a, const bool4& b)
+  bool4 operator | (const bool4& a, const bool4& b)
     {
     return _mm_or_ps(a.m128, b.m128);
     }
 
-  inline bool4 operator ^ (const bool4& a, const bool4& b)
+  bool4 operator ^ (const bool4& a, const bool4& b)
     {
     return _mm_xor_ps(a.m128, b.m128);
     }
 
-  inline bool4& operator &= (bool4& a, const bool4& b)
+  bool4& operator &= (bool4& a, const bool4& b)
     {
     //return a = a & b; 
     /*
@@ -991,7 +1317,7 @@ namespace jtk
     return a;
     }
 
-  inline bool4& operator |= (bool4& a, const bool4& b)
+  bool4& operator |= (bool4& a, const bool4& b)
     {
     //return a = a | b; 
     /*
@@ -1003,7 +1329,7 @@ namespace jtk
     return a;
     }
 
-  inline bool4& operator ^= (bool4& a, const bool4& b)
+  bool4& operator ^= (bool4& a, const bool4& b)
     {
     //return a = a ^ b; 
     /*
@@ -1015,12 +1341,12 @@ namespace jtk
     return a;
     }
 
-  inline bool4 operator != (const bool4& a, const bool4& b)
+  bool4 operator != (const bool4& a, const bool4& b)
     {
     return _mm_xor_ps(a.m128, b.m128);
     }
 
-  inline bool4 operator == (const bool4& a, const bool4& b)
+  bool4 operator == (const bool4& a, const bool4& b)
     {
     return _mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(a.m128), _mm_castps_si128(b.m128)));
     }
@@ -1029,127 +1355,115 @@ namespace jtk
   // struct int4
   /////////////////////////////////////////////////////////////////////////
 
-  template <typename T>
-  int32_t& int4::operator [] (T ind)
-    {
-    return i[ind];
-    }
+  int4::int4() {}
+  int4::int4(const __m128i& in) : m128i(in) {}
+  int4::int4(int32_t in) : m128i(_mm_set1_epi32(in)) {}
+  int4::int4(int32_t i0, int32_t i1, int32_t i2, int32_t i3) : m128i(_mm_set_epi32(i3, i2, i1, i0)) {}
+  int4::int4(const bool4& in) : m128i(_mm_castps_si128(in.m128)) {}
 
-  template <typename T>
-  int32_t int4::operator [] (T ind) const
-    {
-    return i[ind];
-    }
-
-  inline int4::int4() {}
-  inline int4::int4(const __m128i& in) : m128i(in) {}
-  inline int4::int4(int32_t in) : m128i(_mm_set1_epi32(in)) {}
-  inline int4::int4(int32_t i0, int32_t i1, int32_t i2, int32_t i3) : m128i(_mm_set_epi32(i3, i2, i1, i0)) {}
-  inline int4::int4(const bool4& in) : m128i(_mm_castps_si128(in.m128)) {}
-
-  inline int4 operator + (const int4& a)
+  int4 operator + (const int4& a)
     {
     return a;
     }
 
-  inline int4 operator - (const int4& a)
+  int4 operator - (const int4& a)
     {
     return _mm_sub_epi32(_mm_set1_epi32(0), a.m128i);
     }
 
-  inline int4 operator + (const int4& left, const int4& right)
+  int4 operator + (const int4& left, const int4& right)
     {
     return _mm_add_epi32(left.m128i, right.m128i);
     }
 
-  inline int4 operator - (const int4& left, const int4& right)
+  int4 operator - (const int4& left, const int4& right)
     {
     return _mm_sub_epi32(left.m128i, right.m128i);
     }
 
-  inline int4 operator * (const int4& left, const int4& right)
+  int4 operator * (const int4& left, const int4& right)
     {
     return _mm_mullo_epi32(left.m128i, right.m128i);
     }
 
-  inline int4 operator * (const int4& left, int32_t right)
+  int4 operator * (const int4& left, int32_t right)
     {
     return left * int4(right);
     }
 
-  inline int4 operator * (int32_t left, const int4& right)
+  int4 operator * (int32_t left, const int4& right)
     {
     return int4(left)*right;
     }
 
-  inline int4 min(const int4& left, const int4& right)
+  int4 min(const int4& left, const int4& right)
     {
     return _mm_min_epi32(left.m128i, right.m128i);
     }
 
-  inline int4 max(const int4& left, const int4& right)
+  int4 max(const int4& left, const int4& right)
     {
     return _mm_max_epi32(left.m128i, right.m128i);
     }
 
-  inline bool4 operator == (const int4& left, const int4& right)
+  bool4 operator == (const int4& left, const int4& right)
     {
     return _mm_cmpeq_epi32(left.m128i, right.m128i);
     }
 
-  inline bool4 operator != (const int4& left, const int4& right)
+  bool4 operator != (const int4& left, const int4& right)
     {
     return _mm_andnot_si128(_mm_cmpeq_epi32(left.m128i, right.m128i), not_zero);
     }
 
-  inline bool4 operator < (const int4& left, const int4& right)
+  bool4 operator < (const int4& left, const int4& right)
     {
     return _mm_cmplt_epi32(left.m128i, right.m128i);
     }
 
-  inline bool4 operator > (const int4& left, const int4& right)
+  bool4 operator > (const int4& left, const int4& right)
     {
     return _mm_cmpgt_epi32(left.m128i, right.m128i);
     }
 
-  inline bool4 operator <= (const int4& left, const int4& right)
+  bool4 operator <= (const int4& left, const int4& right)
     {
     return _mm_andnot_si128(_mm_cmpgt_epi32(left.m128i, right.m128i), not_zero);
     }
 
-  inline bool4 operator >= (const int4& left, const int4& right)
+  bool4 operator >= (const int4& left, const int4& right)
     {
     return _mm_andnot_si128(_mm_cmplt_epi32(left.m128i, right.m128i), not_zero);
     }
 
-  inline int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values)
+  int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values)
     {
     return _mm_castps_si128(_mm_or_ps(_mm_and_ps(mask.m128, _mm_castsi128_ps(updated_values.m128i)), _mm_andnot_ps(mask.m128, _mm_castsi128_ps(original.m128i))));
     }
 
-  inline int4 operator & (const int4& left, const int4& right)
+  int4 operator & (const int4& left, const int4& right)
     {
     return _mm_and_si128(left.m128i, right.m128i);
     }
 
-  inline int4 operator | (const int4& left, const int4& right)
+  int4 operator | (const int4& left, const int4& right)
     {
     return _mm_and_si128(left.m128i, right.m128i);
     }
 
 #ifndef _JTK_FOR_ARM
-  inline int4 operator >> (const int4& a, int n)
+  int4 operator >> (const int4& a, int n)
     {
     return _mm_srai_epi32(a.m128i, n);
     }
 
-  inline int4 operator << (const int4& a, int n)
+  int4 operator << (const int4& a, int n)
     {
     return _mm_slli_epi32(a.m128i, n);
     }
 #endif
 
-  inline int any(const int4& a)
+  int any(const int4& a)
     {
     return _mm_movemask_ps(_mm_castsi128_ps(a.m128i));
     }
@@ -1158,87 +1472,74 @@ namespace jtk
   // struct float4
   /////////////////////////////////////////////////////////////////////////
 
-
-  template <typename T>
-  float& float4::operator [] (T i)
-    {
-    return f[i];
-    }
-
-  template <typename T>
-  float float4::operator [] (T i) const
-    {
-    return f[i];
-    }
-
-  inline float4::float4() {}
-  inline float4::float4(const __m128 in) : m128(in) {}
-  inline float4::float4(float f) : m128(_mm_set1_ps(f)) {}
-  inline float4::float4(float _x, float _y, float _z) : m128(_mm_set_ps(1.f, _z, _y, _x)) {}
-  inline float4::float4(float _x, float _y, float _z, float _w) : m128(_mm_set_ps(_w, _z, _y, _x)) {}
+  float4::float4() {}
+  float4::float4(const __m128 in) : m128(in) {}
+  float4::float4(float f) : m128(_mm_set1_ps(f)) {}
+  float4::float4(float _x, float _y, float _z) : m128(_mm_set_ps(1.f, _z, _y, _x)) {}
+  float4::float4(float _x, float _y, float _z, float _w) : m128(_mm_set_ps(_w, _z, _y, _x)) {}
 
 
-  inline float4 operator + (const float4& a)
+  float4 operator + (const float4& a)
     {
     return a;
     }
 
-  inline float4 operator - (const float4& a)
+  float4 operator - (const float4& a)
     {
     return _mm_xor_ps(a.m128, _mm_castsi128_ps(_mm_set1_epi32(0x80000000)));
     }
 
-  inline float4 operator + (const float4& left, const float4& right)
+  float4 operator + (const float4& left, const float4& right)
     {
     return _mm_add_ps(left.m128, right.m128);
     }
 
-  inline float4 operator - (const float4& left, const float4& right)
+  float4 operator - (const float4& left, const float4& right)
     {
     return _mm_sub_ps(left.m128, right.m128);
     }
 
-  inline float4 operator * (const float4& left, const float4& right)
+  float4 operator * (const float4& left, const float4& right)
     {
     return _mm_mul_ps(left.m128, right.m128);
     }
 
-  inline float4 operator * (const float4& left, float right)
+  float4 operator * (const float4& left, float right)
     {
     return left * float4(right);
     }
 
-  inline float4 operator * (float left, const float4& right)
+  float4 operator * (float left, const float4& right)
     {
     return float4(left)*right;
     }
 
-  inline float4 operator / (const float4& left, const float4& right)
+  float4 operator / (const float4& left, const float4& right)
     {
     return _mm_div_ps(left.m128, right.m128);
     }
 
-  inline float4 operator / (const float4& left, float right)
+  float4 operator / (const float4& left, float right)
     {
     return left / float4(right);
     }
 
-  inline float4 operator / (float left, const float4& right)
+  float4 operator / (float left, const float4& right)
     {
     return float4(left) / right;
     }
 
-  inline float4 min(const float4& left, const float4& right)
+  float4 min(const float4& left, const float4& right)
     {
     return _mm_min_ps(left.m128, right.m128);
     }
 
-  inline float4 max(const float4& left, const float4& right)
+  float4 max(const float4& left, const float4& right)
     {
     return _mm_max_ps(left.m128, right.m128);
     }
 
-  inline float min_horizontal(const float4& x)
+  float min_horizontal(const float4& x)
     {
     __m128 max1 = _mm_shuffle_ps(x.m128, x.m128, _MM_SHUFFLE(0, 0, 3, 2));
     __m128 max2 = _mm_min_ps(x.m128, max1);
@@ -1248,7 +1549,7 @@ namespace jtk
     return result;
     }
 
-  inline float max_horizontal(const float4& x)
+  float max_horizontal(const float4& x)
     {
     __m128 max1 = _mm_shuffle_ps(x.m128, x.m128, _MM_SHUFFLE(0, 0, 3, 2));
     __m128 max2 = _mm_max_ps(x.m128, max1);
@@ -1258,7 +1559,7 @@ namespace jtk
     return result;
     }
 
-  inline float4 cross(const float4& left, const float4& right)
+  float4 cross(const float4& left, const float4& right)
     {
     float4 rs(_mm_shuffle_ps(right.m128, right.m128, _MM_SHUFFLE(3, 0, 2, 1)));
     float4 ls(_mm_shuffle_ps(left.m128, left.m128, _MM_SHUFFLE(3, 0, 2, 1)));
@@ -1266,28 +1567,28 @@ namespace jtk
     return float4(_mm_shuffle_ps(res.m128, res.m128, _MM_SHUFFLE(3, 0, 2, 1)));
     }
 
-  inline float dot(const float4& left, const float4& right)
+  float dot(const float4& left, const float4& right)
     {
     return _mm_cvtss_f32(_mm_dp_ps(left.m128, right.m128, 0x7F));
     }
 
-  inline float dot4(const float4& left, const float4& right)
+  float dot4(const float4& left, const float4& right)
     {
     return _mm_cvtss_f32(_mm_dp_ps(left.m128, right.m128, 255));
     }
 
-  inline float4 abs(const float4& a)
+  float4 abs(const float4& a)
     {
     const __m128 mask = _mm_castsi128_ps(_mm_set1_epi32(0x7fffffff));
     return _mm_and_ps(a.m128, mask);
     }
 
-  inline float4 sqrt(const float4& a)
+  float4 sqrt(const float4& a)
     {
     return _mm_sqrt_ps(a.m128);
     }
 
-  inline float4 rsqrt(const float4& a)
+  float4 rsqrt(const float4& a)
     {
     __m128 mask = _mm_cmpeq_ps(_mm_set1_ps(0.f), a.m128);
     __m128 res = _mm_rsqrt_ps(a.m128);
@@ -1296,7 +1597,7 @@ namespace jtk
     return _mm_or_ps(_mm_and_ps(mask, res), _mm_andnot_ps(mask, res_newton_raphson));
     }
 
-  inline float4 reciprocal(const float4& a)
+  float4 reciprocal(const float4& a)
     {
     __m128 mask = _mm_cmpeq_ps(_mm_set1_ps(0.f), a.m128);
     auto res = _mm_rcp_ps(a.m128);
@@ -1305,47 +1606,47 @@ namespace jtk
     return _mm_or_ps(_mm_and_ps(mask, res), _mm_andnot_ps(mask, res_newton_raphson));
     }
 
-  inline bool4 operator == (const float4& left, const float4& right)
+  bool4 operator == (const float4& left, const float4& right)
     {
     return _mm_cmpeq_ps(left.m128, right.m128);
     }
 
-  inline bool4 operator != (const float4& left, const float4& right)
+  bool4 operator != (const float4& left, const float4& right)
     {
     return _mm_cmpneq_ps(left.m128, right.m128);
     }
 
-  inline bool4 operator < (const float4& left, const float4& right)
+  bool4 operator < (const float4& left, const float4& right)
     {
     return _mm_cmplt_ps(left.m128, right.m128);
     }
 
-  inline bool4 operator > (const float4& left, const float4& right)
+  bool4 operator > (const float4& left, const float4& right)
     {
     return _mm_cmpnle_ps(left.m128, right.m128);
     }
 
-  inline bool4 operator <= (const float4& left, const float4& right)
+  bool4 operator <= (const float4& left, const float4& right)
     {
     return _mm_cmple_ps(left.m128, right.m128);
     }
 
-  inline bool4 operator >= (const float4& left, const float4& right)
+  bool4 operator >= (const float4& left, const float4& right)
     {
     return _mm_cmpnlt_ps(left.m128, right.m128);
     }
 
-  inline float4 unpacklo(const float4& left, const float4& right)
+  float4 unpacklo(const float4& left, const float4& right)
     {
     return _mm_unpacklo_ps(left.m128, right.m128);
     }
 
-  inline float4 unpackhi(const float4& left, const float4& right)
+  float4 unpackhi(const float4& left, const float4& right)
     {
     return _mm_unpackhi_ps(left.m128, right.m128);
     }
 
-  inline void transpose(float4& r0, float4& r1, float4& r2, float4& r3, const float4& c0, const float4& c1, const float4& c2, const float4& c3)
+  void transpose(float4& r0, float4& r1, float4& r2, float4& r3, const float4& c0, const float4& c1, const float4& c2, const float4& c3)
     {
     float4 l02(unpacklo(c0.m128, c2.m128));
     float4 h02(unpackhi(c0.m128, c2.m128));
@@ -1357,12 +1658,12 @@ namespace jtk
     r3 = unpackhi(h02, h13);
     }
 
-  inline float4 masked_update(const bool4& mask, const float4& original, const float4& updated_values)
+  float4 masked_update(const bool4& mask, const float4& original, const float4& updated_values)
     {
     return _mm_or_ps(_mm_and_ps(mask.m128, updated_values.m128), _mm_andnot_ps(mask.m128, original.m128));
     }
 
-  inline float4 masked_update(const int4& mask, const float4& original, const float4& updated_values)
+  float4 masked_update(const int4& mask, const float4& original, const float4& updated_values)
     {
     const __m128 m = _mm_castsi128_ps(mask.m128i);
     return _mm_or_ps(_mm_and_ps(m, updated_values.m128), _mm_andnot_ps(m, original.m128));
@@ -1372,48 +1673,36 @@ namespace jtk
   // struct float4x4
   /////////////////////////////////////////////////////////////////////////
 
-  // COLUMN MAJOR 4x4 MATRIX 
+  // COLUMN MAJOR 4x4 MATRIX
 
-  template <typename T>
-  float& float4x4::operator [] (T i)
-    {
-    return f[i];
-    }
-
-  template <typename T>
-  float float4x4::operator [] (T i) const
-    {
-    return f[i];
-    }
-
-  inline float4x4::float4x4() {}
-  inline float4x4::float4x4(const float4& col0, const float4& col1, const float4& col2, const float4& col3) : col{ col0, col1, col2, col3 } {}
-  inline float4x4::float4x4(float* m)
+  float4x4::float4x4() {}
+  float4x4::float4x4(const float4& col0, const float4& col1, const float4& col2, const float4& col3) : col{ col0, col1, col2, col3 } {}
+  float4x4::float4x4(float* m)
     {
     for (int i = 0; i < 16; ++i)
       f[i] = m[i];
     }
 
-  inline float4x4 get_identity()
+  float4x4 get_identity()
     {
     float4x4 m(_mm_set_ps(0.f, 0.f, 0.f, 1.f), _mm_set_ps(0.f, 0.f, 1.f, 0.f), _mm_set_ps(0.f, 1.f, 0.f, 0.f), _mm_set_ps(1.f, 0.f, 0.f, 0.f));
     return m;
     }
 
-  inline float4x4 make_translation(float x, float y, float z)
+  float4x4 make_translation(float x, float y, float z)
     {
     float4x4 m(_mm_set_ps(0.f, 0.f, 0.f, 1.f), _mm_set_ps(0.f, 0.f, 1.f, 0.f), _mm_set_ps(0.f, 1.f, 0.f, 0.f), _mm_set_ps(1.f, z, y, x));
     return m;
     }
 
-  inline float4x4 transpose(const float4x4& m)
+  float4x4 transpose(const float4x4& m)
     {
     float4x4 out;
     transpose(out.col[0], out.col[1], out.col[2], out.col[3], m.col[0], m.col[1], m.col[2], m.col[3]);
     return out;
     }
 
-  inline float4x4 invert_orthonormal(const float4x4& m)
+  float4x4 invert_orthonormal(const float4x4& m)
     {
     float4x4 out;
     transpose(out.col[0], out.col[1], out.col[2], out.col[3], m.col[0], m.col[1], m.col[2], _mm_set_ps(1.f, 0.f, 0.f, 0.f));
@@ -1426,7 +1715,7 @@ namespace jtk
   // we use __m128 to represent 2x2 matrix as A = | A0  A1 |
   //                                              | A2  A3 |
   // 2x2 column major matrix multiply A*B
-  inline __m128 mat2mul(__m128 vec1, __m128 vec2)
+  __m128 mat2mul(__m128 vec1, __m128 vec2)
     {
     const auto vec3 = _mm_mul_ps(vec1, _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(3, 3, 0, 0)));
     const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 0, 3, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 2, 1, 1)));
@@ -1434,7 +1723,7 @@ namespace jtk
     }
 
   // 2x2 column major matrix adjugate multiply (A#)*B
-  inline __m128 mat2adjmul(__m128 vec1, __m128 vec2)
+  __m128 mat2adjmul(__m128 vec1, __m128 vec2)
     {
     const auto vec3 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(0, 3, 0, 3)), vec2);
     const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 2, 1, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 3, 0, 1)));
@@ -1442,14 +1731,14 @@ namespace jtk
     }
 
   // 2x2 column major matrix multiply adjugate A*(B#)
-  inline __m128 mat2muladj(__m128 vec1, __m128 vec2)
+  __m128 mat2muladj(__m128 vec1, __m128 vec2)
     {
     const auto vec3 = _mm_mul_ps(vec1, _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(0, 0, 3, 3)));
     const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 0, 3, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 2, 1, 1)));
     return _mm_sub_ps(vec3, vec4);
     }
 
-  inline float4x4 invert(const float4x4& m)
+  float4x4 invert(const float4x4& m)
     {
     float4x4 out;
     // sub matrices
@@ -1517,13 +1806,13 @@ namespace jtk
     return out;
     }
 
-  inline float4 matrix_vector_multiply(const float4x4& m, const float4& v)
+  float4 matrix_vector_multiply(const float4x4& m, const float4& v)
     {
     float4 out = m.col[0] * v[0] + m.col[1] * v[1] + m.col[2] * v[2] + m.col[3] * v[3];
     return out;
     }
 
-  inline float4x4 matrix_matrix_multiply(const float4x4& left, const float4x4& right)
+  float4x4 matrix_matrix_multiply(const float4x4& left, const float4x4& right)
     {
     float4x4 out;
     float4 r[4];
@@ -1547,27 +1836,27 @@ namespace jtk
     return out;
     }
 
-  inline float4x4 operator + (const float4x4& left, const float4x4& right)
+  float4x4 operator + (const float4x4& left, const float4x4& right)
     {
     return float4x4(left.col[0] + right.col[0], left.col[1] + right.col[1], left.col[2] + right.col[2], left.col[3] + right.col[3]);
     }
 
-  inline float4x4 operator - (const float4x4& left, const float4x4& right)
+  float4x4 operator - (const float4x4& left, const float4x4& right)
     {
     return float4x4(left.col[0] - right.col[0], left.col[1] - right.col[1], left.col[2] - right.col[2], left.col[3] - right.col[3]);
     }
 
-  inline float4x4 operator / (const float4x4& left, float value)
+  float4x4 operator / (const float4x4& left, float value)
     {
     return float4x4(left.col[0] / value, left.col[1] / value, left.col[2] / value, left.col[3] / value);
     }
 
-  inline float4x4 operator * (const float4x4& left, float value)
+  float4x4 operator * (const float4x4& left, float value)
     {
     return float4x4(left.col[0] * value, left.col[1] * value, left.col[2] * value, left.col[3] * value);
     }
 
-  inline float4x4 operator * (float value, const float4x4& right)
+  float4x4 operator * (float value, const float4x4& right)
     {
     return float4x4(right.col[0] * value, right.col[1] * value, right.col[2] * value, right.col[3] * value);
     }
@@ -1577,7 +1866,7 @@ namespace jtk
   // intersection
   /////////////////////////////////////////////////////////////////////////
 
-  inline woop_precompute intersect_woop_precompute(const float4& r_dir)
+  woop_precompute intersect_woop_precompute(const float4& r_dir)
     {
     woop_precompute out;
     const auto abs_dir = abs(r_dir);
@@ -1609,7 +1898,7 @@ namespace jtk
     return out;
     }
 
-  inline void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h)
+  void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h)
     {
     h.found = bool4(true);
 
@@ -1655,7 +1944,7 @@ namespace jtk
     h.distance = t;
     }
 
-  inline bool4 intersect(const float4* aabb, const vec3<float4>& r_origin, const float4& t_near, const float4& t_far, const int32_t* ray_dir_sign, const vec3<float4>& ray_inverse_dir)
+  bool4 intersect(const float4* aabb, const vec3<float4>& r_origin, const float4& t_near, const float4& t_far, const int32_t* ray_dir_sign, const vec3<float4>& ray_inverse_dir)
     {
     bool4 res(true);
     const float4 min_x = ray_dir_sign[0] ? aabb[3] : aabb[0];
@@ -1695,7 +1984,7 @@ namespace jtk
     return res;
     }
 
-  inline void intersect_sphere(const vec3<float4>& sphere_origin, const float4& sphere_radius, const vec3<float4>& r_orig, const vec3<float4>& ray_dir, const float4& t_near, const float4& t_far, spherehit4& h)
+  void intersect_sphere(const vec3<float4>& sphere_origin, const float4& sphere_radius, const vec3<float4>& r_orig, const vec3<float4>& ray_dir, const float4& t_near, const float4& t_far, spherehit4& h)
     {
 #if 0
     h.found = bool4(true);
@@ -1782,7 +2071,7 @@ namespace jtk
   /////////////////////////////////////////////////////////////////////////
 
   //http://jcgt.org/published/0003/04/05/paper.pdf
-  inline void distance_sqr(const woop_triangle& acc, const vec3<float4>& point, distance4& dist)
+  void distance_sqr(const woop_triangle& acc, const vec3<float4>& point, distance4& dist)
     {
     const vec3<float4> ab = acc.v1 - acc.v0;
     const vec3<float4> ac = acc.v2 - acc.v0;
@@ -1886,7 +2175,7 @@ namespace jtk
     dist.distance_sqr = length_sqr(closest_point - point);
     }
 
-  inline float4 distance_sqr(const float4* aabb, const vec3<float4>& point)
+  float4 distance_sqr(const float4* aabb, const vec3<float4>& point)
     {
     const float4 x = point[0] - min(aabb[3], max(aabb[0], point[0]));
     const float4 y = point[1] - min(aabb[4], max(aabb[1], point[1]));
@@ -1899,24 +2188,24 @@ namespace jtk
   // transformation
   /////////////////////////////////////////////////////////////////////////
 
-  inline float4x4 make_identity()
+  float4x4 make_identity()
     {
     return get_identity();
     }
 
-  inline vec3<float> transform(const float4x4& matrix, const vec3<float>& pt)
+  vec3<float> transform(const float4x4& matrix, const vec3<float>& pt)
     {
     auto res = matrix_vector_multiply(matrix, float4(pt[0], pt[1], pt[2], 1.f));
     return vec3<float>(res[0], res[1], res[2]);
     }
 
-  inline vec3<float> transform_vector(const float4x4& matrix, const vec3<float>& vec)
+  vec3<float> transform_vector(const float4x4& matrix, const vec3<float>& vec)
     {
     auto res = matrix_vector_multiply(matrix, float4(vec[0], vec[1], vec[2], 0.f));
     return vec3<float>(res[0], res[1], res[2]);
     }
 
-  inline vec3<float> transform(const float4x4& matrix, const vec3<float>& pt, bool is_vector)
+  vec3<float> transform(const float4x4& matrix, const vec3<float>& pt, bool is_vector)
     {
     if (is_vector)
       return transform_vector(matrix, pt);
@@ -1924,7 +2213,7 @@ namespace jtk
       return transform(matrix, pt);
     }
 
-  inline float4 transform(const float4x4& matrix, const float4& pt)
+  float4 transform(const float4x4& matrix, const float4& pt)
     {
     auto res = matrix_vector_multiply(matrix, pt);
     if (res[3] != 1.f && res[3])
@@ -1937,7 +2226,7 @@ namespace jtk
     return res;
     }
 
-  inline float4x4 make_transformation(const vec3<float>& i_origin, const vec3<float>& i_x_axis, const vec3<float>& i_y_axis, const vec3<float>& i_z_axis)
+  float4x4 make_transformation(const vec3<float>& i_origin, const vec3<float>& i_x_axis, const vec3<float>& i_y_axis, const vec3<float>& i_z_axis)
     {
     float4x4 matrix;
     matrix[0] = i_x_axis[0];
@@ -1959,7 +2248,7 @@ namespace jtk
     return matrix;
     }
 
-  inline float4x4 make_rotation(const vec3<float>& i_position, const vec3<float>& i_direction, float i_angle_radians)
+  float4x4 make_rotation(const vec3<float>& i_position, const vec3<float>& i_direction, float i_angle_radians)
     {
     auto matrix = make_identity();
     auto direction = normalize(i_direction);
@@ -1988,65 +2277,65 @@ namespace jtk
     return matrix;
     }
 
-  inline float4x4 make_scale3d(float scale_x, float scale_y, float scale_z)
+  float4x4 make_scale3d(float scale_x, float scale_y, float scale_z)
     {
     return float4x4(float4(scale_x, 0.f, 0.f, 0.f), float4(0.f, scale_y, 0.f, 0.f), float4(0.f, 0.f, scale_z, 0.f), float4(0.f, 0.f, 0.f, 1.f));
     }
 
-  inline float4x4 make_translation(const vec3<float>& i_translation)
+  float4x4 make_translation(const vec3<float>& i_translation)
     {
     return make_translation(i_translation[0], i_translation[1], i_translation[2]);
     }
 
-  inline vec3<float> get_translation(const float4x4& matrix)
+  vec3<float> get_translation(const float4x4& matrix)
     {
     return vec3<float>(matrix[12], matrix[13], matrix[14]);
     }
 
-  inline void set_x_axis(float4x4& matrix, const vec3<float>& x)
+  void set_x_axis(float4x4& matrix, const vec3<float>& x)
     {
     matrix[0] = x[0];
     matrix[1] = x[1];
     matrix[2] = x[2];
     }
 
-  inline void set_y_axis(float4x4& matrix, const vec3<float>& y)
+  void set_y_axis(float4x4& matrix, const vec3<float>& y)
     {
     matrix[4] = y[0];
     matrix[5] = y[1];
     matrix[6] = y[2];
     }
 
-  inline void set_z_axis(float4x4& matrix, const vec3<float>& z)
+  void set_z_axis(float4x4& matrix, const vec3<float>& z)
     {
     matrix[8] = z[0];
     matrix[9] = z[1];
     matrix[10] = z[2];
     }
 
-  inline void set_translation(float4x4& matrix, const vec3<float>& t)
+  void set_translation(float4x4& matrix, const vec3<float>& t)
     {
     matrix[12] = t[0];
     matrix[13] = t[1];
     matrix[14] = t[2];
     }
 
-  inline vec3<float> get_x_axis(const float4x4& matrix)
+  vec3<float> get_x_axis(const float4x4& matrix)
     {
     return vec3<float>(matrix[0], matrix[1], matrix[2]);
     }
 
-  inline vec3<float> get_y_axis(const float4x4& matrix)
+  vec3<float> get_y_axis(const float4x4& matrix)
     {
     return vec3<float>(matrix[4], matrix[5], matrix[6]);
     }
 
-  inline vec3<float> get_z_axis(const float4x4& matrix)
+  vec3<float> get_z_axis(const float4x4& matrix)
     {
     return vec3<float>(matrix[8], matrix[9], matrix[10]);
     }
 
-  inline float determinant(const float4x4& m)
+  float determinant(const float4x4& m)
     {
     auto inv0 = m[5] * m[10] * m[15] -
       m[5] * m[11] * m[14] -
@@ -2080,272 +2369,16 @@ namespace jtk
     }
 
   /////////////////////////////////////////////////////////////////////////
-  // parallel partition
-  /////////////////////////////////////////////////////////////////////////
-
-
-  /*
-
-From stack overflow:
-
-I'd treat it as a degenerate case of parallel sample sort. (Parallel code for sample sort can be found here.)
-Let N be the number of items. The degenerate sample sort will require O(N) temporary space, has
-O(N) work, and O(P+ lg N) span (critical path). The last two values are important for analysis,
-since speedup is limited to work/span.
-
-I'm assuming the input is a random-access sequence. The steps are:
-
-1. Allocate a temporary array big enough to hold a copy of the input sequence.
-
-2. Divide the input into K blocks. K is a tuning parameter. For a system with P hardware threads,
-K=max(4*P,L) might be good, where L is a constant for avoiding ridiculously small blocks.
-The "4*P" allows some load balancing.
-
-3. Move each block to its corresponding position in the temporary array and partition it using std::partition.
-Blocks can be processed in parallel. Remember the offset of the "middle" for each block.
-You might want to consider writing a custom routine that both moves (in the C++11 sense) and partitions a block.
-
-4. Compute the offset to where each part of a block should go in the final result. The offsets for
-the first part of each block can be done using an exclusive prefix sum over the offsets of the middles
-from step 3. The offsets for the second part of each block can be computed similarly by using the
-offset of each middle relative to the end of its block. The running sums in the latter case
-become offsets from the end of the final output sequence. Unless you're dealing with more
-than 100 hardware threads, I recommend using a serial exclusive scan.
-
-5. Move the two parts of each block from the temporary array back to the appropriate places in the original sequence.
-Copying each block can be done in parallel.
-
-There is a way to embed the scan of step 4 into steps 3 and 5, so that the span can be
-reduced to O(lg N), but I doubt it's worth the additional complexity.
-
-If using tbb::parallel_for loops to parallelize steps 3 and 5, consider using
-affinity_partitioner to help threads in step 5 pick up what they left in cache from step 3.
-
-Note that partitioning requires only O(N) work for O(N) memory loads and stores.
-Memory bandwidth could easily become the limiting resource for speedup.
-
-
-JanM's notes: The extra array from step 1 kills all performance gain due to extra memory being used. Therefore
-I'm following the same algorithm steps, but do everything in place.
-
-
-*/
-
-  template <typename T>
-  inline range<T>::range() {}
-
-  template <typename T>
-  inline range<T>::range(const T& begin, const T& end) : _begin(begin), _end(end) {}
-
-  template <typename T>
-  inline T range<T>::size() const { return _end - _begin; }
-
-  template <typename T>
-  inline bool range<T>::empty() const { return _end <= _begin; }
-  template <typename T>
-  inline T range<T>::begin() const { return _begin; }
-  template <typename T>
-  inline T range<T>::end() const { return _end; }
-  template <typename T>
-  inline range<T> range<T>::intersect(const range<T>& r) const
-    {
-    return range(std::max(_begin, r._begin), std::min(_end, r._end));
-    }
-
-  namespace parallel_partition_details
-    {
-    inline const range<uint64_t>* findStartRange(uint64_t& index, const range<uint64_t>* const r)
-      {
-      uint64_t i = 0;
-      while (index >= (uint64_t)r[i].size())
-        {
-        index -= (uint64_t)r[i].size();
-        i++;
-        }
-      return &r[i];
-      }
-    }
-
-  template <class iterator, class predicate>
-  iterator parallel_partition(iterator first, iterator last, predicate pred)
-    {
-    const auto N = last - first;
-
-    if (N < 16384)
-      return std::partition(first, last, pred);
-
-    const unsigned int P = hardware_concurrency();
-    const unsigned int K = std::min<unsigned int>(std::max<unsigned int>(P << 2, 16), 64);
-
-    if (P == 1)
-      return std::partition(first, last, pred);
-
-#ifdef _WIN32
-    _declspec(align(64))
-#endif
-      uint64_t offset_from_first_in_block[64]
-#ifndef _WIN32 // linux alignment in gcc
-      __attribute__((aligned(64)))
-#endif
-      ;
-
-#ifdef _WIN32
-    _declspec(align(64))
-#endif
-      uint64_t offset_from_last_in_block[64]
-#ifndef _WIN32 // linux alignment in gcc
-      __attribute__((aligned(64)))
-#endif
-      ;
-
-    parallel_for((unsigned int)0, K, [&](unsigned int k)
-      {
-      const auto s = (uint64_t)k * N / (uint64_t)K;
-      const auto e = (uint64_t)(k + 1) * N / (uint64_t)K;
-      const auto sz = e - s;
-      auto block_first = first + s;
-      auto block_last = block_first + sz;
-      auto mid = std::partition(block_first, block_last, pred);
-      offset_from_first_in_block[k] = mid - block_first;
-      offset_from_last_in_block[k] = sz - offset_from_first_in_block[k];
-      });
-#ifdef _WIN32
-    _declspec(align(64))
-#endif
-      uint64_t offset_from_first[65]
-#ifndef _WIN32 // linux alignment in gcc
-      __attribute__((aligned(64)))
-#endif      
-      ;
-#ifdef _WIN32
-    _declspec(align(64))
-#endif
-      uint64_t offset_from_last[65]
-#ifndef _WIN32 // linux alignment in gcc
-      __attribute__((aligned(64)))
-#endif      
-      ;
-    offset_from_first[0] = 0;
-    offset_from_last[0] = 0;
-    for (unsigned int i = 0; i < K; ++i)
-      {
-      offset_from_first[i + 1] = offset_from_first[i] + offset_from_first_in_block[i];
-      offset_from_last[i + 1] = offset_from_last[i] + offset_from_last_in_block[i];
-      }
-
-    const auto mid = first + offset_from_first[K];
-
-    const range<uint64_t> global_left(0, offset_from_first[K]);
-    const range<uint64_t> global_right(offset_from_first[K], N);
-
-    uint64_t numMisplacedRangesLeft = 0;
-    uint64_t numMisplacedRangesRight = 0;
-    uint64_t numMisplacedItemsLeft = 0;
-    uint64_t numMisplacedItemsRight = 0;
-
-#ifdef _WIN32
-    _declspec(align(64))
-#endif
-      range<uint64_t> leftMisplacedRanges[64]
-#ifndef _WIN32 // linux alignment in gcc
-      __attribute__((aligned(64)))
-#endif  
-      ;
-#ifdef _WIN32
-    _declspec(align(64))
-#endif
-      range<uint64_t> rightMisplacedRanges[64]
-#ifndef _WIN32 // linux alignment in gcc
-      __attribute__((aligned(64)))
-#endif  
-      ;
-
-    for (unsigned int k = 0; k < K; ++k)
-      {
-      const auto s = (uint64_t)k * N / (uint64_t)K;
-      const auto e = (uint64_t)(k + 1) * N / (uint64_t)K;
-      const range<uint64_t> left_range(s, s + offset_from_first_in_block[k]);
-      const range<uint64_t> right_range(s + offset_from_first_in_block[k], e);
-      const range<uint64_t> left_misplaced = global_left.intersect(right_range);
-      const range<uint64_t> right_misplaced = global_right.intersect(left_range);
-      if (!left_misplaced.empty())
-        {
-        numMisplacedItemsLeft += left_misplaced.size();
-        leftMisplacedRanges[numMisplacedRangesLeft++] = left_misplaced;
-        }
-
-      if (!right_misplaced.empty())
-        {
-        numMisplacedItemsRight += right_misplaced.size();
-        rightMisplacedRanges[numMisplacedRangesRight++] = right_misplaced;
-        }
-      }
-    assert(numMisplacedItemsLeft == numMisplacedItemsRight);
-
-    if (numMisplacedItemsLeft == 0)
-      return mid;
-
-    parallel_for((unsigned int)0, K, [&](unsigned int k)
-      {
-      const auto s = (uint64_t)k * numMisplacedItemsLeft / (uint64_t)K;
-      const auto e = (uint64_t)(k + 1) * numMisplacedItemsLeft / (uint64_t)K;
-      uint64_t leftLocalIndex = s;
-      uint64_t rightLocalIndex = s;
-      const range<uint64_t>* l_range = parallel_partition_details::findStartRange(leftLocalIndex, leftMisplacedRanges);
-      const range<uint64_t>* r_range = parallel_partition_details::findStartRange(rightLocalIndex, rightMisplacedRanges);
-      uint64_t l_left = l_range->size() - leftLocalIndex;
-      uint64_t r_left = r_range->size() - rightLocalIndex;
-      iterator l = first + l_range->begin() + leftLocalIndex;
-      iterator r = first + r_range->begin() + rightLocalIndex;
-      uint64_t size = e - s;
-      uint64_t items = std::min<uint64_t>(size, std::min<uint64_t>(l_left, r_left));
-
-      while (size)
-        {
-        if (l_left == 0)
-          {
-          ++l_range;
-          l_left = l_range->size();
-          l = first + l_range->begin();
-          items = std::min<uint64_t>(size, std::min<uint64_t>(l_left, r_left));
-          }
-
-        if (r_left == 0)
-          {
-          ++r_range;
-          r_left = r_range->size();
-          r = first + r_range->begin();
-          items = std::min<uint64_t>(size, std::min<uint64_t>(l_left, r_left));
-          }
-
-        size -= items;
-        l_left -= items;
-        r_left -= items;
-
-        while (items)
-          {
-          --items;
-          const typename iterator::value_type tmp = *l;
-          *l++ = *r;
-          *r++ = tmp;
-          }
-        }
-      });
-
-    return mid;
-    }
-
-  /////////////////////////////////////////////////////////////////////////
   // qbvh
   /////////////////////////////////////////////////////////////////////////
 
-  inline void* qbvh_voxel::operator new(size_t size) { return aligned_malloc(size, 16); }
-  inline void qbvh_voxel::operator delete(void* ptr) { aligned_free(ptr); }
-  inline void* qbvh_voxel::operator new[](size_t size) { return aligned_malloc(size, 16); }
-  inline void qbvh_voxel::operator delete[](void* ptr) { aligned_free(ptr); }
+  void* qbvh_voxel::operator new(size_t size) { return aligned_malloc(size, 16); }
+  void qbvh_voxel::operator delete(void* ptr) { aligned_free(ptr); }
+  void* qbvh_voxel::operator new[](size_t size) { return aligned_malloc(size, 16); }
+  void qbvh_voxel::operator delete[](void* ptr) { aligned_free(ptr); }
 
 
-    inline qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+    qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
     {
     qbvh_voxel* lst = new qbvh_voxel[nr_of_triangles];
     total_bb.bbox_min = std::numeric_limits<float>::max();
@@ -2387,7 +2420,7 @@ I'm following the same algorithm steps, but do everything in place.
     return lst;
     }
 
-  inline qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
+  qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
     {
     qbvh_voxel* lst = new qbvh_voxel[nr_of_spheres];
     total_bb.bbox_min = std::numeric_limits<float>::max();
@@ -2427,7 +2460,7 @@ I'm following the same algorithm steps, but do everything in place.
     return lst;
     }
 
-  inline void unite_four_aabbs(float4* out, float4* in, int k)
+  void unite_four_aabbs(float4* out, float4* in, int k)
     {
     out[0][k] = min_horizontal(in[0]);
     out[1][k] = min_horizontal(in[1]);
@@ -2438,7 +2471,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline void get_bbox(float4* bbox, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int k)
+  void get_bbox(float4* bbox, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int k)
     {
     assert(first != last);
     bbox[0][k] = voxels[*first].bbox_min[0];
@@ -2459,7 +2492,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline float calculate_half_surface_area(const float4& left, const float4& right)
+  float calculate_half_surface_area(const float4& left, const float4& right)
     {
     const float4 diff = right - left;
     const float4 diff2(diff[1], diff[2], diff[0], 0);
@@ -2468,7 +2501,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline uint8_t find_largest_dimension(const qbvh_voxel& bb)
+  uint8_t find_largest_dimension(const qbvh_voxel& bb)
     {
     const float4 diff = bb.bbox_max - bb.bbox_min;
     const uint8_t dim = diff[1] > diff[0] ? (diff[2] > diff[1] ? 2 : 1) : (diff[2] > diff[0] ? 2 : 0);
@@ -2476,7 +2509,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline std::vector<uint32_t>::iterator partition(qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, const uint32_t dim, const float split_pos, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  std::vector<uint32_t>::iterator partition(qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, const uint32_t dim, const float split_pos, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     auto last_save = last;
     while (first != last)
@@ -2526,7 +2559,7 @@ I'm following the same algorithm steps, but do everything in place.
 
 
   template <int K>
-  inline void sah_optimized(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  void sah_optimized(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     const uint32_t nr_of_triangles = (uint32_t)std::distance(first, last);
     const float eps = std::numeric_limits<float>::epsilon() * 1024;
@@ -2654,7 +2687,7 @@ I'm following the same algorithm steps, but do everything in place.
 
 
   template <int K>
-  inline void sah_parallel(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  void sah_parallel(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     const uint32_t nr_of_triangles = (uint32_t)std::distance(first, last);
     const float eps = std::numeric_limits<float>::epsilon() * 1024;
@@ -2836,7 +2869,7 @@ I'm following the same algorithm steps, but do everything in place.
 
 
 
-  inline qbvh::qbvh(const std::vector<vec3<uint32_t>>& triangles, const vec3<float>* vertices)
+  qbvh::qbvh(const std::vector<vec3<uint32_t>>& triangles, const vec3<float>* vertices)
     {
     qbvh_voxel total_bb, centroid_bb;
     const uint32_t nr_of_triangles = (uint32_t)triangles.size();
@@ -2845,20 +2878,20 @@ I'm following the same algorithm steps, but do everything in place.
     delete[] qbvh_voxels;
     }
 
-  inline qbvh::qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
+  qbvh::qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
     {
     assert(props.leaf_size > 1);
     _ids = ids;
     _build(voxels, nr_of_items, total_bb, centroid_bb);
     }
 
-  inline qbvh::qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
+  qbvh::qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
     {
     assert(props.leaf_size > 1);
     _build(voxels, nr_of_items, total_bb, centroid_bb);
     }
 
-  inline hit qbvh::find_closest_triangle(uint32_t& triangle_id, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
+  hit qbvh::find_closest_triangle(uint32_t& triangle_id, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
     {
     hit h;
     h.found = 0;
@@ -3011,7 +3044,7 @@ I'm following the same algorithm steps, but do everything in place.
     return h;
     }
 
-  inline std::vector<hit> qbvh::find_all_triangles(std::vector<uint32_t>& triangle_ids, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
+  std::vector<hit> qbvh::find_all_triangles(std::vector<uint32_t>& triangle_ids, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
     {
     std::vector<hit> hits;
 
@@ -3159,7 +3192,7 @@ I'm following the same algorithm steps, but do everything in place.
     return hits;
     }
 
-  inline hit qbvh::find_closest_triangle(uint32_t& triangle_id, const vec3<float>& point, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
+  hit qbvh::find_closest_triangle(uint32_t& triangle_id, const vec3<float>& point, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
     {
     hit h;
     h.found = 0;
@@ -3289,7 +3322,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline void qbvh::_build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb)
+  void qbvh::_build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb)
     {
     assert(props.leaf_size < uint32_t(std::numeric_limits<uint16_t>::max() - 3));
     // max number of nodes is 4n-3 with n the number of triangles
@@ -3420,7 +3453,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline typename int4::value_type qbvh::construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep)
+  typename int4::value_type qbvh::construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep)
     {
     assert(first <= last);
     if (first == last)
@@ -3534,7 +3567,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline typename int4::value_type qbvh::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  typename int4::value_type qbvh::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     std::vector<tree_stack> stack;
     uint32_t stack_index = 0;
@@ -3621,7 +3654,7 @@ I'm following the same algorithm steps, but do everything in place.
   // sphere_qbvh
   /////////////////////////////////////////////////////////////////////////
 
-  inline sphere_qbvh::sphere_qbvh(const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
+  sphere_qbvh::sphere_qbvh(const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
     {
     qbvh_voxel total_bb, centroid_bb;
     auto qbvh_voxels = build_sphere_qbvh_voxels(total_bb, centroid_bb, origins, radii, nr_of_spheres);
@@ -3629,20 +3662,20 @@ I'm following the same algorithm steps, but do everything in place.
     delete[] qbvh_voxels;
     }
 
-  inline sphere_qbvh::sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
+  sphere_qbvh::sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
     {
     assert(props.leaf_size > 1);
     _ids = ids;
     _build(voxels, nr_of_items, total_bb, centroid_bb);
     }
 
-  inline sphere_qbvh::sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
+  sphere_qbvh::sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
     {
     assert(props.leaf_size > 1);
     _build(voxels, nr_of_items, total_bb, centroid_bb);
     }
 
-  inline spherehit sphere_qbvh::find_closest_sphere(uint32_t& sphere_id, ray r, const vec3<float>* origins, const float* radii) const
+  spherehit sphere_qbvh::find_closest_sphere(uint32_t& sphere_id, ray r, const vec3<float>* origins, const float* radii) const
     {
     spherehit h;
     h.found = 0;
@@ -3763,7 +3796,7 @@ I'm following the same algorithm steps, but do everything in place.
     return h;
     }
 
-  inline std::vector<spherehit> sphere_qbvh::find_all_spheres(std::vector<uint32_t>& sphere_ids, ray r, const vec3<float>* origins, const float* radii) const
+  std::vector<spherehit> sphere_qbvh::find_all_spheres(std::vector<uint32_t>& sphere_ids, ray r, const vec3<float>* origins, const float* radii) const
     {
     std::vector<spherehit> hits;
 
@@ -3879,7 +3912,7 @@ I'm following the same algorithm steps, but do everything in place.
     return hits;
     }
 
-  inline void sphere_qbvh::_build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb)
+  void sphere_qbvh::_build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb)
     {
     assert(props.leaf_size < uint32_t(std::numeric_limits<uint16_t>::max() - 3));
     // max number of nodes is 4n-3 with n the number of triangles
@@ -4010,7 +4043,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline typename int4::value_type sphere_qbvh::construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep)
+  typename int4::value_type sphere_qbvh::construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep)
     {
     assert(first <= last);
     if (first == last)
@@ -4124,7 +4157,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline typename int4::value_type sphere_qbvh::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  typename int4::value_type sphere_qbvh::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     std::vector<tree_stack> stack;
     uint32_t stack_index = 0;
@@ -4211,7 +4244,7 @@ I'm following the same algorithm steps, but do everything in place.
   // qbvh_two_level
   /////////////////////////////////////////////////////////////////////////
 
-  inline void unite_four_aabbs(qbvh_voxel& out, const float4* in)
+  void unite_four_aabbs(qbvh_voxel& out, const float4* in)
     {
     out.bbox_min[0] = min_horizontal(in[0]);
     out.bbox_min[1] = min_horizontal(in[1]);
@@ -4224,7 +4257,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline qbvh_two_level::qbvh_two_level(const qbvh** objects, uint32_t nr_of_objects)
+  qbvh_two_level::qbvh_two_level(const qbvh** objects, uint32_t nr_of_objects)
     {
     nodes.reserve(nr_of_objects);
     qbvh_voxel total_bb, centroid_bb;
@@ -4275,7 +4308,7 @@ I'm following the same algorithm steps, but do everything in place.
     delete[] voxels;
     }
 
-  inline hit qbvh_two_level::find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const
+  hit qbvh_two_level::find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const
     {
     hit h;
     h.found = 0;
@@ -4360,7 +4393,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline int32_t qbvh_two_level::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  int32_t qbvh_two_level::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     assert(first <= last);
     if (first == last)
@@ -4425,7 +4458,7 @@ I'm following the same algorithm steps, but do everything in place.
   // qbvh_two_level_with_transformations
   /////////////////////////////////////////////////////////////////////////
 
-  inline void transform(qbvh_voxel& voxel, const float4x4& matrix)
+  void transform(qbvh_voxel& voxel, const float4x4& matrix)
     {
     auto xa = matrix.col[0] * voxel.bbox_min[0];
     auto xb = matrix.col[0] * voxel.bbox_max[0];
@@ -4440,7 +4473,7 @@ I'm following the same algorithm steps, but do everything in place.
     voxel.bbox_max = max(xa, xb) + max(ya, yb) + max(za, zb) + matrix.col[3];
     }
 
-  inline qbvh_two_level_with_transformations::qbvh_two_level_with_transformations(const qbvh** objects, const float4x4* transformations, uint32_t nr_of_objects)
+  qbvh_two_level_with_transformations::qbvh_two_level_with_transformations(const qbvh** objects, const float4x4* transformations, uint32_t nr_of_objects)
     {
     nodes.reserve(nr_of_objects);
     qbvh_voxel total_bb, centroid_bb;
@@ -4492,7 +4525,7 @@ I'm following the same algorithm steps, but do everything in place.
     delete[] voxels;
     }
 
-  inline hit qbvh_two_level_with_transformations::find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const float4x4* inverted_transformations, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const
+  hit qbvh_two_level_with_transformations::find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const float4x4* inverted_transformations, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const
     {
     hit h;
     h.found = 0;
@@ -4579,7 +4612,7 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
 
-  inline int32_t qbvh_two_level_with_transformations::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  int32_t qbvh_two_level_with_transformations::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     assert(first <= last);
     if (first == last)
@@ -4641,3 +4674,5 @@ I'm following the same algorithm steps, but do everything in place.
     }
 
   } // namespace jtk
+
+#endif //JTK_QBVH_IMPLEMENTATION

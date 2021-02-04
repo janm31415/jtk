@@ -1,5 +1,6 @@
 #include "vec_tests.h"
 
+#define JTK_QBVH_IMPLEMENTATION
 #include "../jtk/qbvh.h"
 #include "test_assert.h"
 
