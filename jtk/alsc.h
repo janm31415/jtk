@@ -1,4 +1,17 @@
-#pragma once
+/*
+   Do this:
+      #define JTK_ALSC_IMPLEMENTATION
+   before you include this file in *one* C or C++ file to create the implementation.
+   // i.e. it should look like this:
+   #include ...
+   #include ...
+   #include ...
+   #define JTK_ALSC_IMPLEMENTATION
+   #include "jtk/alsc.h"
+ */
+
+#ifndef JTK_ALSC_H
+#define JTK_ALSC_H
 
 #include <stdint.h>
 #include <cmath>
@@ -328,15 +341,21 @@ alsc_result find_match_on_line(
   int max_iter
 );
 
+} // namespace jtk
+
+#endif
+
+
+#ifdef JTK_ALSC_IMPLEMENTATION
+
 ////////////////////////////////////
 // Implementation
 ////////////////////////////////////
 
+namespace jtk
+  {
 
-#include <cmath>
-#include <stdio.h>
-
-inline void print_patch(double* patch, int m, int n)
+void print_patch(double* patch, int m, int n)
   {
   for (int y = -1; y <= m; ++y)
     {
@@ -348,7 +367,7 @@ inline void print_patch(double* patch, int m, int n)
     }
   }
 
-inline void print_mat(double* mat, int m, int n)
+void print_mat(double* mat, int m, int n)
   {
   for (int r = 0; r < m; ++r)
     {
@@ -360,7 +379,7 @@ inline void print_mat(double* mat, int m, int n)
     }
   }
 
-inline void resample_patch(double* patch, int m, int n,
+void resample_patch(double* patch, int m, int n,
   double a, double b, double c, double d, double e, double f,
   const uint8_t* rhimage, int stride)
   {
@@ -377,7 +396,7 @@ inline void resample_patch(double* patch, int m, int n,
     }
   }
 
-inline void compute_patch_center(double& x, double& y, double a, double b, double c, double d, double e, double f, int m, int n)
+void compute_patch_center(double& x, double& y, double a, double b, double c, double d, double e, double f, int m, int n)
   {
   double x_ = (n - 1.0) / 2.0;
   double y_ = (m - 1.0) / 2.0;
@@ -385,7 +404,7 @@ inline void compute_patch_center(double& x, double& y, double a, double b, doubl
   y = d + e * x_ + f * y_;
   }
 
-inline double interpolate(const uint8_t* rhimage, int stride, double x, double y)
+double interpolate(const uint8_t* rhimage, int stride, double x, double y)
   {
   int x_ = int(std::floor(x));
   int y_ = int(std::floor(y));
@@ -405,7 +424,7 @@ inline double interpolate(const uint8_t* rhimage, int stride, double x, double y
   return result;
   }
 
-inline void fill_design_matrix(double* A,
+void fill_design_matrix(double* A,
   const double* patch, int m, int n)
   {
   int mn = m * n;
@@ -437,7 +456,7 @@ inline void fill_design_matrix(double* A,
     }
   }
 
-inline void fill_patch_difference(double* l, const double* patch_f, const double* patch_g, double rs, double rg, int m, int n)
+void fill_patch_difference(double* l, const double* patch_f, const double* patch_g, double rs, double rg, int m, int n)
   {
   double f, g;
   for (int y = 1; y <= m; ++y)
@@ -454,12 +473,12 @@ inline void fill_patch_difference(double* l, const double* patch_f, const double
 namespace alsc_details
   {
 
-  inline double sqr(double a)
+  double sqr(double a)
     {
     return a * a;
     }
 
-  inline void dswap(double& a, double& b)
+  void dswap(double& a, double& b)
     {
     double c = a;
     a = b;
@@ -467,7 +486,7 @@ namespace alsc_details
     }
   }
 
-inline double compute_residual_l2_norm_sqr(const double* patch_f, const double* patch_g, double rs, double rg, int m, int n)
+double compute_residual_l2_norm_sqr(const double* patch_f, const double* patch_g, double rs, double rg, int m, int n)
   {
   using namespace alsc_details;
   double f, g;
@@ -484,7 +503,7 @@ inline double compute_residual_l2_norm_sqr(const double* patch_f, const double* 
   return residu;
   }
 
-inline void compute_At_A(double* AtA, const double* A, int m, int n)
+void compute_At_A(double* AtA, const double* A, int m, int n)
   {
   int mn = m * n;
 
@@ -504,7 +523,7 @@ inline void compute_At_A(double* AtA, const double* A, int m, int n)
     }
   }
 
-inline void compute_At_l(double* Atl, const double* A, const double* l, int m, int n)
+void compute_At_l(double* Atl, const double* A, const double* l, int m, int n)
   {
   int mn = m * n;
   for (int i = 0; i < 8; ++i)
@@ -519,7 +538,7 @@ inline void compute_At_l(double* Atl, const double* A, const double* l, int m, i
     }
   }
 
-inline void get_coefficients_unskewed_patch(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, int m, int n, double x, double y)
+void get_coefficients_unskewed_patch(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, int m, int n, double x, double y)
   {
   b = 1.0;
   c = 0.0;
@@ -531,13 +550,13 @@ inline void get_coefficients_unskewed_patch(double& a, double& b, double& c, dou
   rs = 0.0;
   }
 
-inline void get_shift_coefficients(double& a, double& d, double b, double c, double e, double f, int m, int n, double x, double y)
+void get_shift_coefficients(double& a, double& d, double b, double c, double e, double f, int m, int n, double x, double y)
   {
   a = x - b * (n - 1.0) / 2.0 - c * (m - 1.0) / 2.0;
   d = y - e * (n - 1.0) / 2.0 - f * (m - 1.0) / 2.0;
   }
 
-inline void get_rectangle_around_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n)
+void get_rectangle_around_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n)
   {
   x1 = a;
   y1 = d;
@@ -549,7 +568,7 @@ inline void get_rectangle_around_patch(double& x1, double& y1, double& x2, doubl
   y4 = f * (m - 1) + d;
   }
 
-inline void get_residual(const double* A, const double* x, double* l, int m, int n)
+void get_residual(const double* A, const double* x, double* l, int m, int n)
   {
   int mn = m * n;
   const double* A0 = A;
@@ -566,7 +585,7 @@ inline void get_residual(const double* A, const double* x, double* l, int m, int
     }
   }
 
-inline double get_variance_factor(const double* residual, int m, int n)
+double get_variance_factor(const double* residual, int m, int n)
   {
   double sigma = 0.0;
   int mn = m * n;
@@ -576,7 +595,7 @@ inline double get_variance_factor(const double* residual, int m, int n)
   return sigma / r;
   }
 
-inline int cholesky(double* AtA)
+int cholesky(double* AtA)
   {
   int n = 8;
   for (int i = 0; i < n; ++i)
@@ -594,7 +613,7 @@ inline int cholesky(double* AtA)
   return 0;
   }
 
-inline int solve_alsc_cholesky(double* U, double* Atl)
+int solve_alsc_cholesky(double* U, double* Atl)
   {
   int n = 8;
   for (int i = 0; i < n; ++i)
@@ -616,7 +635,7 @@ inline int solve_alsc_cholesky(double* U, double* Atl)
   return 0;
   }
 
-inline bool update_coefficients(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, const double* x)
+bool update_coefficients(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, const double* x)
   {
   for (int i = 0; i < 8; ++i)
     if (x[i] != x[i])
@@ -635,7 +654,7 @@ inline bool update_coefficients(double& a, double& b, double& c, double& d, doub
   return true;
   }
 
-inline bool terminate(const double* x, double rg, double tolerance[6])
+bool terminate(const double* x, double rg, double tolerance[6])
   {
   const double denom = 1.0 + rg;
   return (fabs(x[0] / denom) < tolerance[0] &&
@@ -646,7 +665,7 @@ inline bool terminate(const double* x, double rg, double tolerance[6])
     fabs(x[5] / denom) < tolerance[5]);
   }
 
-inline int inverse_from_cholesky(double* U)
+int inverse_from_cholesky(double* U)
   {
   double A[64];
   std::memcpy((void*)A, (void*)U, sizeof(double) * 64);
@@ -676,7 +695,7 @@ inline int inverse_from_cholesky(double* U)
   return 0;
   }
 
-inline void compute_standard_deviations(
+void compute_standard_deviations(
   double& sigma_a, double& sigma_b, double& sigma_c,
   double& sigma_d, double& sigma_e, double& sigma_f, double& sigma_radiometric_shift, double& sigma_radiometric_gain,
   double variance_factor, const double* AtA_inv)
@@ -691,13 +710,13 @@ inline void compute_standard_deviations(
   sigma_radiometric_gain = std::sqrt(variance_factor * AtA_inv[7 * 8 + 7]);
   }
 
-inline void compute_standard_deviations(double& sigma_a, double& sigma_d, double variance_factor, const double* AtA_inv)
+void compute_standard_deviations(double& sigma_a, double& sigma_d, double variance_factor, const double* AtA_inv)
   {
   sigma_a = std::sqrt(variance_factor * AtA_inv[0]);
   sigma_d = std::sqrt(variance_factor * AtA_inv[3 * 8 + 3]);
   }
 
-inline double quality_of_match(double variance_factor, double* AtA_inv)
+double quality_of_match(double variance_factor, double* AtA_inv)
   {
   double a = variance_factor * AtA_inv[0];
   double b = variance_factor * AtA_inv[3 * 8 + 3];
@@ -710,7 +729,7 @@ inline double quality_of_match(double variance_factor, double* AtA_inv)
   }
 
 
-inline void get_extrema_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n)
+void get_extrema_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n)
   {
   x1 = a - b - c;
   y1 = d - e - f;
@@ -722,7 +741,7 @@ inline void get_extrema_patch(double& x1, double& y1, double& x2, double& y2, do
   y4 = d - e + f * (m);
   }
 
-inline bool alsc_single_iteration(double& a, double& b, double& c, double& d, double& e, double& f, double& r_shift, double& r_gain,
+bool alsc_single_iteration(double& a, double& b, double& c, double& d, double& e, double& f, double& r_shift, double& r_gain,
   const double* patch_f, double* patch_g,
   double* A,
   double* l,
@@ -750,7 +769,7 @@ inline bool alsc_single_iteration(double& a, double& b, double& c, double& d, do
   return update_coefficients(a, b, c, d, e, f, r_shift, r_gain, Atl);
   }
 
-inline bool in_safety_zone(double x, double y, int w, int h, int m, int n)
+bool in_safety_zone(double x, double y, int w, int h, int m, int n)
   {
   if (x < m)
     return false;
@@ -763,7 +782,7 @@ inline bool in_safety_zone(double x, double y, int w, int h, int m, int n)
   return true;
   }
 
-inline bool alsc(
+bool alsc(
   double* output,
   double left_x, double left_y,
   double right_x, double right_y,
@@ -840,7 +859,7 @@ inline bool alsc(
   return success;
   }
 
-inline alsc_result alsc(double right_x, double right_y,
+alsc_result alsc(double right_x, double right_y,
   const uint8_t* rhimage,
   int w,
   int h,
@@ -906,7 +925,7 @@ inline alsc_result alsc(double right_x, double right_y,
   }
 
 
-inline alsc_result find_match_on_line(
+alsc_result find_match_on_line(
   double x, double y,
   const double* line,
   const uint8_t* rhimage,
@@ -988,5 +1007,6 @@ inline alsc_result find_match_on_line(
   return result;
   }
 
-
 }
+
+#endif // JTK_ALSC_IMPLEMENTATION
