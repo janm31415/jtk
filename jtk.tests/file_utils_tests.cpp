@@ -1,6 +1,7 @@
 #include "file_utils_tests.h"
 #include "test_assert.h"
 
+#define JTK_FILE_UTILS_IMPLEMENTATION
 #include "../jtk/file_utils.h"
 
 namespace jtk
