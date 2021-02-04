@@ -1,23 +1,19 @@
-#pragma once
+/*
+   Do this:
+      #define JTK_WINDOW_IMPLEMENTATION
+   before you include this file in *one* C++ file to create the implementation.
+   // i.e. it should look like this:
+   #include ...
+   #include ...
+   #include ...
+   #define JTK_WINDOW_IMPLEMENTATION
+   #include "jtk/window.h"
+ */
 
-#include <iostream>
+#ifndef JTK_WINDOW_H
+#define JTK_WINDOW_H
+
 #include <string>
-#include <stdint.h>
-#include <memory>
-#include <thread>
-#ifdef _WIN32
-#include <windows.h>
-#include <sstream>
-#include <unordered_map>
-#else
-#include <unistd.h>
-#include <string.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <atomic>
-#endif
-#include <condition_variable>
-#include <chrono>
 
 namespace jtk
   {
@@ -53,6 +49,32 @@ namespace jtk
 
   void register_listener(WindowHandle h_wnd, IWindowListener* listener);
 
+} // namespace jtk
+
+#endif // #ifndef JTK_WINDOW_H
+
+#ifdef JTK_WINDOW_IMPLEMENTATION
+
+#include <iostream>
+#include <stdint.h>
+#include <memory>
+#include <thread>
+#ifdef _WIN32
+#include <windows.h>
+#include <sstream>
+#include <unordered_map>
+#else
+#include <unistd.h>
+#include <string.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <atomic>
+#endif
+#include <condition_variable>
+#include <chrono>
+
+namespace jtk
+  {
 
 #ifdef _WIN32
 
@@ -148,7 +170,7 @@ namespace jtk
 
   namespace
     {
-    inline static int window_id = 0;
+    static int window_id = 0;
 
     LRESULT CALLBACK _wnd_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
       {
@@ -401,7 +423,7 @@ namespace jtk
         }
       }
 
-    inline static bool XThreads_initialized = false;
+    static bool XThreads_initialized = false;
 
     GC create_gc(Display* display, Window win, int reverse_video)
       {
@@ -815,3 +837,5 @@ namespace jtk
     h_wnd->listener = listener;
     }
   } // namespace jtk
+  
+#endif // JTK_WINDOW_IMPLEMENTATION
