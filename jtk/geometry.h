@@ -18,6 +18,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <algorithm>
 
 namespace jtk
   {
@@ -773,7 +774,6 @@ namespace jtk
 #include "concurrency.h"
 //#include "vec.h"
 #include "point_tree.h"
-#include <algorithm>
 #include <array>
 #include <list>
 #include <numeric>
