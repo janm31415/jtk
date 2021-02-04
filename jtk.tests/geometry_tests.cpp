@@ -1,6 +1,7 @@
 #include "geometry_tests.h"
 #include "test_assert.h"
 
+#define JTK_GEOMETRY_IMPLEMENTATION
 #include "../jtk/geometry.h"
 
 namespace jtk
