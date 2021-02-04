@@ -1,15 +1,21 @@
+/*
+   Do this:
+      #define JTK_FILE_UTILS_IMPLEMENTATION
+   before you include this file in *one* C or C++ file to create the implementation.
+   // i.e. it should look like this:
+   #include ...
+   #include ...
+   #include ...
+   #define JTK_FILE_UTILS_IMPLEMENTATION
+   #include "jtk/file_utils.h"
+ */
+ 
+ 
+#ifndef JTK_FILE_UTILS_H
+#define JTK_FILE_UTILS_H
 
-#pragma once
-
-#include "utf8.h"
-#include <fstream>
 #include <string>
 #include <vector>
-#include <sys/stat.h>
-#ifdef _WIN32
-#include <algorithm>
-#include <sys/types.h>
-#endif
 
 namespace jtk
   {
@@ -45,6 +51,17 @@ namespace jtk
 
   } // namespace jtk
 
+#endif // #ifndef JTK_FILE_UTILS_H
+
+#ifdef JTK_FILE_UTILS_IMPLEMENTATION
+
+#include "utf8.h"
+#include <fstream>
+#include <sys/stat.h>
+#ifdef _WIN32
+#include <algorithm>
+#include <sys/types.h>
+#endif
 
 #ifdef _WIN32
 
@@ -1018,7 +1035,7 @@ extern "C" {
 
 namespace jtk
   {
-  inline std::string get_executable_path()
+  std::string get_executable_path()
     {
 #ifdef _WIN32
     typedef std::vector<wchar_t> char_vector;
@@ -1076,7 +1093,7 @@ namespace jtk
 #endif
     }
 
-  inline std::string get_cwd()
+  std::string get_cwd()
     {
 #ifdef _WIN32
     wchar_t buf[MAX_PATH];
@@ -1091,7 +1108,7 @@ namespace jtk
 #endif
     }
 
-  inline std::wstring convert_string_to_wstring(const std::string& str)
+  std::wstring convert_string_to_wstring(const std::string& str)
     {
     std::wstring out;
     out.reserve(str.size());
@@ -1115,7 +1132,7 @@ namespace jtk
     return out;
     }
 
-  inline std::string convert_wstring_to_string(const std::wstring& str)
+  std::string convert_wstring_to_string(const std::wstring& str)
     {
     std::string out;
     out.reserve(str.size());
@@ -1123,7 +1140,7 @@ namespace jtk
     return out;
     }
 
-  inline bool valid_utf8_file(const std::wstring& filename)
+  bool valid_utf8_file(const std::wstring& filename)
     {
 #ifdef _WIN32
     std::ifstream ifs(filename);
@@ -1140,7 +1157,7 @@ namespace jtk
     return utf8::is_valid(it, eos);
     }
 
-  inline bool valid_utf8_file(const std::string& filename)
+  bool valid_utf8_file(const std::string& filename)
     {
 #ifdef _WIN32
     std::wstring wfn = convert_string_to_wstring(filename);
@@ -1157,7 +1174,7 @@ namespace jtk
     return utf8::is_valid(it, eos);
     }
 
-  inline bool is_directory(const std::string& directory)
+  bool is_directory(const std::string& directory)
     {
 #ifdef _WIN32
     std::wstring wdirectory = convert_string_to_wstring(directory);
@@ -1189,7 +1206,7 @@ namespace jtk
 #endif  
     }
 
-  inline bool file_exists(const std::string& filename)
+  bool file_exists(const std::string& filename)
     {
 #ifdef _WIN32
     std::wstring wfilename = convert_string_to_wstring(filename);
@@ -1207,7 +1224,7 @@ namespace jtk
 #endif
     }
 
-  inline std::vector<std::string> get_files_from_directory(const std::string& d, bool include_subfolders)
+  std::vector<std::string> get_files_from_directory(const std::string& d, bool include_subfolders)
     {
     std::string directory(d);
     if (!directory.empty() && !(directory.back() == '/' || directory.back() == '\\'))
@@ -1266,7 +1283,7 @@ namespace jtk
     return files;
     }
 
-  inline std::vector<std::string> get_subdirectories_from_directory(const std::string& d, bool include_subfolders)
+  std::vector<std::string> get_subdirectories_from_directory(const std::string& d, bool include_subfolders)
     {
     std::string directory(d);
     if (!directory.empty() && !(directory.back() == '/' || directory.back() == '\\'))
@@ -1320,7 +1337,7 @@ namespace jtk
     return files;
     }
 
-  inline std::vector<std::string> get_list_from_directory(const std::string& d, bool include_subfolders)
+  std::vector<std::string> get_list_from_directory(const std::string& d, bool include_subfolders)
     {
     std::string directory(d);
     if (!directory.empty() && !(directory.back() == '/' || directory.back() == '\\'))
@@ -1383,7 +1400,7 @@ namespace jtk
     return files;
     }
 
-  inline std::string get_extension(const std::string& filename)
+  std::string get_extension(const std::string& filename)
     {
     std::wstring wfilename = convert_string_to_wstring(filename);
     auto ext_ind = wfilename.find_last_of('.');
@@ -1393,7 +1410,7 @@ namespace jtk
     return convert_wstring_to_string(ext);
     }
 
-  inline std::string remove_extension(const std::string& filename)
+  std::string remove_extension(const std::string& filename)
     {
     std::wstring wfilename = convert_string_to_wstring(filename);
     auto ext_ind = wfilename.find_last_of('.');
@@ -1402,7 +1419,7 @@ namespace jtk
     return convert_wstring_to_string(wfilename.substr(0, ext_ind));
     }
 
-  inline std::string get_folder(const std::string& path)
+  std::string get_folder(const std::string& path)
     {
     std::wstring wpath = convert_string_to_wstring(path);
     auto pos1 = wpath.find_last_of('/');
@@ -1416,7 +1433,7 @@ namespace jtk
     return convert_wstring_to_string(wpath.substr(0, (pos1 > pos2 ? pos1 : pos2) + 1));
     }
 
-  inline std::string get_filename(const std::string& path)
+  std::string get_filename(const std::string& path)
     {
     std::wstring wpath = convert_string_to_wstring(path);
     auto pos1 = wpath.find_last_of('/');
@@ -1430,7 +1447,7 @@ namespace jtk
     return convert_wstring_to_string(wpath.substr((pos1 > pos2 ? pos1 : pos2) + 1));
     }
     
-  inline std::string getenv(const std::string& name)
+  std::string getenv(const std::string& name)
     {
   #ifdef _WIN32
     std::wstring ws = jtk::convert_string_to_wstring(name);
@@ -1445,7 +1462,7 @@ namespace jtk
     return out;
     }
 
-  inline void putenv(const std::string& name, const std::string& value)
+  void putenv(const std::string& name, const std::string& value)
     {
 #ifdef _WIN32
     std::wstring wvalue = jtk::convert_string_to_wstring(value);
@@ -1458,7 +1475,7 @@ namespace jtk
 
   namespace details
     {
-    inline std::string remove_nl_cr(const std::string& str)
+    std::string remove_nl_cr(const std::string& str)
       {
       std::string cleaned(str);
       while (!cleaned.empty() && (cleaned.back() == '\n' || cleaned.back() == '\r'))
@@ -1466,7 +1483,7 @@ namespace jtk
       return cleaned;
       }
 
-    inline std::string add_brackets_iff_separator(const std::string& str, const char* separator = ",")
+    std::string add_brackets_iff_separator(const std::string& str, const char* separator = ",")
       {
       std::wstring w = convert_string_to_wstring(str);
       std::wstring sep = convert_string_to_wstring(std::string(separator));
@@ -1478,7 +1495,7 @@ namespace jtk
       return convert_wstring_to_string(w);
       }
 
-    inline const wchar_t* wstrchr(const wchar_t *s, wchar_t c)
+    const wchar_t* wstrchr(const wchar_t *s, wchar_t c)
       {
       while (*s != c)
         if (!*s++)
@@ -1486,7 +1503,7 @@ namespace jtk
       return (const wchar_t*)s;
       }
 
-    inline size_t wstrcspn(const wchar_t* s1, const wchar_t* s2)
+    size_t wstrcspn(const wchar_t* s1, const wchar_t* s2)
       {
       size_t ret = 0;
       while (*s1)
@@ -1497,7 +1514,7 @@ namespace jtk
       return ret;
       }
 
-    inline const wchar_t* wstrpbrk(const wchar_t* s1, const wchar_t* s2)
+    const wchar_t* wstrpbrk(const wchar_t* s1, const wchar_t* s2)
       {
       while (*s1)
         if (wstrchr(s2, *s1++))
@@ -1505,7 +1522,7 @@ namespace jtk
       return nullptr;
       }
 
-    inline const wchar_t* wstrpbrk_brackets(const wchar_t* str1, const wchar_t* str2)
+    const wchar_t* wstrpbrk_brackets(const wchar_t* str1, const wchar_t* str2)
       {
       const wchar_t* targ = wstrpbrk(str1, str2);
       if (!targ)
@@ -1527,7 +1544,7 @@ namespace jtk
         return targ;
       }
 
-    inline std::string remove_brackets(const std::string& str)
+    std::string remove_brackets(const std::string& str)
       {
       if (str.empty())
         return str;
@@ -1539,7 +1556,7 @@ namespace jtk
       }
     }
 
-  inline void csv_write(const std::vector<std::vector<std::string>>& data, FILE* stream, const char* separator)
+  void csv_write(const std::vector<std::vector<std::string>>& data, FILE* stream, const char* separator)
     {
     using namespace details;
     for (const auto& line : data)
@@ -1554,7 +1571,7 @@ namespace jtk
       }
     }
 
-  inline bool csv_write(const std::vector<std::vector<std::string>>& data, const char* filename, const char* separator)
+  bool csv_write(const std::vector<std::vector<std::string>>& data, const char* filename, const char* separator)
     {
     FILE *f = fopen(filename, "w");
     if (f == nullptr)
@@ -1564,7 +1581,7 @@ namespace jtk
     return true;
     }
 
-  inline void csv_read(std::vector<std::vector<std::string>>& data, FILE* stream, const char* separator)
+  void csv_read(std::vector<std::vector<std::string>>& data, FILE* stream, const char* separator)
     {
     using namespace details;
     char line[16384];
@@ -1592,7 +1609,7 @@ namespace jtk
       }
     }
 
-  inline bool csv_read(std::vector<std::vector<std::string>>& data, const char* filename, const char* separator)
+  bool csv_read(std::vector<std::vector<std::string>>& data, const char* filename, const char* separator)
     {
     FILE *f = fopen(filename, "r");
     if (f == nullptr)
@@ -1603,7 +1620,7 @@ namespace jtk
     }
 
 #ifdef _WIN32
-  inline long long file_size(const std::string& filename)
+  long long file_size(const std::string& filename)
     {
     struct _stat64 st;
 
@@ -1615,7 +1632,7 @@ namespace jtk
     return -1;
     }
 #else
-  inline long long file_size(const std::string& filename)
+  long long file_size(const std::string& filename)
     {
     struct stat st;
 
@@ -1627,3 +1644,6 @@ namespace jtk
 #endif
 
   } // namespace jtk
+
+
+#endif //JTK_FILE_UTILS_IMPLEMENTATION
