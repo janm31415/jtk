@@ -189,6 +189,7 @@ namespace jtk
   void smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
   void local_smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& vertex_indices, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
   void dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
+  void dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& uv);
   void undo_dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
   void butterfly(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
 
@@ -2227,6 +2228,35 @@ namespace jtk
       tria[1] = edge_points[1];
       tria[2] = edge_points[2];
       }
+    }
+    
+  inline void dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv)
+    {
+    size_t original_triangles = triangle_uv.size();
+    std::vector<jtk::vec3<jtk::vec2<float>>> new_uv_out;
+    new_uv_out.resize(original_triangles*4);
+    for (size_t t = 0; t < original_triangles; ++t)
+      {
+      auto uv = triangle_uv[t];
+      jtk::vec3<jtk::vec2<float>> new_uv;
+      new_uv[0] = (uv[0]+uv[1])*0.5f;
+      new_uv[1] = (uv[1]+uv[2])*0.5f;
+      new_uv[2] = (uv[2]+uv[0])*0.5f;
+      new_uv_out[t] = new_uv;
+      new_uv[0] = uv[0];
+      new_uv[1] = (uv[0]+uv[1])*0.5f;
+      new_uv[2] = (uv[2]+uv[0])*0.5f;
+      new_uv_out[original_triangles+3*t] = new_uv;
+      new_uv[1] = uv[1];
+      new_uv[2] = (uv[1]+uv[2])*0.5f;
+      new_uv[0] = (uv[0]+uv[1])*0.5f;
+      new_uv_out[original_triangles+3*t+1] = new_uv;
+      new_uv[2] = uv[2];
+      new_uv[0] = (uv[2]+uv[0])*0.5f;
+      new_uv[1] = (uv[1]+uv[2])*0.5f;
+      new_uv_out[original_triangles+3*t+2] = new_uv;
+      }
+    triangle_uv.swap(new_uv_out);
     }
 
   inline void undo_dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
