@@ -84,6 +84,7 @@ namespace jtk
 #ifdef _WIN32
 //#include <windows.h>
 #include <string>
+#include <winsock.h>
 #else
 #include <sstream>
 #include <iostream>
