@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#define JTK_IMAGE_IMPLEMENTATION
 #include "../jtk/image.h"
 #include "../jtk/vec.h"
 #include "test_assert.h"
@@ -43,7 +44,7 @@ namespace jtk
       encoding whether the pixel has smaller intensity than each of its neighbours, one for each bit.
       We use a 9x7 window.
       */
-      using namespace details;
+      using namespace image_details;
       const int w = (int)im.width();
       const int s = (int)im.stride();
       const int h = (int)im.height();
@@ -84,7 +85,7 @@ namespace jtk
       encoding whether the pixel has smaller intensity than each of its neighbours, one for each bit.
       We use a 9x7 window.
       */
-      using namespace details;
+      using namespace image_details;
       const int w = (int)im.width();
       const int s = (int)im.stride();
       const int h = (int)im.height();

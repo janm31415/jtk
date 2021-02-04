@@ -1,4 +1,17 @@
-#pragma once
+/*
+   Do this:
+      #define JTK_IMAGE_IMPLEMENTATION
+   before you include this file in *one* C++ file to create the implementation.
+   // i.e. it should look like this:
+   #include ...
+   #include ...
+   #include ...
+   #define JTK_IMAGE_IMPLEMENTATION
+   #include "jtk/image.h"
+ */
+ 
+#ifndef JTK_IMAGE_H
+#define JTK_IMAGE_H
 
 #ifdef _JTK_FOR_ARM
 #include "sse2neon.h"
@@ -23,11 +36,11 @@ namespace jtk
   template <class T>
   class image;
 
-  inline bool load_pgm(image<uint16_t>& im, const std::string& filename);
-  inline bool write_pgm(const image<uint16_t>& im, const std::string& filename);
+  bool load_pgm(image<uint16_t>& im, const std::string& filename);
+  bool write_pgm(const image<uint16_t>& im, const std::string& filename);
 
   template <class T>
-  inline image<T> span_to_image(uint32_t w, uint32_t h, uint32_t stride, const T* p_image);
+  image<T> span_to_image(uint32_t w, uint32_t h, uint32_t stride, const T* p_image);
 
   template <class T>
   void draw_line(T* raw, double x1, double y1, double x2, double y2, const uint32_t w, const uint32_t h, const uint32_t stride, const T& color);
@@ -44,8 +57,10 @@ namespace jtk
   template <class T>
   image<T> rotate270(const image<T>& im);
 
-  template <class T>
-  void fill_image(image<T>& im, T value);
+  void fill_image(image<uint8_t>& im, uint8_t value);
+  void fill_image(image<uint16_t>& im, uint16_t value);
+  void fill_image(image<uint32_t>& im, uint32_t value);
+  void fill_image(image<float>& im, float value);
 
   image<uint8_t> image_to_gray(const image<uint32_t>& im);
   image<uint8_t> image_to_gray(const image<float>& im);
@@ -61,15 +76,13 @@ namespace jtk
   template <class T, class TValid>
   void gauss(image<T>& im, TValid valid);
 
-  typedef std::vector<uint32_t> histogram_t;
+  std::vector<uint32_t> make_histogram(const image<uint8_t>& im);
 
-  histogram_t make_histogram(const image<uint8_t>& im);
+  std::vector<uint32_t> make_histogram(const image<uint8_t>& im, int x, int y, int w, int h);
 
-  histogram_t make_histogram(const image<uint8_t>& im, int x, int y, int w, int h);
+  int64_t get_histogram_weight(std::vector<uint32_t>::const_iterator begin, std::vector<uint32_t>::const_iterator end);
 
-  int64_t get_histogram_weight(histogram_t::const_iterator begin, histogram_t::const_iterator end);
-
-  int otsu_threshold(const histogram_t& histogram);
+  int otsu_threshold(const std::vector<uint32_t>& histogram);
 
   void threshold_image_region(image<uint8_t>& im, int x, int y, int w, int h, uint8_t threshold);
 
@@ -301,115 +314,31 @@ namespace jtk
       T* _data;
       T** _access;
     };
-
-  namespace details
+    
+  ///////////////////////////////////////////////////////////
+  // template class implementations
+  ///////////////////////////////////////////////////////////
+  
+  namespace image_details
     {
-    const int census_samples[] = {
-      -3, -2,
-      -3, 0,
-      -3, 2,
-      -2, -3,
-      -2, -1,
-      -2, 1,
-      -2, 3,
-      -1, -2,
-      -1, 0,
-      -1, 2,
-      0, -3,
-      0, -1,
-      0, 1,
-      0, 3,
-      1, -2,
-      1, 0,
-      1, 2,
-      2, -3,
-      2, -1,
-      2, 1,
-      2, 3,
-      3, -2,
-      3, 0,
-      3, 2
-      };
-
-    inline float horizontal_min_ps(__m128 x)
-      {
-      __m128 max1 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 0, 3, 2));
-      __m128 max2 = _mm_min_ps(x, max1);
-      __m128 max3 = _mm_shuffle_ps(max2, max2, _MM_SHUFFLE(0, 0, 0, 1));
-      __m128 max4 = _mm_min_ps(max2, max3);
-      float result = _mm_cvtss_f32(max4);
-      return result;
-      }
-
-    inline float horizontal_max_ps(__m128 x)
-      {
-      __m128 max1 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 0, 3, 2));
-      __m128 max2 = _mm_max_ps(x, max1);
-      __m128 max3 = _mm_shuffle_ps(max2, max2, _MM_SHUFFLE(0, 0, 0, 1));
-      __m128 max4 = _mm_max_ps(max2, max3);
-      float result = _mm_cvtss_f32(max4);
-      return result;
-      }
-
-    inline __m128 set_data_128(float value)
-      {
-      return _mm_set1_ps(value);
-      }
-
-    inline __m128 set_data_128(uint8_t value)
-      {
-      return _mm_castsi128_ps(_mm_set1_epi8(value));
-      }
-
-    inline __m128 set_data_128(uint16_t value)
-      {
-      return _mm_castsi128_ps(_mm_set1_epi16(value));
-      }
-
-    inline __m128 set_data_128(uint32_t value)
-      {
-      return _mm_castsi128_ps(_mm_set1_epi32(value));
-      }
-
-    inline std::string pnm_read_line(std::ifstream& file)
-      {
-      std::string line;
-      std::getline(file, line);
-      while (!line.empty() && line[0] == '#')
-        std::getline(file, line);
-      return line;
-      }
-
+    
     template <class T>
-    inline void put_pixel(T* raw, const int x, const int y, const uint32_t stride, const T& clr)
+    void put_pixel(T* raw, const int x, const int y, const uint32_t stride, const T& clr)
       {
       raw[x + y * stride] = clr;
       }
 
     template <class T>
-    inline void put_pixel_checked(T* raw, const int x, const int y, const uint32_t w, const uint32_t h, const uint32_t stride, const T& clr)
+    void put_pixel_checked(T* raw, const int x, const int y, const uint32_t w, const uint32_t h, const uint32_t stride, const T& clr)
       {
       if (x >= 0 && y >= 0 && x < (int)w && y < (int)h)
         put_pixel(raw, x, y, stride, clr);
       }
-
-    inline void unpack_8bit_to_16bit(const __m128i a, __m128i& b0, __m128i& b1)
-      {
-      __m128i zero = _mm_setzero_si128();
-      b0 = _mm_unpacklo_epi8(a, zero);
-      b1 = _mm_unpackhi_epi8(a, zero);
-      }
-
-    inline void split_hi_lo(const __m128i a, const __m128i b, __m128i& hi, __m128i& lo)
-      {
-      hi = _mm_unpackhi_epi8(a, b);
-      lo = _mm_unpacklo_epi8(a, b);
-      }
-    } // namespace details
-
-
+      
+    }
+      
   template <class T>
-  inline image<T> span_to_image(uint32_t w, uint32_t h, uint32_t stride, const T* p_image)
+  image<T> span_to_image(uint32_t w, uint32_t h, uint32_t stride, const T* p_image)
     {
     assert(sizeof(T) <= 16);
     assert(16 % sizeof(T) == 0);
@@ -432,7 +361,7 @@ namespace jtk
   template <class T>
   void draw_line(T* raw, double x1, double y1, double x2, double y2, const uint32_t w, const uint32_t h, const uint32_t stride, const T& color)
     {
-    using namespace details;
+    using namespace image_details;
     // Bresenham's line algorith
     const bool steep = (std::abs(y2 - y1) > std::abs(x2 - x1));
     if (steep)
@@ -478,7 +407,7 @@ namespace jtk
   template <class T>
   void draw_box(T* raw, int x, int y, int box_width, int box_height, const uint32_t w, const uint32_t h, const uint32_t stride, const T& color)
     {
-    using namespace details;
+    using namespace image_details;
 
     int x0 = x;
     int y0 = y;
@@ -559,175 +488,7 @@ namespace jtk
       }
     return out;
     }
-
-  inline bool load_pgm(image<uint16_t>& im, const std::string& filename)
-    {
-    using namespace details;
-    std::ifstream file(filename, std::ios::in | std::ios::binary);
-    if (!file.is_open())
-      return false;
-    std::stringstream str;
-    str << pnm_read_line(file);
-    int width, height, max_val;
-    width = height = max_val = -1;
-    std::string P5;
-    str >> P5;
-    if (P5 != "P5")
-      return false;
-    str >> width;
-    if (width == -1)
-      {
-      str.clear(); str.str("");
-      str << pnm_read_line(file);
-      str >> width;
-      }
-    str >> height;
-    if (height == -1)
-      {
-      str.clear(); str.str("");
-      str << pnm_read_line(file);
-      str >> height;
-      }
-    str >> max_val;
-    if (max_val == -1)
-      {
-      str.clear(); str.str("");
-      str << pnm_read_line(file);
-      str >> max_val;
-      }
-    if (max_val > 65535)
-      return false;
-    if (max_val <= 255)
-      return false;
-    im = image<uint16_t>(width, height, false);
-    file.read((char *)im.data(), width * height * sizeof(uint16_t));
-    file.close();
-    return true;
-    }
-
-  inline bool write_pgm(const image<uint16_t>& im, const std::string& filename)
-    {
-    std::ofstream file(filename, std::ios::out | std::ios::binary);
-    if (file.is_open())
-      {
-      file << "P5\n" << im.width() << " " << im.height() << "\n" << "65535\n";
-      for (uint32_t y = 0; y < im.height(); ++y)
-        {
-        file.write((const char*)im.data() + im.stride()*y * sizeof(uint16_t), im.width() * sizeof(uint16_t));
-        }
-      file.close();
-      }
-    else
-      return false;
-    return true;
-    }
-
-  template <class T>
-  inline void fill_image(image<T>& im, T value)
-    {
-    using namespace details;
-    const int w = (int)im.width();
-    const int s = (int)im.stride();
-    const int h = (int)im.height();
-    assert(sizeof(T) <= 16);
-    assert(16 % sizeof(T) == 0);
-    uint32_t offset = 16 / sizeof(T);
-    __m128 data = set_data_128(value);
-    for (int y = 0; y < h; ++y)
-      {
-      T* p_im = im.data() + y * s;
-      for (int x = 0; x < w; x += offset, p_im += offset)
-        {
-        _mm_store_ps((float*)p_im, data);
-        }
-      }
-    }
-
-  inline image<uint8_t> image_to_gray(const image<uint32_t>& im)
-    {
-    image<uint8_t> out(im.width(), im.height(), false);
-    for (int y = 0; y < (int)im.height(); ++y)
-      {
-      const uint32_t* p_f = im.data() + im.stride()*y;
-      uint8_t* p_g = out.data() + out.stride() * y;
-      for (int x = 0; x < (int)im.width(); ++x, ++p_f, ++p_g)
-        {
-        *p_g = (*p_f >> 8) & 0xff;
-        }
-      }
-    return out;
-    }
-
-  inline void minmax(float& min, float& max, const image<float>& im, bool skip_infinity)
-    {
-    using namespace details;
-    const int w = (int)im.width();
-    const int s = (int)im.stride();
-    const int h = (int)im.height();
-
-    float single_min = std::numeric_limits<float>::max();
-    float single_max = -std::numeric_limits<float>::max();
-
-    __m128 current_min = _mm_set1_ps(std::numeric_limits<float>::max());
-    __m128 current_max = _mm_set1_ps(-std::numeric_limits<float>::max());
-
-    __m128 inf = _mm_set1_ps(std::numeric_limits<float>::infinity());
-
-    for (int y = 0; y < h; ++y)
-      {
-      __m128* p_im = (__m128*)(im.data() + y * s);
-      int x = 0;
-      for (; x < w - 4; x += 4)
-        {
-        __m128 val_min = *p_im;
-        __m128 val_max = val_min;
-        if (skip_infinity)
-          {
-          __m128 mask = _mm_cmpeq_ps(val_min, inf);
-          val_min = _mm_blendv_ps(val_min, current_min, mask);
-          val_max = _mm_blendv_ps(val_max, current_max, mask);
-          }
-        current_min = _mm_min_ps(current_min, val_min);
-        current_max = _mm_max_ps(current_max, val_max);
-        ++p_im;
-        }
-      const float* p_imf = im.data() + y * s + x;
-      for (; x < w; ++x)
-        {
-        if (!skip_infinity || (*p_imf != std::numeric_limits<float>::infinity()))
-          {
-          single_min = std::min<float>(single_min, *p_imf);
-          single_max = std::max<float>(single_max, *p_imf);
-          }
-        ++p_imf;
-        }
-      }
-
-    min = std::min<float>(single_min, horizontal_min_ps(current_min));
-    max = std::max<float>(single_max, horizontal_max_ps(current_max));
-    }
-
-  inline image<uint8_t> image_to_gray(const image<float>& im)
-    {
-    image<uint8_t> out(im.width(), im.height(), false);
-    float fmin, fmax;
-    minmax(fmin, fmax, im, true);
-    float s = 1.f;
-    if (fmin != fmax)
-      s = 255.f / (fmax - fmin);
-    for (int y = 0; y < (int)im.height(); ++y)
-      {
-      const float* p_f = im.data() + im.stride()*y;
-      uint8_t* p_g = out.data() + out.stride() * y;
-      for (int x = 0; x < (int)im.width(); ++x, ++p_f, ++p_g)
-        {
-        *p_g = uint8_t((*p_f - fmin)*s);
-        }
-      }
-    return out;
-    }
-
-
+    
   template <class T, class TValid>
   void convolve_col_14641_div_16(image<T>& out, const image<T>& im, TValid valid)
     {
@@ -797,18 +558,305 @@ namespace jtk
     convolve_col_14641_div_16(temp, im, valid);
     convolve_row_14641_div_16(im, temp, valid);
     }
+    
+  } // namespace jtk
+  
+#endif // #ifndef JTK_IMAGE_H
 
-  inline histogram_t make_histogram(const image<uint8_t>& im)
+#ifdef JTK_IMAGE_IMPLEMENTATION
+
+namespace jtk
+  {
+
+  namespace image_details
     {
-    histogram_t hist(256, 0);
+    const int census_samples[] = {
+      -3, -2,
+      -3, 0,
+      -3, 2,
+      -2, -3,
+      -2, -1,
+      -2, 1,
+      -2, 3,
+      -1, -2,
+      -1, 0,
+      -1, 2,
+      0, -3,
+      0, -1,
+      0, 1,
+      0, 3,
+      1, -2,
+      1, 0,
+      1, 2,
+      2, -3,
+      2, -1,
+      2, 1,
+      2, 3,
+      3, -2,
+      3, 0,
+      3, 2
+      };
+
+    float horizontal_min_ps(__m128 x)
+      {
+      __m128 max1 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 0, 3, 2));
+      __m128 max2 = _mm_min_ps(x, max1);
+      __m128 max3 = _mm_shuffle_ps(max2, max2, _MM_SHUFFLE(0, 0, 0, 1));
+      __m128 max4 = _mm_min_ps(max2, max3);
+      float result = _mm_cvtss_f32(max4);
+      return result;
+      }
+
+    float horizontal_max_ps(__m128 x)
+      {
+      __m128 max1 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 0, 3, 2));
+      __m128 max2 = _mm_max_ps(x, max1);
+      __m128 max3 = _mm_shuffle_ps(max2, max2, _MM_SHUFFLE(0, 0, 0, 1));
+      __m128 max4 = _mm_max_ps(max2, max3);
+      float result = _mm_cvtss_f32(max4);
+      return result;
+      }
+
+    __m128 set_data_128(float value)
+      {
+      return _mm_set1_ps(value);
+      }
+
+    __m128 set_data_128(uint8_t value)
+      {
+      return _mm_castsi128_ps(_mm_set1_epi8(value));
+      }
+
+    __m128 set_data_128(uint16_t value)
+      {
+      return _mm_castsi128_ps(_mm_set1_epi16(value));
+      }
+
+    __m128 set_data_128(uint32_t value)
+      {
+      return _mm_castsi128_ps(_mm_set1_epi32(value));
+      }
+      
+    template <class T>
+    void fill_image(image<T>& im, T value)
+      {
+      const int w = (int)im.width();
+      const int s = (int)im.stride();
+      const int h = (int)im.height();
+      assert(sizeof(T) <= 16);
+      assert(16 % sizeof(T) == 0);
+      uint32_t offset = 16 / sizeof(T);
+      __m128 data = set_data_128(value);
+      for (int y = 0; y < h; ++y)
+        {
+        T* p_im = im.data() + y * s;
+        for (int x = 0; x < w; x += offset, p_im += offset)
+          {
+          _mm_store_ps((float*)p_im, data);
+          }
+        }
+      }
+
+    std::string pnm_read_line(std::ifstream& file)
+      {
+      std::string line;
+      std::getline(file, line);
+      while (!line.empty() && line[0] == '#')
+        std::getline(file, line);
+      return line;
+      }
+
+    void unpack_8bit_to_16bit(const __m128i a, __m128i& b0, __m128i& b1)
+      {
+      __m128i zero = _mm_setzero_si128();
+      b0 = _mm_unpacklo_epi8(a, zero);
+      b1 = _mm_unpackhi_epi8(a, zero);
+      }
+
+    void split_hi_lo(const __m128i a, const __m128i b, __m128i& hi, __m128i& lo)
+      {
+      hi = _mm_unpackhi_epi8(a, b);
+      lo = _mm_unpacklo_epi8(a, b);
+      }
+    } // namespace image_details
+
+  void fill_image(image<uint8_t>& im, uint8_t value)
+    {
+    return image_details::fill_image(im, value);
+    }
+    
+  void fill_image(image<uint16_t>& im, uint16_t value)
+    {
+    return image_details::fill_image(im, value);
+    }
+    
+  void fill_image(image<uint32_t>& im, uint32_t value)
+    {
+    return image_details::fill_image(im, value);
+    }
+    
+  void fill_image(image<float>& im, float value)
+    {
+    return image_details::fill_image(im, value);
+    }
+
+  bool load_pgm(image<uint16_t>& im, const std::string& filename)
+    {
+    using namespace image_details;
+    std::ifstream file(filename, std::ios::in | std::ios::binary);
+    if (!file.is_open())
+      return false;
+    std::stringstream str;
+    str << pnm_read_line(file);
+    int width, height, max_val;
+    width = height = max_val = -1;
+    std::string P5;
+    str >> P5;
+    if (P5 != "P5")
+      return false;
+    str >> width;
+    if (width == -1)
+      {
+      str.clear(); str.str("");
+      str << pnm_read_line(file);
+      str >> width;
+      }
+    str >> height;
+    if (height == -1)
+      {
+      str.clear(); str.str("");
+      str << pnm_read_line(file);
+      str >> height;
+      }
+    str >> max_val;
+    if (max_val == -1)
+      {
+      str.clear(); str.str("");
+      str << pnm_read_line(file);
+      str >> max_val;
+      }
+    if (max_val > 65535)
+      return false;
+    if (max_val <= 255)
+      return false;
+    im = image<uint16_t>(width, height, false);
+    file.read((char *)im.data(), width * height * sizeof(uint16_t));
+    file.close();
+    return true;
+    }
+
+  bool write_pgm(const image<uint16_t>& im, const std::string& filename)
+    {
+    std::ofstream file(filename, std::ios::out | std::ios::binary);
+    if (file.is_open())
+      {
+      file << "P5\n" << im.width() << " " << im.height() << "\n" << "65535\n";
+      for (uint32_t y = 0; y < im.height(); ++y)
+        {
+        file.write((const char*)im.data() + im.stride()*y * sizeof(uint16_t), im.width() * sizeof(uint16_t));
+        }
+      file.close();
+      }
+    else
+      return false;
+    return true;
+    }
+
+  image<uint8_t> image_to_gray(const image<uint32_t>& im)
+    {
+    image<uint8_t> out(im.width(), im.height(), false);
+    for (int y = 0; y < (int)im.height(); ++y)
+      {
+      const uint32_t* p_f = im.data() + im.stride()*y;
+      uint8_t* p_g = out.data() + out.stride() * y;
+      for (int x = 0; x < (int)im.width(); ++x, ++p_f, ++p_g)
+        {
+        *p_g = (*p_f >> 8) & 0xff;
+        }
+      }
+    return out;
+    }
+
+  void minmax(float& min, float& max, const image<float>& im, bool skip_infinity)
+    {
+    using namespace image_details;
+    const int w = (int)im.width();
+    const int s = (int)im.stride();
+    const int h = (int)im.height();
+
+    float single_min = std::numeric_limits<float>::max();
+    float single_max = -std::numeric_limits<float>::max();
+
+    __m128 current_min = _mm_set1_ps(std::numeric_limits<float>::max());
+    __m128 current_max = _mm_set1_ps(-std::numeric_limits<float>::max());
+
+    __m128 inf = _mm_set1_ps(std::numeric_limits<float>::infinity());
+
+    for (int y = 0; y < h; ++y)
+      {
+      __m128* p_im = (__m128*)(im.data() + y * s);
+      int x = 0;
+      for (; x < w - 4; x += 4)
+        {
+        __m128 val_min = *p_im;
+        __m128 val_max = val_min;
+        if (skip_infinity)
+          {
+          __m128 mask = _mm_cmpeq_ps(val_min, inf);
+          val_min = _mm_blendv_ps(val_min, current_min, mask);
+          val_max = _mm_blendv_ps(val_max, current_max, mask);
+          }
+        current_min = _mm_min_ps(current_min, val_min);
+        current_max = _mm_max_ps(current_max, val_max);
+        ++p_im;
+        }
+      const float* p_imf = im.data() + y * s + x;
+      for (; x < w; ++x)
+        {
+        if (!skip_infinity || (*p_imf != std::numeric_limits<float>::infinity()))
+          {
+          single_min = std::min<float>(single_min, *p_imf);
+          single_max = std::max<float>(single_max, *p_imf);
+          }
+        ++p_imf;
+        }
+      }
+
+    min = std::min<float>(single_min, horizontal_min_ps(current_min));
+    max = std::max<float>(single_max, horizontal_max_ps(current_max));
+    }
+
+  image<uint8_t> image_to_gray(const image<float>& im)
+    {
+    image<uint8_t> out(im.width(), im.height(), false);
+    float fmin, fmax;
+    minmax(fmin, fmax, im, true);
+    float s = 1.f;
+    if (fmin != fmax)
+      s = 255.f / (fmax - fmin);
+    for (int y = 0; y < (int)im.height(); ++y)
+      {
+      const float* p_f = im.data() + im.stride()*y;
+      uint8_t* p_g = out.data() + out.stride() * y;
+      for (int x = 0; x < (int)im.width(); ++x, ++p_f, ++p_g)
+        {
+        *p_g = uint8_t((*p_f - fmin)*s);
+        }
+      }
+    return out;
+    }
+
+  std::vector<uint32_t> make_histogram(const image<uint8_t>& im)
+    {
+    std::vector<uint32_t> hist(256, 0);
     for (auto val : im)
       ++hist[size_t(val)];
     return hist;
     }
 
-  inline histogram_t make_histogram(const image<uint8_t>& im, int x, int y, int w, int h)
+  std::vector<uint32_t> make_histogram(const image<uint8_t>& im, int x, int y, int w, int h)
     {
-    histogram_t hist(256, 0);
+    std::vector<uint32_t> hist(256, 0);
     if (x + w > (int)im.width())
       w = (int)im.width() - x;
     if (y + h > (int)im.height())
@@ -824,7 +872,7 @@ namespace jtk
     return hist;
     }
 
-  inline int64_t get_histogram_weight(histogram_t::const_iterator begin, histogram_t::const_iterator end)
+  int64_t get_histogram_weight(std::vector<uint32_t>::const_iterator begin, std::vector<uint32_t>::const_iterator end)
     {
     int64_t w = 0;
     for (auto it = begin; it != end; ++it)
@@ -832,7 +880,7 @@ namespace jtk
     return w;
     }
 
-  inline int otsu_threshold(const histogram_t& histogram)
+  int otsu_threshold(const std::vector<uint32_t>& histogram)
     {
     int level = 125;
     int64_t total = get_histogram_weight(histogram.begin(), histogram.end());
@@ -863,7 +911,7 @@ namespace jtk
     return level;
     }
 
-  inline void threshold_image_region(image<uint8_t>& im, int x, int y, int w, int h, uint8_t threshold)
+  void threshold_image_region(image<uint8_t>& im, int x, int y, int w, int h, uint8_t threshold)
     {
     if (x + w > (int)im.width())
       w = (int)im.width() - x;
@@ -882,7 +930,7 @@ namespace jtk
       }
     }
 
-  inline image<uint8_t> make_binary_image(const image<uint8_t>& im, int steps_w, int steps_h)
+  image<uint8_t> make_binary_image(const image<uint8_t>& im, int steps_w, int steps_h)
     {
     image<uint8_t> out = im;
 
@@ -910,7 +958,7 @@ namespace jtk
     return out;
     }
 
-  inline image<uint8_t> make_binary_image(const image<uint8_t>& im, uint8_t threshold)
+  image<uint8_t> make_binary_image(const image<uint8_t>& im, uint8_t threshold)
     {
     image<uint8_t> out(im.width(), im.height());
     const uint8_t* it = im.begin();
@@ -924,7 +972,7 @@ namespace jtk
     return out;
     }
 
-  inline image<uint32_t> three_gray_to_uint32_t(const image<uint8_t>& r, const image<uint8_t>& g, const image<uint8_t>& b)
+  image<uint32_t> three_gray_to_uint32_t(const image<uint8_t>& r, const image<uint8_t>& g, const image<uint8_t>& b)
     {
     assert(r.width() == g.width());
     assert(r.width() == b.width());
@@ -953,14 +1001,14 @@ namespace jtk
     }
 
 
-  inline image<uint32_t> census_transform(const image<uint8_t>& im)
+  image<uint32_t> census_transform(const image<uint8_t>& im)
     {
     /*
     The census transform is an image operator that associates to each pixel of a grayscale image a binary string,
     encoding whether the pixel has smaller intensity than each of its neighbours, one for each bit.
     We use a 9x7 window.
     */
-    using namespace details;
+    using namespace image_details;
     const int w = (int)im.width();
     const int s = (int)im.stride();
     const int h = (int)im.height();
@@ -1002,14 +1050,14 @@ namespace jtk
     return ct;
     }
 
-  inline void census_transform(image<uint32_t>& census_red, image<uint32_t>& census_green, image<uint32_t>& census_blue, const image<uint32_t>& im)
+  void census_transform(image<uint32_t>& census_red, image<uint32_t>& census_green, image<uint32_t>& census_blue, const image<uint32_t>& im)
     {
     /*
     The census transform is an image operator that associates to each pixel of a grayscale image a binary string,
     encoding whether the pixel has smaller intensity than each of its neighbours, one for each bit.
     We use a 9x7 window.
     */
-    using namespace details;
+    using namespace image_details;
     const int w = (int)im.width();
     const int s = (int)im.stride();
     const int h = (int)im.height();
@@ -1079,9 +1127,9 @@ namespace jtk
       }
     }
 
-  inline void convolve_col_14641(image<int16_t>& out, const image<uint8_t>& im, bool border)
+  void convolve_col_14641(image<int16_t>& out, const image<uint8_t>& im, bool border)
     {
-    using namespace details;
+    using namespace image_details;
     const int w_chunk = im.stride() / 16;
     out = image<int16_t>(im.stride(), im.height());
     __m128i* i0 = (__m128i*)(im.data());
@@ -1199,7 +1247,7 @@ namespace jtk
     }
 
 
-  inline void convolve_row_14641_div_256(image<uint8_t>& out, const image<int16_t>& im)
+  void convolve_row_14641_div_256(image<uint8_t>& out, const image<int16_t>& im)
     {
     out = image<uint8_t>(im.width(), im.height());
     const __m128i* i0 = (const __m128i*)(im.data());
@@ -1263,7 +1311,7 @@ namespace jtk
     }
 
 
-  inline image<uint8_t> gauss(const image<uint8_t>& im)
+  image<uint8_t> gauss(const image<uint8_t>& im)
     {
     image<int16_t> temp;
     convolve_col_14641(temp, im);
@@ -1273,7 +1321,7 @@ namespace jtk
     return out;
     }
 
-  inline void split(image<uint8_t>& red, image<uint8_t>& green, image<uint8_t>& blue, const image<uint32_t>& im)
+  void split(image<uint8_t>& red, image<uint8_t>& green, image<uint8_t>& blue, const image<uint32_t>& im)
     {
     const uint32_t w = im.width();
     const uint32_t h = im.height();
@@ -1296,9 +1344,9 @@ namespace jtk
       }
     }
 
-  inline image<uint8_t> remove_even_col_even_row_sse(const image<uint8_t>& im)
+  image<uint8_t> remove_even_col_even_row_sse(const image<uint8_t>& im)
     {
-    using namespace details;
+    using namespace image_details;
     image<uint8_t> out(im.stride() >> 1, (im.height() + im.height() % 2) >> 1);
     
     for (uint32_t y = 0; y < out.height(); ++y)
@@ -1350,7 +1398,7 @@ namespace jtk
     return out;
     }
 
-  inline image<uint8_t> add_even_col_even_row_sse(const image<uint8_t>& im)
+  image<uint8_t> add_even_col_even_row_sse(const image<uint8_t>& im)
     {
     image<uint8_t> out(im.width() << 1, im.height() << 1);
     const int w_chunk = im.stride() / 16;
@@ -1379,7 +1427,7 @@ namespace jtk
     return out;
     }
 
-  inline image<uint32_t> gauss(const image<uint32_t>& im)
+  image<uint32_t> gauss(const image<uint32_t>& im)
     {
     image<uint8_t> red, green, blue;
     split(red, green, blue, im);
@@ -1389,14 +1437,14 @@ namespace jtk
     return three_gray_to_uint32_t(red, green, blue);
     }
 
-  inline image<uint8_t> pyramid_down(const image<uint8_t>& im)
+  image<uint8_t> pyramid_down(const image<uint8_t>& im)
     {
     image<uint8_t> out;
     out = gauss(im);
     return remove_even_col_even_row_sse(out);
     }
 
-  inline image<uint8_t> pyramid_up(const image<uint8_t>& im)
+  image<uint8_t> pyramid_up(const image<uint8_t>& im)
     {
     image<uint8_t> out;
     image<int16_t> temp;
@@ -1407,7 +1455,7 @@ namespace jtk
     return out;
     }
 
-  inline image<uint32_t> pyramid_down(const image<uint32_t>& im)
+  image<uint32_t> pyramid_down(const image<uint32_t>& im)
     {
     image<uint8_t> red, green, blue;
     split(red, green, blue, im);
@@ -1420,7 +1468,7 @@ namespace jtk
     return three_gray_to_uint32_t(red, green, blue);
     }
 
-  inline image<uint32_t> pyramid_up(const image<uint32_t>& im)
+  image<uint32_t> pyramid_up(const image<uint32_t>& im)
     {
     image<uint8_t> red, green, blue;
     split(red, green, blue, im);
@@ -1441,3 +1489,6 @@ namespace jtk
     }
 
   } // namespace jtk
+
+
+#endif //JTK_IMAGE_IMPLEMENTATION

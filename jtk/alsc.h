@@ -1,7 +1,7 @@
 /*
    Do this:
       #define JTK_ALSC_IMPLEMENTATION
-   before you include this file in *one* C or C++ file to create the implementation.
+   before you include this file in *one* C++ file to create the implementation.
    // i.e. it should look like this:
    #include ...
    #include ...
