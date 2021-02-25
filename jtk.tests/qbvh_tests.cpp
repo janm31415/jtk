@@ -1,4 +1,4 @@
-#include "vec_tests.h"
+#include "qbvh_tests.h"
 
 #define JTK_QBVH_IMPLEMENTATION
 #include "../jtk/qbvh.h"

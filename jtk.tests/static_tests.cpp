@@ -1,3 +1,5 @@
+#pragma warning(push)
+#pragma warning(disable:4505)
 
 #define JTK_IMAGE_IMPLEMENTATION
 #define JTK_IMAGE_STATIC
@@ -26,3 +28,5 @@
 #define JTK_WINDOW_IMPLEMENTATION
 #define JTK_WINDOW_STATIC
 #include "../jtk/window.h"
+
+#pragma warning(pop)
