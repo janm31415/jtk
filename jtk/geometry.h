@@ -30,7 +30,7 @@
 
 #ifndef JTKGINLINE
 #ifdef JTK_GEOMETRY_STATIC
-#define JTKGINLINE inline
+#define JTKGINLINE inline 
 #else
 #define JTKGINLINE
 #endif

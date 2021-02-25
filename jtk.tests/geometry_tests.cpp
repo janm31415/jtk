@@ -2,6 +2,7 @@
 #include "test_assert.h"
 
 #define JTK_GEOMETRY_IMPLEMENTATION
+#define JTK_GEOMETRY_STATIC
 #include "../jtk/geometry.h"
 
 namespace jtk
