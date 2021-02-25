@@ -17,6 +17,14 @@
 #include <cmath>
 #include <stdio.h>
 
+#ifndef JTKALSCDEF
+#ifdef JTK_ALSC_STATIC
+#define JTKALSCDEF static
+#else
+#define JTKALSCDEF extern
+#endif
+#endif
+
 namespace jtk {
 
 /*
@@ -24,7 +32,7 @@ Adaptive Least Squrares Correlation: A powerful image matching technique. Armin 
 Remote Sensing and Cartography 14 (3), 1985: 175-187.
 */
 
-void print_patch(double* patch, int m, int n);
+JTKALSCDEF void print_patch(double* patch, int m, int n);
 /*
 resample_patch
 
@@ -36,7 +44,7 @@ int stride: the stride for the image (typically the width of the image)
 
 Note that there is no check for the affine transformation to go outside the borders of the rhimage.
 */
-void resample_patch(double* patch, int m, int n,
+JTKALSCDEF void resample_patch(double* patch, int m, int n,
   double a, double b, double c, double d, double e, double f,
   const uint8_t* rhimage, int stride);
 
@@ -50,7 +58,7 @@ double x,y: the location where to apply the bilinear interpolation.
 
 returns the interpolated value as double
 */
-double interpolate(const uint8_t* rhimage, int stride, double x, double y);
+JTKALSCDEF double interpolate(const uint8_t* rhimage, int stride, double x, double y);
 
 /*
 fill_design_matrix
@@ -61,7 +69,7 @@ const double* patch: The input patch that we use to fill At. Typically this patc
 double rg: current radiometric gain.
 int m, n: the patch is of size mxn. The design matrix A has mxn rows (or At has mxn columns).
 */
-void fill_design_matrix(double* A,
+JTKALSCDEF void fill_design_matrix(double* A,
   const double* patch, int m, int n);
 
 /*
@@ -73,9 +81,9 @@ const double* patch_f: patch of size mxn
 const double* patch_g: patch of size mxn
 int m,n: dimensions of the patches.
 */
-void fill_patch_difference(double* l, const double* patch_f, const double* patch_g, double rs, double rg, int m, int n);
+JTKALSCDEF void fill_patch_difference(double* l, const double* patch_f, const double* patch_g, double rs, double rg, int m, int n);
 
-double compute_residual_l2_norm_sqr(const double* patch_f, const double* patch_g, double rs, double rg, int m, int n);
+JTKALSCDEF double compute_residual_l2_norm_sqr(const double* patch_f, const double* patch_g, double rs, double rg, int m, int n);
 
 /*
 compute_At_A
@@ -85,7 +93,7 @@ double* AtA: memory allocated of size 8x8 of type double. Will contain At * A.
 const double* At: transposed design matrix, filled with method fill_design_matrix
 int m,n: dimensions of the patches. At is a matrix of size 8 x (mxn).
 */
-void compute_At_A(double* AtA, const double* A, int m, int n);
+JTKALSCDEF void compute_At_A(double* AtA, const double* A, int m, int n);
 
 /*
 compute_At_l
@@ -96,7 +104,7 @@ const double* At: transposed design matrix, filled with method fill_design_matri
 const double* l: patch difference vector, filled with method fill_patch_difference
 int m,n: dimensions of the patches. At is a matrix of size 8 x (mxn). l is a vector of size mxn.
 */
-void compute_At_l(double* Atl, const double* A, const double* l, int m, int n);
+JTKALSCDEF void compute_At_l(double* Atl, const double* A, const double* l, int m, int n);
 
 /*
 cholesky
@@ -105,7 +113,7 @@ Computes the Cholesky factorization of matrix AtA, i.e. AtA = U**T * U.
 double* AtA: Points to memory of size 8x8 of type double. The memory was filled with the method compute_At_A.
 AtA will be replaced by an upper triangular matrix U, such that AtA = U**T * U.
 */
-int cholesky(double* AtA);
+JTKALSCDEF int cholesky(double* AtA);
 
 /*
 solve_alsc_cholesky
@@ -117,7 +125,7 @@ factorization AtA = U**T * U. U is a matrix of size 8x8 of type double.
 double* Atl: vector of size 8 of type double obtained with the method compute_At_l. Upon exit, Atl contains the solution x
 of the system AtA x = Atl.
 */
-int solve_alsc_cholesky(double* U, double* Atl);
+JTKALSCDEF int solve_alsc_cholesky(double* U, double* Atl);
 
 /*
 update_coefficients
@@ -128,7 +136,7 @@ double &a,&b,&c,&d,&e,&f: coefficients for affine transformation x_ = a + b*x + 
 double &rg: radiometric gain
 const double* x: Solution of the system AtA x = Atl, computed with method solve_alsc_cholesky.
 */
-bool update_coefficients(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, const double* x);
+JTKALSCDEF bool update_coefficients(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, const double* x);
 
 
 /*
@@ -139,7 +147,7 @@ a,b,c,d,e,f fall below a threshold.
 const double* x: Solution of the system AtA x = Atl, computed with method solve_alsc_cholesky.
 double tolerance[6]: threshold value for the six affine transformation coefficients.
 */
-bool terminate(const double* x, double rg, double tolerance[6]);
+JTKALSCDEF bool terminate(const double* x, double rg, double tolerance[6]);
 
 /*
 inverse_from_cholesky
@@ -149,7 +157,7 @@ method compute_At_A, and subsequently fed to the method cholesky to obtain the u
 factorization AtA = U**T * U. U is a matrix of size 8x8 of type double.
 Upon exit, U is replaced by (AtA)**(-1).
 */
-int inverse_from_cholesky(double* U);
+JTKALSCDEF int inverse_from_cholesky(double* U);
 
 /*
 get_coefficients_unskewed_patch
@@ -160,10 +168,10 @@ double &rg: radiometric gain.
 int m,n: dimensions of the patch.
 double x,y: center location of the patch.
 */
-void get_coefficients_unskewed_patch(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, int m, int n, double x, double y);
+JTKALSCDEF void get_coefficients_unskewed_patch(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, int m, int n, double x, double y);
 
 
-void get_shift_coefficients(double& a, double& d, double b, double c, double e, double f, int m, int n, double x, double y);
+JTKALSCDEF void get_shift_coefficients(double& a, double& d, double b, double c, double e, double f, int m, int n, double x, double y);
 
 /*
 get_rectangle_around_patch
@@ -173,7 +181,7 @@ double &x1,&y1,&x2,&y2,&x3,&y3,&x4,&y4: output coordinates of the four corners o
 double a,b,c,d,e,f: coefficients for affine transformation x_ = a + b*x + c*y, y_ = d + e*x + f*y
 int m,n: dimensions of the patch.
 */
-void get_rectangle_around_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n);
+JTKALSCDEF void get_rectangle_around_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n);
 
 /*
 get_residual
@@ -185,7 +193,7 @@ const double* x: Solution of the system AtA x = Atl, obtained from method solve_
 double* l: patch difference vector, filled with method fill_patch_difference. Upon exit, it contains the residual v = A*x - l.
 int m,n: dimensions of the patches.
 */
-void get_residual(const double* A, const double* x, double* l, int m, int n);
+JTKALSCDEF void get_residual(const double* A, const double* x, double* l, int m, int n);
 
 /*
 get_variance_factor
@@ -195,7 +203,7 @@ const double* residual: The residual, obtained with mtehod get_residual.
 int m,n: dimensions of the patches.
 Returns a double value representing the variance factor 1/r * v**t * v.
 */
-double get_variance_factor(const double* residual, int m, int n);
+JTKALSCDEF double get_variance_factor(const double* residual, int m, int n);
 
 /*
 compute_standard_deviations
@@ -206,7 +214,7 @@ double &sigma_a, &sigma_b, &sigma_c, &sigma_d, &sigma_e, &sigma_f, &sigma_radiom
 double variance_factor: Computed with the method get_variance_factor.
 const double* AtA_inv: Inverse of matrix AtA. Compute with method inverse_from_cholesky.
 */
-void compute_standard_deviations(
+JTKALSCDEF void compute_standard_deviations(
   double& sigma_a, double& sigma_b, double& sigma_c,
   double& sigma_d, double& sigma_e, double& sigma_f, double& sigma_radiometric_shift, double& sigma_radiometric_gain,
   double variance_factor, const double* AtA_inv);
@@ -220,11 +228,11 @@ double &sigma_a, &sigma_d: output values that are computed.
 double variance_factor: Computed with the method get_variance_factor.
 const double* AtA_inv: Inverse of matrix AtA. Compute with method inverse_from_cholesky.
 */
-void compute_standard_deviations(double& sigma_a, double& sigma_d, double variance_factor, const double* AtA_inv);
+JTKALSCDEF void compute_standard_deviations(double& sigma_a, double& sigma_d, double variance_factor, const double* AtA_inv);
 
 /*
 */
-double quality_of_match(double variance_factor, double* AtA_inv);
+JTKALSCDEF double quality_of_match(double variance_factor, double* AtA_inv);
 /*
 compute_patch_center
 
@@ -233,11 +241,11 @@ double &x, &y: output coordinates representing the center of the patch.
 int m, int n: size of the patch
 double a,b,c,d,e,f : coefficients for affine transformation x_ = a + b*x + c*y, y_ = d + e*x + f*y
 */
-void compute_patch_center(double& x, double& y, double a, double b, double c, double d, double e, double f, int m, int n);
+JTKALSCDEF void compute_patch_center(double& x, double& y, double a, double b, double c, double d, double e, double f, int m, int n);
 
 
 
-bool alsc_single_iteration(double& a, double& b, double& c, double& d, double& e, double& f, double& r_shift, double& r_gain,
+JTKALSCDEF bool alsc_single_iteration(double& a, double& b, double& c, double& d, double& e, double& f, double& r_shift, double& r_gain,
   const double* patch_f, double* patch_g,
   double* At,
   double* l,
@@ -246,7 +254,7 @@ bool alsc_single_iteration(double& a, double& b, double& c, double& d, double& e
   int m, int n,
   const uint8_t* rhimage, int stride);
 
-void get_extrema_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n);
+JTKALSCDEF void get_extrema_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n);
 
 struct alsc_result
   {
@@ -289,7 +297,7 @@ enum alsc_output_variable
   ITERATIONS
   };
 
-bool alsc(
+JTKALSCDEF bool alsc(
   double* output,
   double left_x, double left_y,
   double right_x, double right_y,
@@ -309,7 +317,7 @@ bool alsc(
   double tol[6],
   int max_iter);
 
-alsc_result alsc(double right_x, double right_y,
+JTKALSCDEF alsc_result alsc(double right_x, double right_y,
   const uint8_t* rhimage,
   int w,
   int h,
@@ -323,7 +331,7 @@ alsc_result alsc(double right_x, double right_y,
   double tol[6],
   int max_iter);
 
-alsc_result find_match_on_line(
+JTKALSCDEF alsc_result find_match_on_line(
   double x, double y,
   const double* line,
   const uint8_t* rhimage,
@@ -355,7 +363,7 @@ alsc_result find_match_on_line(
 namespace jtk
   {
 
-void print_patch(double* patch, int m, int n)
+JTKALSCDEF void print_patch(double* patch, int m, int n)
   {
   for (int y = -1; y <= m; ++y)
     {
@@ -367,7 +375,7 @@ void print_patch(double* patch, int m, int n)
     }
   }
 
-void print_mat(double* mat, int m, int n)
+JTKALSCDEF void print_mat(double* mat, int m, int n)
   {
   for (int r = 0; r < m; ++r)
     {
@@ -379,7 +387,7 @@ void print_mat(double* mat, int m, int n)
     }
   }
 
-void resample_patch(double* patch, int m, int n,
+JTKALSCDEF void resample_patch(double* patch, int m, int n,
   double a, double b, double c, double d, double e, double f,
   const uint8_t* rhimage, int stride)
   {
@@ -396,7 +404,7 @@ void resample_patch(double* patch, int m, int n,
     }
   }
 
-void compute_patch_center(double& x, double& y, double a, double b, double c, double d, double e, double f, int m, int n)
+JTKALSCDEF void compute_patch_center(double& x, double& y, double a, double b, double c, double d, double e, double f, int m, int n)
   {
   double x_ = (n - 1.0) / 2.0;
   double y_ = (m - 1.0) / 2.0;
@@ -404,7 +412,7 @@ void compute_patch_center(double& x, double& y, double a, double b, double c, do
   y = d + e * x_ + f * y_;
   }
 
-double interpolate(const uint8_t* rhimage, int stride, double x, double y)
+JTKALSCDEF double interpolate(const uint8_t* rhimage, int stride, double x, double y)
   {
   int x_ = int(std::floor(x));
   int y_ = int(std::floor(y));
@@ -424,7 +432,7 @@ double interpolate(const uint8_t* rhimage, int stride, double x, double y)
   return result;
   }
 
-void fill_design_matrix(double* A,
+JTKALSCDEF void fill_design_matrix(double* A,
   const double* patch, int m, int n)
   {
   int mn = m * n;
@@ -456,7 +464,7 @@ void fill_design_matrix(double* A,
     }
   }
 
-void fill_patch_difference(double* l, const double* patch_f, const double* patch_g, double rs, double rg, int m, int n)
+JTKALSCDEF void fill_patch_difference(double* l, const double* patch_f, const double* patch_g, double rs, double rg, int m, int n)
   {
   double f, g;
   for (int y = 1; y <= m; ++y)
@@ -473,12 +481,12 @@ void fill_patch_difference(double* l, const double* patch_f, const double* patch
 namespace alsc_details
   {
 
-  double sqr(double a)
+  JTKALSCDEF double sqr(double a)
     {
     return a * a;
     }
 
-  void dswap(double& a, double& b)
+  JTKALSCDEF void dswap(double& a, double& b)
     {
     double c = a;
     a = b;
@@ -486,7 +494,7 @@ namespace alsc_details
     }
   }
 
-double compute_residual_l2_norm_sqr(const double* patch_f, const double* patch_g, double rs, double rg, int m, int n)
+JTKALSCDEF double compute_residual_l2_norm_sqr(const double* patch_f, const double* patch_g, double rs, double rg, int m, int n)
   {
   using namespace alsc_details;
   double f, g;
@@ -503,7 +511,7 @@ double compute_residual_l2_norm_sqr(const double* patch_f, const double* patch_g
   return residu;
   }
 
-void compute_At_A(double* AtA, const double* A, int m, int n)
+JTKALSCDEF void compute_At_A(double* AtA, const double* A, int m, int n)
   {
   int mn = m * n;
 
@@ -523,7 +531,7 @@ void compute_At_A(double* AtA, const double* A, int m, int n)
     }
   }
 
-void compute_At_l(double* Atl, const double* A, const double* l, int m, int n)
+JTKALSCDEF void compute_At_l(double* Atl, const double* A, const double* l, int m, int n)
   {
   int mn = m * n;
   for (int i = 0; i < 8; ++i)
@@ -538,7 +546,7 @@ void compute_At_l(double* Atl, const double* A, const double* l, int m, int n)
     }
   }
 
-void get_coefficients_unskewed_patch(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, int m, int n, double x, double y)
+JTKALSCDEF void get_coefficients_unskewed_patch(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, int m, int n, double x, double y)
   {
   b = 1.0;
   c = 0.0;
@@ -550,13 +558,13 @@ void get_coefficients_unskewed_patch(double& a, double& b, double& c, double& d,
   rs = 0.0;
   }
 
-void get_shift_coefficients(double& a, double& d, double b, double c, double e, double f, int m, int n, double x, double y)
+JTKALSCDEF void get_shift_coefficients(double& a, double& d, double b, double c, double e, double f, int m, int n, double x, double y)
   {
   a = x - b * (n - 1.0) / 2.0 - c * (m - 1.0) / 2.0;
   d = y - e * (n - 1.0) / 2.0 - f * (m - 1.0) / 2.0;
   }
 
-void get_rectangle_around_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n)
+JTKALSCDEF void get_rectangle_around_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n)
   {
   x1 = a;
   y1 = d;
@@ -568,7 +576,7 @@ void get_rectangle_around_patch(double& x1, double& y1, double& x2, double& y2, 
   y4 = f * (m - 1) + d;
   }
 
-void get_residual(const double* A, const double* x, double* l, int m, int n)
+JTKALSCDEF void get_residual(const double* A, const double* x, double* l, int m, int n)
   {
   int mn = m * n;
   const double* A0 = A;
@@ -585,7 +593,7 @@ void get_residual(const double* A, const double* x, double* l, int m, int n)
     }
   }
 
-double get_variance_factor(const double* residual, int m, int n)
+JTKALSCDEF double get_variance_factor(const double* residual, int m, int n)
   {
   double sigma = 0.0;
   int mn = m * n;
@@ -595,7 +603,7 @@ double get_variance_factor(const double* residual, int m, int n)
   return sigma / r;
   }
 
-int cholesky(double* AtA)
+JTKALSCDEF int cholesky(double* AtA)
   {
   int n = 8;
   for (int i = 0; i < n; ++i)
@@ -613,7 +621,7 @@ int cholesky(double* AtA)
   return 0;
   }
 
-int solve_alsc_cholesky(double* U, double* Atl)
+JTKALSCDEF int solve_alsc_cholesky(double* U, double* Atl)
   {
   int n = 8;
   for (int i = 0; i < n; ++i)
@@ -635,7 +643,7 @@ int solve_alsc_cholesky(double* U, double* Atl)
   return 0;
   }
 
-bool update_coefficients(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, const double* x)
+JTKALSCDEF bool update_coefficients(double& a, double& b, double& c, double& d, double& e, double& f, double& rs, double& rg, const double* x)
   {
   for (int i = 0; i < 8; ++i)
     if (x[i] != x[i])
@@ -654,7 +662,7 @@ bool update_coefficients(double& a, double& b, double& c, double& d, double& e, 
   return true;
   }
 
-bool terminate(const double* x, double rg, double tolerance[6])
+JTKALSCDEF bool terminate(const double* x, double rg, double tolerance[6])
   {
   const double denom = 1.0 + rg;
   return (fabs(x[0] / denom) < tolerance[0] &&
@@ -665,7 +673,7 @@ bool terminate(const double* x, double rg, double tolerance[6])
     fabs(x[5] / denom) < tolerance[5]);
   }
 
-int inverse_from_cholesky(double* U)
+JTKALSCDEF int inverse_from_cholesky(double* U)
   {
   double A[64];
   std::memcpy((void*)A, (void*)U, sizeof(double) * 64);
@@ -695,7 +703,7 @@ int inverse_from_cholesky(double* U)
   return 0;
   }
 
-void compute_standard_deviations(
+JTKALSCDEF void compute_standard_deviations(
   double& sigma_a, double& sigma_b, double& sigma_c,
   double& sigma_d, double& sigma_e, double& sigma_f, double& sigma_radiometric_shift, double& sigma_radiometric_gain,
   double variance_factor, const double* AtA_inv)
@@ -710,13 +718,13 @@ void compute_standard_deviations(
   sigma_radiometric_gain = std::sqrt(variance_factor * AtA_inv[7 * 8 + 7]);
   }
 
-void compute_standard_deviations(double& sigma_a, double& sigma_d, double variance_factor, const double* AtA_inv)
+JTKALSCDEF void compute_standard_deviations(double& sigma_a, double& sigma_d, double variance_factor, const double* AtA_inv)
   {
   sigma_a = std::sqrt(variance_factor * AtA_inv[0]);
   sigma_d = std::sqrt(variance_factor * AtA_inv[3 * 8 + 3]);
   }
 
-double quality_of_match(double variance_factor, double* AtA_inv)
+JTKALSCDEF double quality_of_match(double variance_factor, double* AtA_inv)
   {
   double a = variance_factor * AtA_inv[0];
   double b = variance_factor * AtA_inv[3 * 8 + 3];
@@ -729,7 +737,7 @@ double quality_of_match(double variance_factor, double* AtA_inv)
   }
 
 
-void get_extrema_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n)
+JTKALSCDEF void get_extrema_patch(double& x1, double& y1, double& x2, double& y2, double& x3, double& y3, double& x4, double& y4, double a, double b, double c, double d, double e, double f, int m, int n)
   {
   x1 = a - b - c;
   y1 = d - e - f;
@@ -741,7 +749,7 @@ void get_extrema_patch(double& x1, double& y1, double& x2, double& y2, double& x
   y4 = d - e + f * (m);
   }
 
-bool alsc_single_iteration(double& a, double& b, double& c, double& d, double& e, double& f, double& r_shift, double& r_gain,
+JTKALSCDEF bool alsc_single_iteration(double& a, double& b, double& c, double& d, double& e, double& f, double& r_shift, double& r_gain,
   const double* patch_f, double* patch_g,
   double* A,
   double* l,
@@ -769,7 +777,7 @@ bool alsc_single_iteration(double& a, double& b, double& c, double& d, double& e
   return update_coefficients(a, b, c, d, e, f, r_shift, r_gain, Atl);
   }
 
-bool in_safety_zone(double x, double y, int w, int h, int m, int n)
+JTKALSCDEF bool in_safety_zone(double x, double y, int w, int h, int m, int n)
   {
   if (x < m)
     return false;
@@ -782,7 +790,7 @@ bool in_safety_zone(double x, double y, int w, int h, int m, int n)
   return true;
   }
 
-bool alsc(
+JTKALSCDEF bool alsc(
   double* output,
   double left_x, double left_y,
   double right_x, double right_y,
@@ -859,7 +867,7 @@ bool alsc(
   return success;
   }
 
-alsc_result alsc(double right_x, double right_y,
+JTKALSCDEF alsc_result alsc(double right_x, double right_y,
   const uint8_t* rhimage,
   int w,
   int h,
@@ -925,7 +933,7 @@ alsc_result alsc(double right_x, double right_y,
   }
 
 
-alsc_result find_match_on_line(
+JTKALSCDEF alsc_result find_match_on_line(
   double x, double y,
   const double* line,
   const uint8_t* rhimage,

@@ -30,14 +30,30 @@
 #include <numeric>
 #include <string.h>
 
+#ifndef JTKQBVHDEF
+#ifdef JTK_QBVH_STATIC
+#define JTKQBVHDEF static
+#else
+#define JTKQBVHDEF extern
+#endif
+#endif
+
+#ifndef JTKQBVHINLINE
+#ifdef JTK_QBVH_STATIC
+#define JTKQBVHINLINE inline
+#else
+#define JTKQBVHINLINE
+#endif
+#endif
+
 namespace jtk
   {
   /////////////////////////////////////////////////////////////////////////
   // interfaces
   /////////////////////////////////////////////////////////////////////////
 
-  void* aligned_malloc(size_t size, size_t align);
-  void aligned_free(void* ptr);
+  JTKQBVHDEF void* aligned_malloc(size_t size, size_t align);
+  JTKQBVHDEF void aligned_free(void* ptr);
   template<typename T, size_t alignment>
   struct aligned_allocator
     {
@@ -140,18 +156,18 @@ namespace jtk
   __attribute__((aligned(16)))
 #endif
     ;
-  bool all(const bool4& b);
-  bool any(const bool4& b);
-  bool none(const bool4& b);
-  bool4 operator ! (const bool4& a);
-  bool4 operator & (const bool4& a, const bool4& b);
-  bool4 operator | (const bool4& a, const bool4& b);
-  bool4 operator ^ (const bool4& a, const bool4& b);
-  bool4& operator &= (bool4& a, const bool4& b);
-  bool4& operator |= (bool4& a, const bool4& b);
-  bool4& operator ^= (bool4& a, const bool4& b);
-  bool4 operator != (const bool4& a, const bool4& b);
-  bool4 operator == (const bool4& a, const bool4& b);
+  JTKQBVHDEF bool all(const bool4& b);
+  JTKQBVHDEF bool any(const bool4& b);
+  JTKQBVHDEF bool none(const bool4& b);
+  JTKQBVHDEF bool4 operator ! (const bool4& a);
+  JTKQBVHDEF bool4 operator & (const bool4& a, const bool4& b);
+  JTKQBVHDEF bool4 operator | (const bool4& a, const bool4& b);
+  JTKQBVHDEF bool4 operator ^ (const bool4& a, const bool4& b);
+  JTKQBVHDEF bool4& operator &= (bool4& a, const bool4& b);
+  JTKQBVHDEF bool4& operator |= (bool4& a, const bool4& b);
+  JTKQBVHDEF bool4& operator ^= (bool4& a, const bool4& b);
+  JTKQBVHDEF bool4 operator != (const bool4& a, const bool4& b);
+  JTKQBVHDEF bool4 operator == (const bool4& a, const bool4& b);
 
 #ifdef _WIN32
   __declspec(align(16))
@@ -184,29 +200,29 @@ namespace jtk
 #endif  
     ;
 
-  int4 operator + (const int4& a);
-  int4 operator - (const int4& a);
-  int4 operator + (const int4& left, const int4& right);
-  int4 operator - (const int4& left, const int4& right);
-  int4 operator * (const int4& left, const int4& right);
-  int4 operator * (const int4& left, int32_t right);
-  int4 operator * (int32_t left, const int4& right);
-  int4 min(const int4& left, const int4& right);
-  int4 max(const int4& left, const int4& right);
-  bool4 operator == (const int4& left, const int4& right);
-  bool4 operator != (const int4& left, const int4& right);
-  bool4 operator < (const int4& left, const int4& right);
-  bool4 operator > (const int4& left, const int4& right);
-  bool4 operator <= (const int4& left, const int4& right);
-  bool4 operator >= (const int4& left, const int4& right);
-  int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values);
-  int4 operator & (const int4& left, const int4& right);
-  int4 operator | (const int4& left, const int4& right);
+  JTKQBVHDEF int4 operator + (const int4& a);
+  JTKQBVHDEF int4 operator - (const int4& a);
+  JTKQBVHDEF int4 operator + (const int4& left, const int4& right);
+  JTKQBVHDEF int4 operator - (const int4& left, const int4& right);
+  JTKQBVHDEF int4 operator * (const int4& left, const int4& right);
+  JTKQBVHDEF int4 operator * (const int4& left, int32_t right);
+  JTKQBVHDEF int4 operator * (int32_t left, const int4& right);
+  JTKQBVHDEF int4 min(const int4& left, const int4& right);
+  JTKQBVHDEF int4 max(const int4& left, const int4& right);
+  JTKQBVHDEF bool4 operator == (const int4& left, const int4& right);
+  JTKQBVHDEF bool4 operator != (const int4& left, const int4& right);
+  JTKQBVHDEF bool4 operator < (const int4& left, const int4& right);
+  JTKQBVHDEF bool4 operator > (const int4& left, const int4& right);
+  JTKQBVHDEF bool4 operator <= (const int4& left, const int4& right);
+  JTKQBVHDEF bool4 operator >= (const int4& left, const int4& right);
+  JTKQBVHDEF int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values);
+  JTKQBVHDEF int4 operator & (const int4& left, const int4& right);
+  JTKQBVHDEF int4 operator | (const int4& left, const int4& right);
 #ifndef _JTK_FOR_ARM
-  int4 operator >> (const int4& a, int n);
-  int4 operator << (const int4& a, int n);
+  JTKQBVHDEF int4 operator >> (const int4& a, int n);
+  JTKQBVHDEF int4 operator << (const int4& a, int n);
 #endif
-  int any(const int4& a);
+  JTKQBVHDEF int any(const int4& a);
 
 #ifdef _WIN32
   __declspec(align(16))
@@ -238,38 +254,38 @@ namespace jtk
   __attribute__((aligned(16)))
 #endif  
     ;
-  float4 operator + (const float4& a);
-  float4 operator - (const float4& a);
-  float4 operator + (const float4& left, const float4& right);
-  float4 operator - (const float4& left, const float4& right);
-  float4 operator * (const float4& left, const float4& right);
-  float4 operator * (const float4& left, float right);
-  float4 operator * (float left, const float4& right);
-  float4 operator / (const float4& left, const float4& right);
-  float4 operator / (const float4& left, float right);
-  float4 operator / (float left, const float4& right);
-  float4 min(const float4& left, const float4& right);
-  float4 max(const float4& left, const float4& right);
-  float min_horizontal(const float4& x);
-  float max_horizontal(const float4& x);
-  float4 cross(const float4& left, const float4& right);
-  float dot(const float4& left, const float4& right);
-  float dot4(const float4& left, const float4& right);
-  float4 abs(const float4& a);
-  float4 sqrt(const float4& a);
-  float4 rsqrt(const float4& a);
-  float4 reciprocal(const float4& a);
-  bool4 operator == (const float4& left, const float4& right);
-  bool4 operator != (const float4& left, const float4& right);
-  bool4 operator < (const float4& left, const float4& right);
-  bool4 operator > (const float4& left, const float4& right);
-  bool4 operator <= (const float4& left, const float4& right);
-  bool4 operator >= (const float4& left, const float4& right);
-  float4 unpacklo(const float4& left, const float4& right);
-  float4 unpackhi(const float4& left, const float4& right);
-  void transpose(float4& r0, float4& r1, float4& r2, float4& r3, const float4& c0, const float4& c1, const float4& c2, const float4& c3);
-  float4 masked_update(const bool4& mask, const float4& original, const float4& updated_values);
-  float4 masked_update(const int4& mask, const float4& original, const float4& updated_values);
+  JTKQBVHDEF float4 operator + (const float4& a);
+  JTKQBVHDEF float4 operator - (const float4& a);
+  JTKQBVHDEF float4 operator + (const float4& left, const float4& right);
+  JTKQBVHDEF float4 operator - (const float4& left, const float4& right);
+  JTKQBVHDEF float4 operator * (const float4& left, const float4& right);
+  JTKQBVHDEF float4 operator * (const float4& left, float right);
+  JTKQBVHDEF float4 operator * (float left, const float4& right);
+  JTKQBVHDEF float4 operator / (const float4& left, const float4& right);
+  JTKQBVHDEF float4 operator / (const float4& left, float right);
+  JTKQBVHDEF float4 operator / (float left, const float4& right);
+  JTKQBVHDEF float4 min(const float4& left, const float4& right);
+  JTKQBVHDEF float4 max(const float4& left, const float4& right);
+  JTKQBVHDEF float min_horizontal(const float4& x);
+  JTKQBVHDEF float max_horizontal(const float4& x);
+  JTKQBVHDEF float4 cross(const float4& left, const float4& right);
+  JTKQBVHDEF float dot(const float4& left, const float4& right);
+  JTKQBVHDEF float dot4(const float4& left, const float4& right);
+  JTKQBVHDEF float4 abs(const float4& a);
+  JTKQBVHDEF float4 sqrt(const float4& a);
+  JTKQBVHDEF float4 rsqrt(const float4& a);
+  JTKQBVHDEF float4 reciprocal(const float4& a);
+  JTKQBVHDEF bool4 operator == (const float4& left, const float4& right);
+  JTKQBVHDEF bool4 operator != (const float4& left, const float4& right);
+  JTKQBVHDEF bool4 operator < (const float4& left, const float4& right);
+  JTKQBVHDEF bool4 operator > (const float4& left, const float4& right);
+  JTKQBVHDEF bool4 operator <= (const float4& left, const float4& right);
+  JTKQBVHDEF bool4 operator >= (const float4& left, const float4& right);
+  JTKQBVHDEF float4 unpacklo(const float4& left, const float4& right);
+  JTKQBVHDEF float4 unpackhi(const float4& left, const float4& right);
+  JTKQBVHDEF void transpose(float4& r0, float4& r1, float4& r2, float4& r3, const float4& c0, const float4& c1, const float4& c2, const float4& c3);
+  JTKQBVHDEF float4 masked_update(const bool4& mask, const float4& original, const float4& updated_values);
+  JTKQBVHDEF float4 masked_update(const int4& mask, const float4& original, const float4& updated_values);
 
 
 #ifdef _WIN32
@@ -297,27 +313,27 @@ namespace jtk
   __attribute__((aligned(16)))
 #endif  
     ;
-  float4x4 get_identity();
-  float4x4 make_translation(float x, float y, float z);
-  float4x4 transpose(const float4x4& m);
-  float4x4 invert_orthonormal(const float4x4& m);
+  JTKQBVHDEF float4x4 get_identity();
+  JTKQBVHDEF float4x4 make_translation(float x, float y, float z);
+  JTKQBVHDEF float4x4 transpose(const float4x4& m);
+  JTKQBVHDEF float4x4 invert_orthonormal(const float4x4& m);
   // for column major matrix
   // we use __m128 to represent 2x2 matrix as A = | A0  A1 |
   //                                              | A2  A3 |
   // 2x2 column major matrix multiply A*B
-  __m128 mat2mul(__m128 vec1, __m128 vec2);
+  JTKQBVHDEF __m128 mat2mul(__m128 vec1, __m128 vec2);
   // 2x2 column major matrix adjugate multiply (A#)*B
-  __m128 mat2adjmul(__m128 vec1, __m128 vec2);
+  JTKQBVHDEF __m128 mat2adjmul(__m128 vec1, __m128 vec2);
   // 2x2 column major matrix multiply adjugate A*(B#)
-  __m128 mat2muladj(__m128 vec1, __m128 vec2);
-  float4x4 invert(const float4x4& m);
-  float4 matrix_vector_multiply(const float4x4& m, const float4& v);
-  float4x4 matrix_matrix_multiply(const float4x4& left, const float4x4& right);
-  float4x4 operator + (const float4x4& left, const float4x4& right);
-  float4x4 operator - (const float4x4& left, const float4x4& right);
-  float4x4 operator / (const float4x4& left, float value);
-  float4x4 operator * (const float4x4& left, float value);
-  float4x4 operator * (float value, const float4x4& right);
+  JTKQBVHDEF __m128 mat2muladj(__m128 vec1, __m128 vec2);
+  JTKQBVHDEF float4x4 invert(const float4x4& m);
+  JTKQBVHDEF float4 matrix_vector_multiply(const float4x4& m, const float4& v);
+  JTKQBVHDEF float4x4 matrix_matrix_multiply(const float4x4& left, const float4x4& right);
+  JTKQBVHDEF float4x4 operator + (const float4x4& left, const float4x4& right);
+  JTKQBVHDEF float4x4 operator - (const float4x4& left, const float4x4& right);
+  JTKQBVHDEF float4x4 operator / (const float4x4& left, float value);
+  JTKQBVHDEF float4x4 operator * (const float4x4& left, float value);
+  JTKQBVHDEF float4x4 operator * (float value, const float4x4& right);
 
 
   struct hit
@@ -367,9 +383,9 @@ namespace jtk
     float4 Sx, Sy, Sz;
     };
 
-  woop_precompute intersect_woop_precompute(const float4& r_dir);
-  void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h);
-  bool4 intersect(const float4* aabb, const vec3<float4>& r_origin, const float4& t_near, const float4& t_far, const int32_t* ray_dir_sign, const vec3<float4>& ray_inverse_dir);
+  JTKQBVHDEF woop_precompute intersect_woop_precompute(const float4& r_dir);
+  JTKQBVHDEF void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h);
+  JTKQBVHDEF bool4 intersect(const float4* aabb, const vec3<float4>& r_origin, const float4& t_near, const float4& t_far, const int32_t* ray_dir_sign, const vec3<float4>& ray_inverse_dir);
 
   struct distance4
     {
@@ -377,27 +393,27 @@ namespace jtk
     float4 distance_sqr;
     };
 
-  void distance_sqr(const woop_triangle& acc, const vec3<float4>& point, distance4& dist);
-  float4 distance_sqr(const float4* aabb, const vec3<float4>& point);
+  JTKQBVHDEF void distance_sqr(const woop_triangle& acc, const vec3<float4>& point, distance4& dist);
+  JTKQBVHDEF float4 distance_sqr(const float4* aabb, const vec3<float4>& point);
 
-  float4x4 make_identity();
-  vec3<float> transform(const float4x4& matrix, const vec3<float>& pt);
-  vec3<float> transform_vector(const float4x4& matrix, const vec3<float>& vec);
-  vec3<float> transform(const float4x4& matrix, const vec3<float>& pt, bool is_vector);
-  float4 transform(const float4x4& matrix, const float4& pt);
-  float4x4 make_transformation(const vec3<float>& i_origin, const vec3<float>& i_x_axis, const vec3<float>& i_y_axis, const vec3<float>& i_z_axis);
-  float4x4 make_rotation(const vec3<float>& i_position, const vec3<float>& i_direction, float i_angle_radians);
-  float4x4 make_scale3d(float scale_x, float scale_y, float scale_z);
-  float4x4 make_translation(const vec3<float>& i_translation);
-  vec3<float> get_translation(const float4x4& matrix);
-  void set_x_axis(float4x4& matrix, const vec3<float>& x);
-  void set_y_axis(float4x4& matrix, const vec3<float>& y);
-  void set_z_axis(float4x4& matrix, const vec3<float>& z);
-  void set_translation(float4x4& matrix, const vec3<float>& t);
-  vec3<float> get_x_axis(const float4x4& matrix);
-  vec3<float> get_y_axis(const float4x4& matrix);
-  vec3<float> get_z_axis(const float4x4& matrix);
-  float determinant(const float4x4& m);
+  JTKQBVHDEF float4x4 make_identity();
+  JTKQBVHDEF vec3<float> transform(const float4x4& matrix, const vec3<float>& pt);
+  JTKQBVHDEF vec3<float> transform_vector(const float4x4& matrix, const vec3<float>& vec);
+  JTKQBVHDEF vec3<float> transform(const float4x4& matrix, const vec3<float>& pt, bool is_vector);
+  JTKQBVHDEF float4 transform(const float4x4& matrix, const float4& pt);
+  JTKQBVHDEF float4x4 make_transformation(const vec3<float>& i_origin, const vec3<float>& i_x_axis, const vec3<float>& i_y_axis, const vec3<float>& i_z_axis);
+  JTKQBVHDEF float4x4 make_rotation(const vec3<float>& i_position, const vec3<float>& i_direction, float i_angle_radians);
+  JTKQBVHDEF float4x4 make_scale3d(float scale_x, float scale_y, float scale_z);
+  JTKQBVHDEF float4x4 make_translation(const vec3<float>& i_translation);
+  JTKQBVHDEF vec3<float> get_translation(const float4x4& matrix);
+  JTKQBVHDEF void set_x_axis(float4x4& matrix, const vec3<float>& x);
+  JTKQBVHDEF void set_y_axis(float4x4& matrix, const vec3<float>& y);
+  JTKQBVHDEF void set_z_axis(float4x4& matrix, const vec3<float>& z);
+  JTKQBVHDEF void set_translation(float4x4& matrix, const vec3<float>& t);
+  JTKQBVHDEF vec3<float> get_x_axis(const float4x4& matrix);
+  JTKQBVHDEF vec3<float> get_y_axis(const float4x4& matrix);
+  JTKQBVHDEF vec3<float> get_z_axis(const float4x4& matrix);
+  JTKQBVHDEF float determinant(const float4x4& m);
 
   template <typename T>
   struct range
@@ -429,8 +445,8 @@ namespace jtk
     void operator delete[](void* ptr); // for aligned allocation
     };
 
-  qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles);
-  qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres);
+  JTKQBVHDEF qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles);
+  JTKQBVHDEF qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres);
 
   struct qbvh_node
     {
@@ -440,11 +456,11 @@ namespace jtk
     uint16_t nr_of_primitives[4]; // 8 bytes
     uint8_t axis0, axis1, axis2, pad; // 4 bytes 
     }; // 128 byte size
-  void unite_four_aabbs(float4* out, float4* in, int k);
-  void get_bbox(float4* bbox, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int k);
-  float calculate_half_surface_area(const float4& left, const float4& right);
-  uint8_t find_largest_dimension(const qbvh_voxel& bb);
-  std::vector<uint32_t>::iterator partition(qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, const uint32_t dim, const float split_pos, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
+  JTKQBVHDEF void unite_four_aabbs(float4* out, float4* in, int k);
+  JTKQBVHDEF void get_bbox(float4* bbox, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int k);
+  JTKQBVHDEF float calculate_half_surface_area(const float4& left, const float4& right);
+  JTKQBVHDEF uint8_t find_largest_dimension(const qbvh_voxel& bb);
+  JTKQBVHDEF std::vector<uint32_t>::iterator partition(qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, const uint32_t dim, const float split_pos, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
   template <int K>
   void sah_optimized(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last);
   template <int K>
@@ -547,7 +563,7 @@ namespace jtk
     uint8_t axis0, axis1, axis2, pad; // 4 bytes  
     };
 
-  void unite_four_aabbs(qbvh_voxel& out, const float4* in);
+  JTKQBVHDEF void unite_four_aabbs(qbvh_voxel& out, const float4* in);
   class qbvh_two_level
     {
     enum
@@ -569,7 +585,7 @@ namespace jtk
       std::vector<uint32_t>::iterator start;
     };
 
-  void transform(qbvh_voxel& voxel, const float4x4& matrix);
+  JTKQBVHDEF void transform(qbvh_voxel& voxel, const float4x4& matrix);
   class qbvh_two_level_with_transformations
     {
     enum
@@ -1217,7 +1233,7 @@ namespace jtk
   // aligned allocators
   /////////////////////////////////////////////////////////////////////////
 
-  void* aligned_malloc(size_t size, size_t align)
+  JTKQBVHDEF void* aligned_malloc(size_t size, size_t align)
     {
     if (size == 0)
       return nullptr;
@@ -1231,7 +1247,7 @@ namespace jtk
     return ptr;
     }
 
-  void aligned_free(void* ptr)
+  JTKQBVHDEF void aligned_free(void* ptr)
     {
     if (ptr)
       _mm_free(ptr);
@@ -1276,48 +1292,48 @@ namespace jtk
   // bool4
   /////////////////////////////////////////////////////////////////////////
 
-  bool4::bool4() {}
-  bool4::bool4(const __m128 in) : m128(in) {}
-  bool4::bool4(const __m128i in) : m128(_mm_castsi128_ps(in)) {}
-  bool4::bool4(bool b) : m128(lookup_mask[b ? 15 : 0]) {}
-  bool4::bool4(bool b0, bool b1, bool b2, bool b3) : m128(lookup_mask[(uint8_t(b3) << 3) | (uint8_t(b2) << 2) | (uint8_t(b1) << 1) | (uint8_t(b0))]) {}
+  JTKQBVHINLINE bool4::bool4() {}
+  JTKQBVHINLINE bool4::bool4(const __m128 in) : m128(in) {}
+  JTKQBVHINLINE bool4::bool4(const __m128i in) : m128(_mm_castsi128_ps(in)) {}
+  JTKQBVHINLINE bool4::bool4(bool b) : m128(lookup_mask[b ? 15 : 0]) {}
+  JTKQBVHINLINE bool4::bool4(bool b0, bool b1, bool b2, bool b3) : m128(lookup_mask[(uint8_t(b3) << 3) | (uint8_t(b2) << 2) | (uint8_t(b1) << 1) | (uint8_t(b0))]) {}
 
-  bool all(const bool4& b)
+  JTKQBVHDEF bool all(const bool4& b)
     {
     return _mm_movemask_ps(b.m128) == 0xf;
     }
 
-  bool any(const bool4& b)
+  JTKQBVHDEF bool any(const bool4& b)
     {
     return _mm_movemask_ps(b.m128) != 0x0;
     }
 
-  bool none(const bool4& b)
+  JTKQBVHDEF bool none(const bool4& b)
     {
     return _mm_movemask_ps(b.m128) == 0x0;
     }
 
-  bool4 operator ! (const bool4& a)
+  JTKQBVHDEF bool4 operator ! (const bool4& a)
     {
     return _mm_xor_ps(a.m128, bool4(true).m128);
     }
 
-  bool4 operator & (const bool4& a, const bool4& b)
+  JTKQBVHDEF bool4 operator & (const bool4& a, const bool4& b)
     {
     return _mm_and_ps(a.m128, b.m128);
     }
 
-  bool4 operator | (const bool4& a, const bool4& b)
+  JTKQBVHDEF bool4 operator | (const bool4& a, const bool4& b)
     {
     return _mm_or_ps(a.m128, b.m128);
     }
 
-  bool4 operator ^ (const bool4& a, const bool4& b)
+  JTKQBVHDEF bool4 operator ^ (const bool4& a, const bool4& b)
     {
     return _mm_xor_ps(a.m128, b.m128);
     }
 
-  bool4& operator &= (bool4& a, const bool4& b)
+  JTKQBVHDEF bool4& operator &= (bool4& a, const bool4& b)
     {
     //return a = a & b; 
     /*
@@ -1329,7 +1345,7 @@ namespace jtk
     return a;
     }
 
-  bool4& operator |= (bool4& a, const bool4& b)
+  JTKQBVHDEF bool4& operator |= (bool4& a, const bool4& b)
     {
     //return a = a | b; 
     /*
@@ -1341,7 +1357,7 @@ namespace jtk
     return a;
     }
 
-  bool4& operator ^= (bool4& a, const bool4& b)
+  JTKQBVHDEF bool4& operator ^= (bool4& a, const bool4& b)
     {
     //return a = a ^ b; 
     /*
@@ -1353,12 +1369,12 @@ namespace jtk
     return a;
     }
 
-  bool4 operator != (const bool4& a, const bool4& b)
+  JTKQBVHDEF bool4 operator != (const bool4& a, const bool4& b)
     {
     return _mm_xor_ps(a.m128, b.m128);
     }
 
-  bool4 operator == (const bool4& a, const bool4& b)
+  JTKQBVHDEF bool4 operator == (const bool4& a, const bool4& b)
     {
     return _mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(a.m128), _mm_castps_si128(b.m128)));
     }
@@ -1367,115 +1383,115 @@ namespace jtk
   // struct int4
   /////////////////////////////////////////////////////////////////////////
 
-  int4::int4() {}
-  int4::int4(const __m128i& in) : m128i(in) {}
-  int4::int4(int32_t in) : m128i(_mm_set1_epi32(in)) {}
-  int4::int4(int32_t i0, int32_t i1, int32_t i2, int32_t i3) : m128i(_mm_set_epi32(i3, i2, i1, i0)) {}
-  int4::int4(const bool4& in) : m128i(_mm_castps_si128(in.m128)) {}
+  JTKQBVHINLINE int4::int4() {}
+  JTKQBVHINLINE int4::int4(const __m128i& in) : m128i(in) {}
+  JTKQBVHINLINE int4::int4(int32_t in) : m128i(_mm_set1_epi32(in)) {}
+  JTKQBVHINLINE int4::int4(int32_t i0, int32_t i1, int32_t i2, int32_t i3) : m128i(_mm_set_epi32(i3, i2, i1, i0)) {}
+  JTKQBVHINLINE int4::int4(const bool4& in) : m128i(_mm_castps_si128(in.m128)) {}
 
-  int4 operator + (const int4& a)
+  JTKQBVHDEF int4 operator + (const int4& a)
     {
     return a;
     }
 
-  int4 operator - (const int4& a)
+  JTKQBVHDEF int4 operator - (const int4& a)
     {
     return _mm_sub_epi32(_mm_set1_epi32(0), a.m128i);
     }
 
-  int4 operator + (const int4& left, const int4& right)
+  JTKQBVHDEF int4 operator + (const int4& left, const int4& right)
     {
     return _mm_add_epi32(left.m128i, right.m128i);
     }
 
-  int4 operator - (const int4& left, const int4& right)
+  JTKQBVHDEF int4 operator - (const int4& left, const int4& right)
     {
     return _mm_sub_epi32(left.m128i, right.m128i);
     }
 
-  int4 operator * (const int4& left, const int4& right)
+  JTKQBVHDEF int4 operator * (const int4& left, const int4& right)
     {
     return _mm_mullo_epi32(left.m128i, right.m128i);
     }
 
-  int4 operator * (const int4& left, int32_t right)
+  JTKQBVHDEF int4 operator * (const int4& left, int32_t right)
     {
     return left * int4(right);
     }
 
-  int4 operator * (int32_t left, const int4& right)
+  JTKQBVHDEF int4 operator * (int32_t left, const int4& right)
     {
     return int4(left)*right;
     }
 
-  int4 min(const int4& left, const int4& right)
+  JTKQBVHDEF int4 min(const int4& left, const int4& right)
     {
     return _mm_min_epi32(left.m128i, right.m128i);
     }
 
-  int4 max(const int4& left, const int4& right)
+  JTKQBVHDEF int4 max(const int4& left, const int4& right)
     {
     return _mm_max_epi32(left.m128i, right.m128i);
     }
 
-  bool4 operator == (const int4& left, const int4& right)
+  JTKQBVHDEF bool4 operator == (const int4& left, const int4& right)
     {
     return _mm_cmpeq_epi32(left.m128i, right.m128i);
     }
 
-  bool4 operator != (const int4& left, const int4& right)
+  JTKQBVHDEF bool4 operator != (const int4& left, const int4& right)
     {
     return _mm_andnot_si128(_mm_cmpeq_epi32(left.m128i, right.m128i), not_zero);
     }
 
-  bool4 operator < (const int4& left, const int4& right)
+  JTKQBVHDEF bool4 operator < (const int4& left, const int4& right)
     {
     return _mm_cmplt_epi32(left.m128i, right.m128i);
     }
 
-  bool4 operator > (const int4& left, const int4& right)
+  JTKQBVHDEF bool4 operator > (const int4& left, const int4& right)
     {
     return _mm_cmpgt_epi32(left.m128i, right.m128i);
     }
 
-  bool4 operator <= (const int4& left, const int4& right)
+  JTKQBVHDEF bool4 operator <= (const int4& left, const int4& right)
     {
     return _mm_andnot_si128(_mm_cmpgt_epi32(left.m128i, right.m128i), not_zero);
     }
 
-  bool4 operator >= (const int4& left, const int4& right)
+  JTKQBVHDEF bool4 operator >= (const int4& left, const int4& right)
     {
     return _mm_andnot_si128(_mm_cmplt_epi32(left.m128i, right.m128i), not_zero);
     }
 
-  int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values)
+  JTKQBVHDEF int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values)
     {
     return _mm_castps_si128(_mm_or_ps(_mm_and_ps(mask.m128, _mm_castsi128_ps(updated_values.m128i)), _mm_andnot_ps(mask.m128, _mm_castsi128_ps(original.m128i))));
     }
 
-  int4 operator & (const int4& left, const int4& right)
+  JTKQBVHDEF int4 operator & (const int4& left, const int4& right)
     {
     return _mm_and_si128(left.m128i, right.m128i);
     }
 
-  int4 operator | (const int4& left, const int4& right)
+  JTKQBVHDEF int4 operator | (const int4& left, const int4& right)
     {
     return _mm_and_si128(left.m128i, right.m128i);
     }
 
 #ifndef _JTK_FOR_ARM
-  int4 operator >> (const int4& a, int n)
+  JTKQBVHDEF int4 operator >> (const int4& a, int n)
     {
     return _mm_srai_epi32(a.m128i, n);
     }
 
-  int4 operator << (const int4& a, int n)
+  JTKQBVHDEF int4 operator << (const int4& a, int n)
     {
     return _mm_slli_epi32(a.m128i, n);
     }
 #endif
 
-  int any(const int4& a)
+  JTKQBVHDEF int any(const int4& a)
     {
     return _mm_movemask_ps(_mm_castsi128_ps(a.m128i));
     }
@@ -1484,74 +1500,74 @@ namespace jtk
   // struct float4
   /////////////////////////////////////////////////////////////////////////
 
-  float4::float4() {}
-  float4::float4(const __m128 in) : m128(in) {}
-  float4::float4(float f) : m128(_mm_set1_ps(f)) {}
-  float4::float4(float _x, float _y, float _z) : m128(_mm_set_ps(1.f, _z, _y, _x)) {}
-  float4::float4(float _x, float _y, float _z, float _w) : m128(_mm_set_ps(_w, _z, _y, _x)) {}
+  JTKQBVHINLINE float4::float4() {}
+  JTKQBVHINLINE float4::float4(const __m128 in) : m128(in) {}
+  JTKQBVHINLINE float4::float4(float f) : m128(_mm_set1_ps(f)) {}
+  JTKQBVHINLINE float4::float4(float _x, float _y, float _z) : m128(_mm_set_ps(1.f, _z, _y, _x)) {}
+  JTKQBVHINLINE float4::float4(float _x, float _y, float _z, float _w) : m128(_mm_set_ps(_w, _z, _y, _x)) {}
 
 
-  float4 operator + (const float4& a)
+  JTKQBVHDEF float4 operator + (const float4& a)
     {
     return a;
     }
 
-  float4 operator - (const float4& a)
+  JTKQBVHDEF float4 operator - (const float4& a)
     {
     return _mm_xor_ps(a.m128, _mm_castsi128_ps(_mm_set1_epi32(0x80000000)));
     }
 
-  float4 operator + (const float4& left, const float4& right)
+  JTKQBVHDEF float4 operator + (const float4& left, const float4& right)
     {
     return _mm_add_ps(left.m128, right.m128);
     }
 
-  float4 operator - (const float4& left, const float4& right)
+  JTKQBVHDEF float4 operator - (const float4& left, const float4& right)
     {
     return _mm_sub_ps(left.m128, right.m128);
     }
 
-  float4 operator * (const float4& left, const float4& right)
+  JTKQBVHDEF float4 operator * (const float4& left, const float4& right)
     {
     return _mm_mul_ps(left.m128, right.m128);
     }
 
-  float4 operator * (const float4& left, float right)
+  JTKQBVHDEF float4 operator * (const float4& left, float right)
     {
     return left * float4(right);
     }
 
-  float4 operator * (float left, const float4& right)
+  JTKQBVHDEF float4 operator * (float left, const float4& right)
     {
     return float4(left)*right;
     }
 
-  float4 operator / (const float4& left, const float4& right)
+  JTKQBVHDEF float4 operator / (const float4& left, const float4& right)
     {
     return _mm_div_ps(left.m128, right.m128);
     }
 
-  float4 operator / (const float4& left, float right)
+  JTKQBVHDEF float4 operator / (const float4& left, float right)
     {
     return left / float4(right);
     }
 
-  float4 operator / (float left, const float4& right)
+  JTKQBVHDEF float4 operator / (float left, const float4& right)
     {
     return float4(left) / right;
     }
 
-  float4 min(const float4& left, const float4& right)
+  JTKQBVHDEF float4 min(const float4& left, const float4& right)
     {
     return _mm_min_ps(left.m128, right.m128);
     }
 
-  float4 max(const float4& left, const float4& right)
+  JTKQBVHDEF float4 max(const float4& left, const float4& right)
     {
     return _mm_max_ps(left.m128, right.m128);
     }
 
-  float min_horizontal(const float4& x)
+  JTKQBVHDEF float min_horizontal(const float4& x)
     {
     __m128 max1 = _mm_shuffle_ps(x.m128, x.m128, _MM_SHUFFLE(0, 0, 3, 2));
     __m128 max2 = _mm_min_ps(x.m128, max1);
@@ -1561,7 +1577,7 @@ namespace jtk
     return result;
     }
 
-  float max_horizontal(const float4& x)
+  JTKQBVHDEF float max_horizontal(const float4& x)
     {
     __m128 max1 = _mm_shuffle_ps(x.m128, x.m128, _MM_SHUFFLE(0, 0, 3, 2));
     __m128 max2 = _mm_max_ps(x.m128, max1);
@@ -1571,7 +1587,7 @@ namespace jtk
     return result;
     }
 
-  float4 cross(const float4& left, const float4& right)
+  JTKQBVHDEF float4 cross(const float4& left, const float4& right)
     {
     float4 rs(_mm_shuffle_ps(right.m128, right.m128, _MM_SHUFFLE(3, 0, 2, 1)));
     float4 ls(_mm_shuffle_ps(left.m128, left.m128, _MM_SHUFFLE(3, 0, 2, 1)));
@@ -1579,28 +1595,28 @@ namespace jtk
     return float4(_mm_shuffle_ps(res.m128, res.m128, _MM_SHUFFLE(3, 0, 2, 1)));
     }
 
-  float dot(const float4& left, const float4& right)
+  JTKQBVHDEF float dot(const float4& left, const float4& right)
     {
     return _mm_cvtss_f32(_mm_dp_ps(left.m128, right.m128, 0x7F));
     }
 
-  float dot4(const float4& left, const float4& right)
+  JTKQBVHDEF float dot4(const float4& left, const float4& right)
     {
     return _mm_cvtss_f32(_mm_dp_ps(left.m128, right.m128, 255));
     }
 
-  float4 abs(const float4& a)
+  JTKQBVHDEF float4 abs(const float4& a)
     {
     const __m128 mask = _mm_castsi128_ps(_mm_set1_epi32(0x7fffffff));
     return _mm_and_ps(a.m128, mask);
     }
 
-  float4 sqrt(const float4& a)
+  JTKQBVHDEF float4 sqrt(const float4& a)
     {
     return _mm_sqrt_ps(a.m128);
     }
 
-  float4 rsqrt(const float4& a)
+  JTKQBVHDEF float4 rsqrt(const float4& a)
     {
     __m128 mask = _mm_cmpeq_ps(_mm_set1_ps(0.f), a.m128);
     __m128 res = _mm_rsqrt_ps(a.m128);
@@ -1609,7 +1625,7 @@ namespace jtk
     return _mm_or_ps(_mm_and_ps(mask, res), _mm_andnot_ps(mask, res_newton_raphson));
     }
 
-  float4 reciprocal(const float4& a)
+  JTKQBVHDEF float4 reciprocal(const float4& a)
     {
     __m128 mask = _mm_cmpeq_ps(_mm_set1_ps(0.f), a.m128);
     auto res = _mm_rcp_ps(a.m128);
@@ -1618,47 +1634,47 @@ namespace jtk
     return _mm_or_ps(_mm_and_ps(mask, res), _mm_andnot_ps(mask, res_newton_raphson));
     }
 
-  bool4 operator == (const float4& left, const float4& right)
+  JTKQBVHDEF bool4 operator == (const float4& left, const float4& right)
     {
     return _mm_cmpeq_ps(left.m128, right.m128);
     }
 
-  bool4 operator != (const float4& left, const float4& right)
+  JTKQBVHDEF bool4 operator != (const float4& left, const float4& right)
     {
     return _mm_cmpneq_ps(left.m128, right.m128);
     }
 
-  bool4 operator < (const float4& left, const float4& right)
+  JTKQBVHDEF bool4 operator < (const float4& left, const float4& right)
     {
     return _mm_cmplt_ps(left.m128, right.m128);
     }
 
-  bool4 operator > (const float4& left, const float4& right)
+  JTKQBVHDEF bool4 operator > (const float4& left, const float4& right)
     {
     return _mm_cmpnle_ps(left.m128, right.m128);
     }
 
-  bool4 operator <= (const float4& left, const float4& right)
+  JTKQBVHDEF bool4 operator <= (const float4& left, const float4& right)
     {
     return _mm_cmple_ps(left.m128, right.m128);
     }
 
-  bool4 operator >= (const float4& left, const float4& right)
+  JTKQBVHDEF bool4 operator >= (const float4& left, const float4& right)
     {
     return _mm_cmpnlt_ps(left.m128, right.m128);
     }
 
-  float4 unpacklo(const float4& left, const float4& right)
+  JTKQBVHDEF float4 unpacklo(const float4& left, const float4& right)
     {
     return _mm_unpacklo_ps(left.m128, right.m128);
     }
 
-  float4 unpackhi(const float4& left, const float4& right)
+  JTKQBVHDEF float4 unpackhi(const float4& left, const float4& right)
     {
     return _mm_unpackhi_ps(left.m128, right.m128);
     }
 
-  void transpose(float4& r0, float4& r1, float4& r2, float4& r3, const float4& c0, const float4& c1, const float4& c2, const float4& c3)
+  JTKQBVHDEF void transpose(float4& r0, float4& r1, float4& r2, float4& r3, const float4& c0, const float4& c1, const float4& c2, const float4& c3)
     {
     float4 l02(unpacklo(c0.m128, c2.m128));
     float4 h02(unpackhi(c0.m128, c2.m128));
@@ -1670,12 +1686,12 @@ namespace jtk
     r3 = unpackhi(h02, h13);
     }
 
-  float4 masked_update(const bool4& mask, const float4& original, const float4& updated_values)
+  JTKQBVHDEF float4 masked_update(const bool4& mask, const float4& original, const float4& updated_values)
     {
     return _mm_or_ps(_mm_and_ps(mask.m128, updated_values.m128), _mm_andnot_ps(mask.m128, original.m128));
     }
 
-  float4 masked_update(const int4& mask, const float4& original, const float4& updated_values)
+  JTKQBVHDEF float4 masked_update(const int4& mask, const float4& original, const float4& updated_values)
     {
     const __m128 m = _mm_castsi128_ps(mask.m128i);
     return _mm_or_ps(_mm_and_ps(m, updated_values.m128), _mm_andnot_ps(m, original.m128));
@@ -1687,34 +1703,34 @@ namespace jtk
 
   // COLUMN MAJOR 4x4 MATRIX
 
-  float4x4::float4x4() {}
-  float4x4::float4x4(const float4& col0, const float4& col1, const float4& col2, const float4& col3) : col{ col0, col1, col2, col3 } {}
-  float4x4::float4x4(float* m)
+  JTKQBVHINLINE float4x4::float4x4() {}
+  JTKQBVHINLINE float4x4::float4x4(const float4& col0, const float4& col1, const float4& col2, const float4& col3) : col{ col0, col1, col2, col3 } {}
+  JTKQBVHINLINE float4x4::float4x4(float* m)
     {
     for (int i = 0; i < 16; ++i)
       f[i] = m[i];
     }
 
-  float4x4 get_identity()
+  JTKQBVHDEF float4x4 get_identity()
     {
     float4x4 m(_mm_set_ps(0.f, 0.f, 0.f, 1.f), _mm_set_ps(0.f, 0.f, 1.f, 0.f), _mm_set_ps(0.f, 1.f, 0.f, 0.f), _mm_set_ps(1.f, 0.f, 0.f, 0.f));
     return m;
     }
 
-  float4x4 make_translation(float x, float y, float z)
+  JTKQBVHDEF float4x4 make_translation(float x, float y, float z)
     {
     float4x4 m(_mm_set_ps(0.f, 0.f, 0.f, 1.f), _mm_set_ps(0.f, 0.f, 1.f, 0.f), _mm_set_ps(0.f, 1.f, 0.f, 0.f), _mm_set_ps(1.f, z, y, x));
     return m;
     }
 
-  float4x4 transpose(const float4x4& m)
+  JTKQBVHDEF float4x4 transpose(const float4x4& m)
     {
     float4x4 out;
     transpose(out.col[0], out.col[1], out.col[2], out.col[3], m.col[0], m.col[1], m.col[2], m.col[3]);
     return out;
     }
 
-  float4x4 invert_orthonormal(const float4x4& m)
+  JTKQBVHDEF float4x4 invert_orthonormal(const float4x4& m)
     {
     float4x4 out;
     transpose(out.col[0], out.col[1], out.col[2], out.col[3], m.col[0], m.col[1], m.col[2], _mm_set_ps(1.f, 0.f, 0.f, 0.f));
@@ -1727,7 +1743,7 @@ namespace jtk
   // we use __m128 to represent 2x2 matrix as A = | A0  A1 |
   //                                              | A2  A3 |
   // 2x2 column major matrix multiply A*B
-  __m128 mat2mul(__m128 vec1, __m128 vec2)
+  JTKQBVHDEF __m128 mat2mul(__m128 vec1, __m128 vec2)
     {
     const auto vec3 = _mm_mul_ps(vec1, _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(3, 3, 0, 0)));
     const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 0, 3, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 2, 1, 1)));
@@ -1735,7 +1751,7 @@ namespace jtk
     }
 
   // 2x2 column major matrix adjugate multiply (A#)*B
-  __m128 mat2adjmul(__m128 vec1, __m128 vec2)
+  JTKQBVHDEF __m128 mat2adjmul(__m128 vec1, __m128 vec2)
     {
     const auto vec3 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(0, 3, 0, 3)), vec2);
     const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 2, 1, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 3, 0, 1)));
@@ -1743,14 +1759,14 @@ namespace jtk
     }
 
   // 2x2 column major matrix multiply adjugate A*(B#)
-  __m128 mat2muladj(__m128 vec1, __m128 vec2)
+  JTKQBVHDEF __m128 mat2muladj(__m128 vec1, __m128 vec2)
     {
     const auto vec3 = _mm_mul_ps(vec1, _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(0, 0, 3, 3)));
     const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 0, 3, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 2, 1, 1)));
     return _mm_sub_ps(vec3, vec4);
     }
 
-  float4x4 invert(const float4x4& m)
+  JTKQBVHDEF float4x4 invert(const float4x4& m)
     {
     float4x4 out;
     // sub matrices
@@ -1818,13 +1834,13 @@ namespace jtk
     return out;
     }
 
-  float4 matrix_vector_multiply(const float4x4& m, const float4& v)
+  JTKQBVHDEF float4 matrix_vector_multiply(const float4x4& m, const float4& v)
     {
     float4 out = m.col[0] * v[0] + m.col[1] * v[1] + m.col[2] * v[2] + m.col[3] * v[3];
     return out;
     }
 
-  float4x4 matrix_matrix_multiply(const float4x4& left, const float4x4& right)
+  JTKQBVHDEF float4x4 matrix_matrix_multiply(const float4x4& left, const float4x4& right)
     {
     float4x4 out;
     float4 r[4];
@@ -1848,27 +1864,27 @@ namespace jtk
     return out;
     }
 
-  float4x4 operator + (const float4x4& left, const float4x4& right)
+  JTKQBVHDEF float4x4 operator + (const float4x4& left, const float4x4& right)
     {
     return float4x4(left.col[0] + right.col[0], left.col[1] + right.col[1], left.col[2] + right.col[2], left.col[3] + right.col[3]);
     }
 
-  float4x4 operator - (const float4x4& left, const float4x4& right)
+  JTKQBVHDEF float4x4 operator - (const float4x4& left, const float4x4& right)
     {
     return float4x4(left.col[0] - right.col[0], left.col[1] - right.col[1], left.col[2] - right.col[2], left.col[3] - right.col[3]);
     }
 
-  float4x4 operator / (const float4x4& left, float value)
+  JTKQBVHDEF float4x4 operator / (const float4x4& left, float value)
     {
     return float4x4(left.col[0] / value, left.col[1] / value, left.col[2] / value, left.col[3] / value);
     }
 
-  float4x4 operator * (const float4x4& left, float value)
+  JTKQBVHDEF float4x4 operator * (const float4x4& left, float value)
     {
     return float4x4(left.col[0] * value, left.col[1] * value, left.col[2] * value, left.col[3] * value);
     }
 
-  float4x4 operator * (float value, const float4x4& right)
+  JTKQBVHDEF float4x4 operator * (float value, const float4x4& right)
     {
     return float4x4(right.col[0] * value, right.col[1] * value, right.col[2] * value, right.col[3] * value);
     }
@@ -1878,7 +1894,7 @@ namespace jtk
   // intersection
   /////////////////////////////////////////////////////////////////////////
 
-  woop_precompute intersect_woop_precompute(const float4& r_dir)
+  JTKQBVHDEF woop_precompute intersect_woop_precompute(const float4& r_dir)
     {
     woop_precompute out;
     const auto abs_dir = abs(r_dir);
@@ -1910,7 +1926,7 @@ namespace jtk
     return out;
     }
 
-  void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h)
+  JTKQBVHDEF void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h)
     {
     h.found = bool4(true);
 
@@ -1956,7 +1972,7 @@ namespace jtk
     h.distance = t;
     }
 
-  bool4 intersect(const float4* aabb, const vec3<float4>& r_origin, const float4& t_near, const float4& t_far, const int32_t* ray_dir_sign, const vec3<float4>& ray_inverse_dir)
+  JTKQBVHDEF bool4 intersect(const float4* aabb, const vec3<float4>& r_origin, const float4& t_near, const float4& t_far, const int32_t* ray_dir_sign, const vec3<float4>& ray_inverse_dir)
     {
     bool4 res(true);
     const float4 min_x = ray_dir_sign[0] ? aabb[3] : aabb[0];
@@ -1996,7 +2012,7 @@ namespace jtk
     return res;
     }
 
-  void intersect_sphere(const vec3<float4>& sphere_origin, const float4& sphere_radius, const vec3<float4>& r_orig, const vec3<float4>& ray_dir, const float4& t_near, const float4& t_far, spherehit4& h)
+  JTKQBVHDEF void intersect_sphere(const vec3<float4>& sphere_origin, const float4& sphere_radius, const vec3<float4>& r_orig, const vec3<float4>& ray_dir, const float4& t_near, const float4& t_far, spherehit4& h)
     {
 #if 0
     h.found = bool4(true);
@@ -2083,7 +2099,7 @@ namespace jtk
   /////////////////////////////////////////////////////////////////////////
 
   //http://jcgt.org/published/0003/04/05/paper.pdf
-  void distance_sqr(const woop_triangle& acc, const vec3<float4>& point, distance4& dist)
+  JTKQBVHDEF void distance_sqr(const woop_triangle& acc, const vec3<float4>& point, distance4& dist)
     {
     const vec3<float4> ab = acc.v1 - acc.v0;
     const vec3<float4> ac = acc.v2 - acc.v0;
@@ -2187,7 +2203,7 @@ namespace jtk
     dist.distance_sqr = length_sqr(closest_point - point);
     }
 
-  float4 distance_sqr(const float4* aabb, const vec3<float4>& point)
+  JTKQBVHDEF float4 distance_sqr(const float4* aabb, const vec3<float4>& point)
     {
     const float4 x = point[0] - min(aabb[3], max(aabb[0], point[0]));
     const float4 y = point[1] - min(aabb[4], max(aabb[1], point[1]));
@@ -2200,24 +2216,24 @@ namespace jtk
   // transformation
   /////////////////////////////////////////////////////////////////////////
 
-  float4x4 make_identity()
+  JTKQBVHDEF float4x4 make_identity()
     {
     return get_identity();
     }
 
-  vec3<float> transform(const float4x4& matrix, const vec3<float>& pt)
+  JTKQBVHDEF vec3<float> transform(const float4x4& matrix, const vec3<float>& pt)
     {
     auto res = matrix_vector_multiply(matrix, float4(pt[0], pt[1], pt[2], 1.f));
     return vec3<float>(res[0], res[1], res[2]);
     }
 
-  vec3<float> transform_vector(const float4x4& matrix, const vec3<float>& vec)
+  JTKQBVHDEF vec3<float> transform_vector(const float4x4& matrix, const vec3<float>& vec)
     {
     auto res = matrix_vector_multiply(matrix, float4(vec[0], vec[1], vec[2], 0.f));
     return vec3<float>(res[0], res[1], res[2]);
     }
 
-  vec3<float> transform(const float4x4& matrix, const vec3<float>& pt, bool is_vector)
+  JTKQBVHDEF vec3<float> transform(const float4x4& matrix, const vec3<float>& pt, bool is_vector)
     {
     if (is_vector)
       return transform_vector(matrix, pt);
@@ -2225,7 +2241,7 @@ namespace jtk
       return transform(matrix, pt);
     }
 
-  float4 transform(const float4x4& matrix, const float4& pt)
+  JTKQBVHDEF float4 transform(const float4x4& matrix, const float4& pt)
     {
     auto res = matrix_vector_multiply(matrix, pt);
     if (res[3] != 1.f && res[3])
@@ -2238,7 +2254,7 @@ namespace jtk
     return res;
     }
 
-  float4x4 make_transformation(const vec3<float>& i_origin, const vec3<float>& i_x_axis, const vec3<float>& i_y_axis, const vec3<float>& i_z_axis)
+  JTKQBVHDEF float4x4 make_transformation(const vec3<float>& i_origin, const vec3<float>& i_x_axis, const vec3<float>& i_y_axis, const vec3<float>& i_z_axis)
     {
     float4x4 matrix;
     matrix[0] = i_x_axis[0];
@@ -2260,7 +2276,7 @@ namespace jtk
     return matrix;
     }
 
-  float4x4 make_rotation(const vec3<float>& i_position, const vec3<float>& i_direction, float i_angle_radians)
+  JTKQBVHDEF float4x4 make_rotation(const vec3<float>& i_position, const vec3<float>& i_direction, float i_angle_radians)
     {
     auto matrix = make_identity();
     auto direction = normalize(i_direction);
@@ -2289,65 +2305,65 @@ namespace jtk
     return matrix;
     }
 
-  float4x4 make_scale3d(float scale_x, float scale_y, float scale_z)
+  JTKQBVHDEF float4x4 make_scale3d(float scale_x, float scale_y, float scale_z)
     {
     return float4x4(float4(scale_x, 0.f, 0.f, 0.f), float4(0.f, scale_y, 0.f, 0.f), float4(0.f, 0.f, scale_z, 0.f), float4(0.f, 0.f, 0.f, 1.f));
     }
 
-  float4x4 make_translation(const vec3<float>& i_translation)
+  JTKQBVHDEF float4x4 make_translation(const vec3<float>& i_translation)
     {
     return make_translation(i_translation[0], i_translation[1], i_translation[2]);
     }
 
-  vec3<float> get_translation(const float4x4& matrix)
+  JTKQBVHDEF vec3<float> get_translation(const float4x4& matrix)
     {
     return vec3<float>(matrix[12], matrix[13], matrix[14]);
     }
 
-  void set_x_axis(float4x4& matrix, const vec3<float>& x)
+  JTKQBVHDEF void set_x_axis(float4x4& matrix, const vec3<float>& x)
     {
     matrix[0] = x[0];
     matrix[1] = x[1];
     matrix[2] = x[2];
     }
 
-  void set_y_axis(float4x4& matrix, const vec3<float>& y)
+  JTKQBVHDEF void set_y_axis(float4x4& matrix, const vec3<float>& y)
     {
     matrix[4] = y[0];
     matrix[5] = y[1];
     matrix[6] = y[2];
     }
 
-  void set_z_axis(float4x4& matrix, const vec3<float>& z)
+  JTKQBVHDEF void set_z_axis(float4x4& matrix, const vec3<float>& z)
     {
     matrix[8] = z[0];
     matrix[9] = z[1];
     matrix[10] = z[2];
     }
 
-  void set_translation(float4x4& matrix, const vec3<float>& t)
+  JTKQBVHDEF void set_translation(float4x4& matrix, const vec3<float>& t)
     {
     matrix[12] = t[0];
     matrix[13] = t[1];
     matrix[14] = t[2];
     }
 
-  vec3<float> get_x_axis(const float4x4& matrix)
+  JTKQBVHDEF vec3<float> get_x_axis(const float4x4& matrix)
     {
     return vec3<float>(matrix[0], matrix[1], matrix[2]);
     }
 
-  vec3<float> get_y_axis(const float4x4& matrix)
+  JTKQBVHDEF vec3<float> get_y_axis(const float4x4& matrix)
     {
     return vec3<float>(matrix[4], matrix[5], matrix[6]);
     }
 
-  vec3<float> get_z_axis(const float4x4& matrix)
+  JTKQBVHDEF vec3<float> get_z_axis(const float4x4& matrix)
     {
     return vec3<float>(matrix[8], matrix[9], matrix[10]);
     }
 
-  float determinant(const float4x4& m)
+  JTKQBVHDEF float determinant(const float4x4& m)
     {
     auto inv0 = m[5] * m[10] * m[15] -
       m[5] * m[11] * m[14] -
@@ -2384,13 +2400,13 @@ namespace jtk
   // qbvh
   /////////////////////////////////////////////////////////////////////////
 
-  void* qbvh_voxel::operator new(size_t size) { return aligned_malloc(size, 16); }
-  void qbvh_voxel::operator delete(void* ptr) { aligned_free(ptr); }
-  void* qbvh_voxel::operator new[](size_t size) { return aligned_malloc(size, 16); }
-  void qbvh_voxel::operator delete[](void* ptr) { aligned_free(ptr); }
+  JTKQBVHINLINE void* qbvh_voxel::operator new(size_t size) { return aligned_malloc(size, 16); }
+  JTKQBVHINLINE void qbvh_voxel::operator delete(void* ptr) { aligned_free(ptr); }
+  JTKQBVHINLINE void* qbvh_voxel::operator new[](size_t size) { return aligned_malloc(size, 16); }
+  JTKQBVHINLINE void qbvh_voxel::operator delete[](void* ptr) { aligned_free(ptr); }
 
 
-    qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+  JTKQBVHDEF qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
     {
     qbvh_voxel* lst = new qbvh_voxel[nr_of_triangles];
     total_bb.bbox_min = std::numeric_limits<float>::max();
@@ -2432,7 +2448,7 @@ namespace jtk
     return lst;
     }
 
-  qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
+  JTKQBVHDEF qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
     {
     qbvh_voxel* lst = new qbvh_voxel[nr_of_spheres];
     total_bb.bbox_min = std::numeric_limits<float>::max();
@@ -2472,7 +2488,7 @@ namespace jtk
     return lst;
     }
 
-  void unite_four_aabbs(float4* out, float4* in, int k)
+  JTKQBVHDEF void unite_four_aabbs(float4* out, float4* in, int k)
     {
     out[0][k] = min_horizontal(in[0]);
     out[1][k] = min_horizontal(in[1]);
@@ -2483,7 +2499,7 @@ namespace jtk
     }
 
 
-  void get_bbox(float4* bbox, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int k)
+  JTKQBVHDEF void get_bbox(float4* bbox, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int k)
     {
     assert(first != last);
     bbox[0][k] = voxels[*first].bbox_min[0];
@@ -2504,7 +2520,7 @@ namespace jtk
     }
 
 
-  float calculate_half_surface_area(const float4& left, const float4& right)
+  JTKQBVHDEF float calculate_half_surface_area(const float4& left, const float4& right)
     {
     const float4 diff = right - left;
     const float4 diff2(diff[1], diff[2], diff[0], 0);
@@ -2513,7 +2529,7 @@ namespace jtk
     }
 
 
-  uint8_t find_largest_dimension(const qbvh_voxel& bb)
+  JTKQBVHDEF uint8_t find_largest_dimension(const qbvh_voxel& bb)
     {
     const float4 diff = bb.bbox_max - bb.bbox_min;
     const uint8_t dim = diff[1] > diff[0] ? (diff[2] > diff[1] ? 2 : 1) : (diff[2] > diff[0] ? 2 : 0);
@@ -2521,7 +2537,7 @@ namespace jtk
     }
 
 
-  std::vector<uint32_t>::iterator partition(qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, const uint32_t dim, const float split_pos, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  JTKQBVHDEF std::vector<uint32_t>::iterator partition(qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, const uint32_t dim, const float split_pos, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     auto last_save = last;
     while (first != last)
@@ -2863,7 +2879,7 @@ namespace jtk
       }
     }
 
-  const uint32_t order[8][4] =
+  static const uint32_t order[8][4] =
     { { 3,2,1,0 },
     { 3,2,0,1 },
     { 2,3,1,0 },
@@ -2881,7 +2897,7 @@ namespace jtk
 
 
 
-  qbvh::qbvh(const std::vector<vec3<uint32_t>>& triangles, const vec3<float>* vertices)
+  JTKQBVHINLINE qbvh::qbvh(const std::vector<vec3<uint32_t>>& triangles, const vec3<float>* vertices)
     {
     qbvh_voxel total_bb, centroid_bb;
     const uint32_t nr_of_triangles = (uint32_t)triangles.size();
@@ -2890,20 +2906,20 @@ namespace jtk
     delete[] qbvh_voxels;
     }
 
-  qbvh::qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
+  JTKQBVHINLINE qbvh::qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
     {
     assert(props.leaf_size > 1);
     _ids = ids;
     _build(voxels, nr_of_items, total_bb, centroid_bb);
     }
 
-  qbvh::qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
+  JTKQBVHINLINE qbvh::qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
     {
     assert(props.leaf_size > 1);
     _build(voxels, nr_of_items, total_bb, centroid_bb);
     }
 
-  hit qbvh::find_closest_triangle(uint32_t& triangle_id, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
+  JTKQBVHINLINE hit qbvh::find_closest_triangle(uint32_t& triangle_id, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
     {
     hit h;
     h.found = 0;
@@ -3056,7 +3072,7 @@ namespace jtk
     return h;
     }
 
-  std::vector<hit> qbvh::find_all_triangles(std::vector<uint32_t>& triangle_ids, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
+  JTKQBVHINLINE std::vector<hit> qbvh::find_all_triangles(std::vector<uint32_t>& triangle_ids, ray r, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
     {
     std::vector<hit> hits;
 
@@ -3204,7 +3220,7 @@ namespace jtk
     return hits;
     }
 
-  hit qbvh::find_closest_triangle(uint32_t& triangle_id, const vec3<float>& point, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
+  JTKQBVHINLINE hit qbvh::find_closest_triangle(uint32_t& triangle_id, const vec3<float>& point, const vec3<uint32_t>* triangles, const vec3<float>* vertices) const
     {
     hit h;
     h.found = 0;
@@ -3334,7 +3350,7 @@ namespace jtk
     }
 
 
-  void qbvh::_build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb)
+  JTKQBVHINLINE void qbvh::_build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb)
     {
     assert(props.leaf_size < uint32_t(std::numeric_limits<uint16_t>::max() - 3));
     // max number of nodes is 4n-3 with n the number of triangles
@@ -3401,7 +3417,7 @@ namespace jtk
       }
     }
 
-  typename int4::value_type qbvh::construct_tree_single(aligned_vector<qbvh_node>& local_nodes, uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  JTKQBVHINLINE typename int4::value_type qbvh::construct_tree_single(aligned_vector<qbvh_node>& local_nodes, uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     assert(first <= last);
     if (first == last)
@@ -3465,7 +3481,7 @@ namespace jtk
     }
 
 
-  typename int4::value_type qbvh::construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep)
+  JTKQBVHINLINE typename int4::value_type qbvh::construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep)
     {
     assert(first <= last);
     if (first == last)
@@ -3579,7 +3595,7 @@ namespace jtk
     }
 
 
-  typename int4::value_type qbvh::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  JTKQBVHINLINE typename int4::value_type qbvh::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     std::vector<tree_stack> stack;
     uint32_t stack_index = 0;
@@ -3666,7 +3682,7 @@ namespace jtk
   // sphere_qbvh
   /////////////////////////////////////////////////////////////////////////
 
-  sphere_qbvh::sphere_qbvh(const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
+  JTKQBVHINLINE sphere_qbvh::sphere_qbvh(const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
     {
     qbvh_voxel total_bb, centroid_bb;
     auto qbvh_voxels = build_sphere_qbvh_voxels(total_bb, centroid_bb, origins, radii, nr_of_spheres);
@@ -3674,20 +3690,20 @@ namespace jtk
     delete[] qbvh_voxels;
     }
 
-  sphere_qbvh::sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
+  JTKQBVHINLINE sphere_qbvh::sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const std::vector<uint32_t>& ids, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
     {
     assert(props.leaf_size > 1);
     _ids = ids;
     _build(voxels, nr_of_items, total_bb, centroid_bb);
     }
 
-  sphere_qbvh::sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
+  JTKQBVHINLINE sphere_qbvh::sphere_qbvh(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb, properties pr) : props(pr)
     {
     assert(props.leaf_size > 1);
     _build(voxels, nr_of_items, total_bb, centroid_bb);
     }
 
-  spherehit sphere_qbvh::find_closest_sphere(uint32_t& sphere_id, ray r, const vec3<float>* origins, const float* radii) const
+  JTKQBVHINLINE spherehit sphere_qbvh::find_closest_sphere(uint32_t& sphere_id, ray r, const vec3<float>* origins, const float* radii) const
     {
     spherehit h;
     h.found = 0;
@@ -3808,7 +3824,7 @@ namespace jtk
     return h;
     }
 
-  std::vector<spherehit> sphere_qbvh::find_all_spheres(std::vector<uint32_t>& sphere_ids, ray r, const vec3<float>* origins, const float* radii) const
+  JTKQBVHINLINE std::vector<spherehit> sphere_qbvh::find_all_spheres(std::vector<uint32_t>& sphere_ids, ray r, const vec3<float>* origins, const float* radii) const
     {
     std::vector<spherehit> hits;
 
@@ -3924,7 +3940,7 @@ namespace jtk
     return hits;
     }
 
-  void sphere_qbvh::_build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb)
+  JTKQBVHINLINE void sphere_qbvh::_build(const qbvh_voxel* voxels, uint32_t nr_of_items, const qbvh_voxel& total_bb, const qbvh_voxel& centroid_bb)
     {
     assert(props.leaf_size < uint32_t(std::numeric_limits<uint16_t>::max() - 3));
     // max number of nodes is 4n-3 with n the number of triangles
@@ -3991,7 +4007,7 @@ namespace jtk
       }
     }
 
-  typename int4::value_type sphere_qbvh::construct_tree_single(aligned_vector<qbvh_node>& local_nodes, uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  JTKQBVHINLINE typename int4::value_type sphere_qbvh::construct_tree_single(aligned_vector<qbvh_node>& local_nodes, uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     assert(first <= last);
     if (first == last)
@@ -4055,7 +4071,7 @@ namespace jtk
     }
 
 
-  typename int4::value_type sphere_qbvh::construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep)
+  JTKQBVHINLINE typename int4::value_type sphere_qbvh::construct_tree_prep(std::vector<tree_stack>& stack, uint32_t& sz, uint32_t& stack_index, uint32_t& node_index, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int level, bool prep)
     {
     assert(first <= last);
     if (first == last)
@@ -4169,7 +4185,7 @@ namespace jtk
     }
 
 
-  typename int4::value_type sphere_qbvh::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  JTKQBVHINLINE typename int4::value_type sphere_qbvh::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     std::vector<tree_stack> stack;
     uint32_t stack_index = 0;
@@ -4256,7 +4272,7 @@ namespace jtk
   // qbvh_two_level
   /////////////////////////////////////////////////////////////////////////
 
-  void unite_four_aabbs(qbvh_voxel& out, const float4* in)
+  JTKQBVHDEF void unite_four_aabbs(qbvh_voxel& out, const float4* in)
     {
     out.bbox_min[0] = min_horizontal(in[0]);
     out.bbox_min[1] = min_horizontal(in[1]);
@@ -4269,7 +4285,7 @@ namespace jtk
     }
 
 
-  qbvh_two_level::qbvh_two_level(const qbvh** objects, uint32_t nr_of_objects)
+  JTKQBVHINLINE qbvh_two_level::qbvh_two_level(const qbvh** objects, uint32_t nr_of_objects)
     {
     nodes.reserve(nr_of_objects);
     qbvh_voxel total_bb, centroid_bb;
@@ -4320,7 +4336,7 @@ namespace jtk
     delete[] voxels;
     }
 
-  hit qbvh_two_level::find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const
+  JTKQBVHINLINE hit qbvh_two_level::find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const
     {
     hit h;
     h.found = 0;
@@ -4405,7 +4421,7 @@ namespace jtk
     }
 
 
-  int32_t qbvh_two_level::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  JTKQBVHINLINE int32_t qbvh_two_level::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     assert(first <= last);
     if (first == last)
@@ -4470,7 +4486,7 @@ namespace jtk
   // qbvh_two_level_with_transformations
   /////////////////////////////////////////////////////////////////////////
 
-  void transform(qbvh_voxel& voxel, const float4x4& matrix)
+  JTKQBVHDEF void transform(qbvh_voxel& voxel, const float4x4& matrix)
     {
     auto xa = matrix.col[0] * voxel.bbox_min[0];
     auto xb = matrix.col[0] * voxel.bbox_max[0];
@@ -4485,7 +4501,7 @@ namespace jtk
     voxel.bbox_max = max(xa, xb) + max(ya, yb) + max(za, zb) + matrix.col[3];
     }
 
-  qbvh_two_level_with_transformations::qbvh_two_level_with_transformations(const qbvh** objects, const float4x4* transformations, uint32_t nr_of_objects)
+  JTKQBVHINLINE qbvh_two_level_with_transformations::qbvh_two_level_with_transformations(const qbvh** objects, const float4x4* transformations, uint32_t nr_of_objects)
     {
     nodes.reserve(nr_of_objects);
     qbvh_voxel total_bb, centroid_bb;
@@ -4537,7 +4553,7 @@ namespace jtk
     delete[] voxels;
     }
 
-  hit qbvh_two_level_with_transformations::find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const float4x4* inverted_transformations, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const
+  JTKQBVHINLINE hit qbvh_two_level_with_transformations::find_closest_triangle(uint32_t& triangle_id, uint32_t& object_id, ray r, const qbvh** objects, const float4x4* inverted_transformations, const vec3<uint32_t>** triangles, const vec3<float>** vertices) const
     {
     hit h;
     h.found = 0;
@@ -4624,7 +4640,7 @@ namespace jtk
     }
 
 
-  int32_t qbvh_two_level_with_transformations::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+  JTKQBVHINLINE int32_t qbvh_two_level_with_transformations::construct_tree(uint32_t& sz, const qbvh_voxel* voxels, qbvh_voxel total_bb, qbvh_voxel centroid_bb, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     assert(first <= last);
     if (first == last)

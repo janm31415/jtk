@@ -30,14 +30,22 @@
 #include <cmath>
 #include <vector>
 
+#ifndef JTKIDEF
+#ifdef JTK_IMAGE_STATIC
+#define JTKIDEF static
+#else
+#define JTKIDEF extern
+#endif
+#endif
+
 namespace jtk
   {
 
   template <class T>
   class image;
 
-  bool load_pgm(image<uint16_t>& im, const std::string& filename);
-  bool write_pgm(const image<uint16_t>& im, const std::string& filename);
+  JTKIDEF bool load_pgm(image<uint16_t>& im, const std::string& filename);
+  JTKIDEF bool write_pgm(const image<uint16_t>& im, const std::string& filename);
 
   template <class T>
   image<T> span_to_image(uint32_t w, uint32_t h, uint32_t stride, const T* p_image);
@@ -57,15 +65,15 @@ namespace jtk
   template <class T>
   image<T> rotate270(const image<T>& im);
 
-  void fill_image(image<uint8_t>& im, uint8_t value);
-  void fill_image(image<uint16_t>& im, uint16_t value);
-  void fill_image(image<uint32_t>& im, uint32_t value);
-  void fill_image(image<float>& im, float value);
+  JTKIDEF void fill_image(image<uint8_t>& im, uint8_t value);
+  JTKIDEF void fill_image(image<uint16_t>& im, uint16_t value);
+  JTKIDEF void fill_image(image<uint32_t>& im, uint32_t value);
+  JTKIDEF void fill_image(image<float>& im, float value);
 
-  image<uint8_t> image_to_gray(const image<uint32_t>& im);
-  image<uint8_t> image_to_gray(const image<float>& im);
+  JTKIDEF image<uint8_t> image_to_gray(const image<uint32_t>& im);
+  JTKIDEF image<uint8_t> image_to_gray(const image<float>& im);
 
-  void minmax(float& min, float& max, const image<float>& im, bool skip_infinity);
+  JTKIDEF void minmax(float& min, float& max, const image<float>& im, bool skip_infinity);
 
   template <class T, class TValid>
   void convolve_col_14641_div_16(image<T>& out, const image<T>& im, TValid valid);
@@ -76,47 +84,47 @@ namespace jtk
   template <class T, class TValid>
   void gauss(image<T>& im, TValid valid);
 
-  std::vector<uint32_t> make_histogram(const image<uint8_t>& im);
+  JTKIDEF std::vector<uint32_t> make_histogram(const image<uint8_t>& im);
 
-  std::vector<uint32_t> make_histogram(const image<uint8_t>& im, int x, int y, int w, int h);
+  JTKIDEF std::vector<uint32_t> make_histogram(const image<uint8_t>& im, int x, int y, int w, int h);
 
-  int64_t get_histogram_weight(std::vector<uint32_t>::const_iterator begin, std::vector<uint32_t>::const_iterator end);
+  JTKIDEF int64_t get_histogram_weight(std::vector<uint32_t>::const_iterator begin, std::vector<uint32_t>::const_iterator end);
 
-  int otsu_threshold(const std::vector<uint32_t>& histogram);
+  JTKIDEF int otsu_threshold(const std::vector<uint32_t>& histogram);
 
-  void threshold_image_region(image<uint8_t>& im, int x, int y, int w, int h, uint8_t threshold);
+  JTKIDEF void threshold_image_region(image<uint8_t>& im, int x, int y, int w, int h, uint8_t threshold);
 
-  image<uint8_t> make_binary_image(const image<uint8_t>& im, int steps_w, int steps_h);
+  JTKIDEF image<uint8_t> make_binary_image(const image<uint8_t>& im, int steps_w, int steps_h);
 
-  image<uint8_t> make_binary_image(const image<uint8_t>& im, uint8_t threshold);
+  JTKIDEF image<uint8_t> make_binary_image(const image<uint8_t>& im, uint8_t threshold);
 
-  image<uint32_t> three_gray_to_uint32_t(const image<uint8_t>& r, const image<uint8_t>& g, const image<uint8_t>& b);
+  JTKIDEF image<uint32_t> three_gray_to_uint32_t(const image<uint8_t>& r, const image<uint8_t>& g, const image<uint8_t>& b);
 
-  image<uint32_t> census_transform(const image<uint8_t>& im);
+  JTKIDEF image<uint32_t> census_transform(const image<uint8_t>& im);
 
-  void census_transform(image<uint32_t>& census_red, image<uint32_t>& census_green, image<uint32_t>& census_blue, const image<uint32_t>& im);
+  JTKIDEF void census_transform(image<uint32_t>& census_red, image<uint32_t>& census_green, image<uint32_t>& census_blue, const image<uint32_t>& im);
 
-  void convolve_col_14641(image<int16_t>& out, const image<uint8_t>& im, bool border = false);
+  JTKIDEF void convolve_col_14641(image<int16_t>& out, const image<uint8_t>& im, bool border = false);
 
-  void convolve_row_14641_div_256(image<uint8_t>& out, const image<int16_t>& im);
+  JTKIDEF void convolve_row_14641_div_256(image<uint8_t>& out, const image<int16_t>& im);
 
-  image<uint8_t> gauss(const image<uint8_t>& im);
+  JTKIDEF image<uint8_t> gauss(const image<uint8_t>& im);
 
-  image<uint8_t> pyramid_down(const image<uint8_t>& im);
+  JTKIDEF image<uint8_t> pyramid_down(const image<uint8_t>& im);
 
-  image<uint8_t> pyramid_up(const image<uint8_t>& im);
+  JTKIDEF image<uint8_t> pyramid_up(const image<uint8_t>& im);
 
-  void split(image<uint8_t>& red, image<uint8_t>& green, image<uint8_t>& blue, const image<uint32_t>& im);
+  JTKIDEF void split(image<uint8_t>& red, image<uint8_t>& green, image<uint8_t>& blue, const image<uint32_t>& im);
 
-  image<uint8_t> remove_even_col_even_row_sse(const image<uint8_t>& im);
+  JTKIDEF image<uint8_t> remove_even_col_even_row_sse(const image<uint8_t>& im);
 
-  image<uint8_t> add_even_col_even_row_sse(const image<uint8_t>& im);
+  JTKIDEF image<uint8_t> add_even_col_even_row_sse(const image<uint8_t>& im);
 
-  image<uint32_t> gauss(const image<uint32_t>& im);
+  JTKIDEF image<uint32_t> gauss(const image<uint32_t>& im);
 
-  image<uint32_t> pyramid_down(const image<uint32_t>& im);
+  JTKIDEF image<uint32_t> pyramid_down(const image<uint32_t>& im);
 
-  image<uint32_t> pyramid_up(const image<uint32_t>& im);
+  JTKIDEF image<uint32_t> pyramid_up(const image<uint32_t>& im);
 
   template <class T>
   class image
@@ -597,7 +605,7 @@ namespace jtk
       3, 2
       };
 
-    float horizontal_min_ps(__m128 x)
+    JTKIDEF float horizontal_min_ps(__m128 x)
       {
       __m128 max1 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 0, 3, 2));
       __m128 max2 = _mm_min_ps(x, max1);
@@ -607,7 +615,7 @@ namespace jtk
       return result;
       }
 
-    float horizontal_max_ps(__m128 x)
+    JTKIDEF float horizontal_max_ps(__m128 x)
       {
       __m128 max1 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 0, 3, 2));
       __m128 max2 = _mm_max_ps(x, max1);
@@ -617,22 +625,22 @@ namespace jtk
       return result;
       }
 
-    __m128 set_data_128(float value)
+    JTKIDEF __m128 set_data_128(float value)
       {
       return _mm_set1_ps(value);
       }
 
-    __m128 set_data_128(uint8_t value)
+    JTKIDEF __m128 set_data_128(uint8_t value)
       {
       return _mm_castsi128_ps(_mm_set1_epi8(value));
       }
 
-    __m128 set_data_128(uint16_t value)
+    JTKIDEF __m128 set_data_128(uint16_t value)
       {
       return _mm_castsi128_ps(_mm_set1_epi16(value));
       }
 
-    __m128 set_data_128(uint32_t value)
+    JTKIDEF __m128 set_data_128(uint32_t value)
       {
       return _mm_castsi128_ps(_mm_set1_epi32(value));
       }
@@ -657,7 +665,7 @@ namespace jtk
         }
       }
 
-    std::string pnm_read_line(std::ifstream& file)
+    JTKIDEF std::string pnm_read_line(std::ifstream& file)
       {
       std::string line;
       std::getline(file, line);
@@ -666,41 +674,41 @@ namespace jtk
       return line;
       }
 
-    void unpack_8bit_to_16bit(const __m128i a, __m128i& b0, __m128i& b1)
+    JTKIDEF void unpack_8bit_to_16bit(const __m128i a, __m128i& b0, __m128i& b1)
       {
       __m128i zero = _mm_setzero_si128();
       b0 = _mm_unpacklo_epi8(a, zero);
       b1 = _mm_unpackhi_epi8(a, zero);
       }
 
-    void split_hi_lo(const __m128i a, const __m128i b, __m128i& hi, __m128i& lo)
+    JTKIDEF void split_hi_lo(const __m128i a, const __m128i b, __m128i& hi, __m128i& lo)
       {
       hi = _mm_unpackhi_epi8(a, b);
       lo = _mm_unpacklo_epi8(a, b);
       }
     } // namespace image_details
 
-  void fill_image(image<uint8_t>& im, uint8_t value)
+  JTKIDEF void fill_image(image<uint8_t>& im, uint8_t value)
     {
     return image_details::fill_image(im, value);
     }
     
-  void fill_image(image<uint16_t>& im, uint16_t value)
+  JTKIDEF void fill_image(image<uint16_t>& im, uint16_t value)
     {
     return image_details::fill_image(im, value);
     }
     
-  void fill_image(image<uint32_t>& im, uint32_t value)
+  JTKIDEF void fill_image(image<uint32_t>& im, uint32_t value)
     {
     return image_details::fill_image(im, value);
     }
     
-  void fill_image(image<float>& im, float value)
+  JTKIDEF void fill_image(image<float>& im, float value)
     {
     return image_details::fill_image(im, value);
     }
 
-  bool load_pgm(image<uint16_t>& im, const std::string& filename)
+  JTKIDEF bool load_pgm(image<uint16_t>& im, const std::string& filename)
     {
     using namespace image_details;
     std::ifstream file(filename, std::ios::in | std::ios::binary);
@@ -745,7 +753,7 @@ namespace jtk
     return true;
     }
 
-  bool write_pgm(const image<uint16_t>& im, const std::string& filename)
+  JTKIDEF bool write_pgm(const image<uint16_t>& im, const std::string& filename)
     {
     std::ofstream file(filename, std::ios::out | std::ios::binary);
     if (file.is_open())
@@ -762,7 +770,7 @@ namespace jtk
     return true;
     }
 
-  image<uint8_t> image_to_gray(const image<uint32_t>& im)
+  JTKIDEF image<uint8_t> image_to_gray(const image<uint32_t>& im)
     {
     image<uint8_t> out(im.width(), im.height(), false);
     for (int y = 0; y < (int)im.height(); ++y)
@@ -777,7 +785,7 @@ namespace jtk
     return out;
     }
 
-  void minmax(float& min, float& max, const image<float>& im, bool skip_infinity)
+  JTKIDEF void minmax(float& min, float& max, const image<float>& im, bool skip_infinity)
     {
     using namespace image_details;
     const int w = (int)im.width();
@@ -826,7 +834,7 @@ namespace jtk
     max = std::max<float>(single_max, horizontal_max_ps(current_max));
     }
 
-  image<uint8_t> image_to_gray(const image<float>& im)
+  JTKIDEF image<uint8_t> image_to_gray(const image<float>& im)
     {
     image<uint8_t> out(im.width(), im.height(), false);
     float fmin, fmax;
@@ -846,7 +854,7 @@ namespace jtk
     return out;
     }
 
-  std::vector<uint32_t> make_histogram(const image<uint8_t>& im)
+  JTKIDEF std::vector<uint32_t> make_histogram(const image<uint8_t>& im)
     {
     std::vector<uint32_t> hist(256, 0);
     for (auto val : im)
@@ -854,7 +862,7 @@ namespace jtk
     return hist;
     }
 
-  std::vector<uint32_t> make_histogram(const image<uint8_t>& im, int x, int y, int w, int h)
+  JTKIDEF std::vector<uint32_t> make_histogram(const image<uint8_t>& im, int x, int y, int w, int h)
     {
     std::vector<uint32_t> hist(256, 0);
     if (x + w > (int)im.width())
@@ -872,7 +880,7 @@ namespace jtk
     return hist;
     }
 
-  int64_t get_histogram_weight(std::vector<uint32_t>::const_iterator begin, std::vector<uint32_t>::const_iterator end)
+  JTKIDEF int64_t get_histogram_weight(std::vector<uint32_t>::const_iterator begin, std::vector<uint32_t>::const_iterator end)
     {
     int64_t w = 0;
     for (auto it = begin; it != end; ++it)
@@ -880,7 +888,7 @@ namespace jtk
     return w;
     }
 
-  int otsu_threshold(const std::vector<uint32_t>& histogram)
+  JTKIDEF int otsu_threshold(const std::vector<uint32_t>& histogram)
     {
     int level = 125;
     int64_t total = get_histogram_weight(histogram.begin(), histogram.end());
@@ -911,7 +919,7 @@ namespace jtk
     return level;
     }
 
-  void threshold_image_region(image<uint8_t>& im, int x, int y, int w, int h, uint8_t threshold)
+  JTKIDEF void threshold_image_region(image<uint8_t>& im, int x, int y, int w, int h, uint8_t threshold)
     {
     if (x + w > (int)im.width())
       w = (int)im.width() - x;
@@ -930,7 +938,7 @@ namespace jtk
       }
     }
 
-  image<uint8_t> make_binary_image(const image<uint8_t>& im, int steps_w, int steps_h)
+  JTKIDEF image<uint8_t> make_binary_image(const image<uint8_t>& im, int steps_w, int steps_h)
     {
     image<uint8_t> out = im;
 
@@ -958,7 +966,7 @@ namespace jtk
     return out;
     }
 
-  image<uint8_t> make_binary_image(const image<uint8_t>& im, uint8_t threshold)
+  JTKIDEF image<uint8_t> make_binary_image(const image<uint8_t>& im, uint8_t threshold)
     {
     image<uint8_t> out(im.width(), im.height());
     const uint8_t* it = im.begin();
@@ -972,7 +980,7 @@ namespace jtk
     return out;
     }
 
-  image<uint32_t> three_gray_to_uint32_t(const image<uint8_t>& r, const image<uint8_t>& g, const image<uint8_t>& b)
+  JTKIDEF image<uint32_t> three_gray_to_uint32_t(const image<uint8_t>& r, const image<uint8_t>& g, const image<uint8_t>& b)
     {
     assert(r.width() == g.width());
     assert(r.width() == b.width());
@@ -1001,7 +1009,7 @@ namespace jtk
     }
 
 
-  image<uint32_t> census_transform(const image<uint8_t>& im)
+  JTKIDEF image<uint32_t> census_transform(const image<uint8_t>& im)
     {
     /*
     The census transform is an image operator that associates to each pixel of a grayscale image a binary string,
@@ -1050,7 +1058,7 @@ namespace jtk
     return ct;
     }
 
-  void census_transform(image<uint32_t>& census_red, image<uint32_t>& census_green, image<uint32_t>& census_blue, const image<uint32_t>& im)
+  JTKIDEF void census_transform(image<uint32_t>& census_red, image<uint32_t>& census_green, image<uint32_t>& census_blue, const image<uint32_t>& im)
     {
     /*
     The census transform is an image operator that associates to each pixel of a grayscale image a binary string,
@@ -1127,7 +1135,7 @@ namespace jtk
       }
     }
 
-  void convolve_col_14641(image<int16_t>& out, const image<uint8_t>& im, bool border)
+  JTKIDEF void convolve_col_14641(image<int16_t>& out, const image<uint8_t>& im, bool border)
     {
     using namespace image_details;
     const int w_chunk = im.stride() / 16;
@@ -1247,7 +1255,7 @@ namespace jtk
     }
 
 
-  void convolve_row_14641_div_256(image<uint8_t>& out, const image<int16_t>& im)
+  JTKIDEF void convolve_row_14641_div_256(image<uint8_t>& out, const image<int16_t>& im)
     {
     out = image<uint8_t>(im.width(), im.height());
     const __m128i* i0 = (const __m128i*)(im.data());
@@ -1311,7 +1319,7 @@ namespace jtk
     }
 
 
-  image<uint8_t> gauss(const image<uint8_t>& im)
+  JTKIDEF image<uint8_t> gauss(const image<uint8_t>& im)
     {
     image<int16_t> temp;
     convolve_col_14641(temp, im);
@@ -1321,7 +1329,7 @@ namespace jtk
     return out;
     }
 
-  void split(image<uint8_t>& red, image<uint8_t>& green, image<uint8_t>& blue, const image<uint32_t>& im)
+  JTKIDEF void split(image<uint8_t>& red, image<uint8_t>& green, image<uint8_t>& blue, const image<uint32_t>& im)
     {
     const uint32_t w = im.width();
     const uint32_t h = im.height();
@@ -1344,7 +1352,7 @@ namespace jtk
       }
     }
 
-  image<uint8_t> remove_even_col_even_row_sse(const image<uint8_t>& im)
+  JTKIDEF image<uint8_t> remove_even_col_even_row_sse(const image<uint8_t>& im)
     {
     using namespace image_details;
     image<uint8_t> out(im.stride() >> 1, (im.height() + im.height() % 2) >> 1);
@@ -1398,7 +1406,7 @@ namespace jtk
     return out;
     }
 
-  image<uint8_t> add_even_col_even_row_sse(const image<uint8_t>& im)
+  JTKIDEF image<uint8_t> add_even_col_even_row_sse(const image<uint8_t>& im)
     {
     image<uint8_t> out(im.width() << 1, im.height() << 1);
     const int w_chunk = im.stride() / 16;
@@ -1427,7 +1435,7 @@ namespace jtk
     return out;
     }
 
-  image<uint32_t> gauss(const image<uint32_t>& im)
+  JTKIDEF image<uint32_t> gauss(const image<uint32_t>& im)
     {
     image<uint8_t> red, green, blue;
     split(red, green, blue, im);
@@ -1437,14 +1445,14 @@ namespace jtk
     return three_gray_to_uint32_t(red, green, blue);
     }
 
-  image<uint8_t> pyramid_down(const image<uint8_t>& im)
+  JTKIDEF image<uint8_t> pyramid_down(const image<uint8_t>& im)
     {
     image<uint8_t> out;
     out = gauss(im);
     return remove_even_col_even_row_sse(out);
     }
 
-  image<uint8_t> pyramid_up(const image<uint8_t>& im)
+  JTKIDEF image<uint8_t> pyramid_up(const image<uint8_t>& im)
     {
     image<uint8_t> out;
     image<int16_t> temp;
@@ -1455,7 +1463,7 @@ namespace jtk
     return out;
     }
 
-  image<uint32_t> pyramid_down(const image<uint32_t>& im)
+  JTKIDEF image<uint32_t> pyramid_down(const image<uint32_t>& im)
     {
     image<uint8_t> red, green, blue;
     split(red, green, blue, im);
@@ -1468,7 +1476,7 @@ namespace jtk
     return three_gray_to_uint32_t(red, green, blue);
     }
 
-  image<uint32_t> pyramid_up(const image<uint32_t>& im)
+  JTKIDEF image<uint32_t> pyramid_up(const image<uint32_t>& im)
     {
     image<uint8_t> red, green, blue;
     split(red, green, blue, im);

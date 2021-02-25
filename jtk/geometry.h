@@ -20,6 +20,22 @@
 #include <vector>
 #include <algorithm>
 
+#ifndef JTKGDEF
+#ifdef JTK_GEOMETRY_STATIC
+#define JTKGDEF static
+#else
+#define JTKGDEF extern
+#endif
+#endif
+
+#ifndef JTKGINLINE
+#ifdef JTK_GEOMETRY_STATIC
+#define JTKGINLINE inline
+#else
+#define JTKGINLINE
+#endif
+#endif
+
 namespace jtk
   {
 
@@ -27,21 +43,21 @@ namespace jtk
   // interfaces
   /////////////////////////////////////////////////////////////////////////
 
-  bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename);
-  bool write_stl(const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const vec3<float>* triangle_normals, const unsigned short* attributes, const char* filename);
-  bool read_obj(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename);
-  bool read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const char* filename);
-  bool read_texture_filename_from_mtl(std::string& texture_file, const char* filename);
-  bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename);
-  bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename);
+  JTKGDEF bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename);
+  JTKGDEF bool write_stl(const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const vec3<float>* triangle_normals, const unsigned short* attributes, const char* filename);
+  JTKGDEF bool read_obj(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename);
+  JTKGDEF bool read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const char* filename);
+  JTKGDEF bool read_texture_filename_from_mtl(std::string& texture_file, const char* filename);
+  JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename);
+  JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename);
 
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts);
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<float>>& normals);
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& clrs);
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs);
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles);
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles);
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles, const std::vector<jtk::vec3<jtk::vec2<float>>>& uv);
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts);
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<float>>& normals);
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& clrs);
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs);
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles);
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles);
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles, const std::vector<jtk::vec3<jtk::vec2<float>>>& uv);
 
   class adjacency_list
     {
@@ -95,62 +111,62 @@ namespace jtk
   template <class TType, class TIndexType>
   void delete_items(std::vector<TType>& vec, const std::vector<TIndexType>& _indices_to_delete);
 
-  void delete_triangles(std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& triangles_to_delete);
+  JTKGDEF void delete_triangles(std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& triangles_to_delete);
 
-  void remove_free_vertices(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
+  JTKGDEF void remove_free_vertices(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
 
-  bool edge_swap(uint32_t v, uint32_t v2, std::vector<jtk::vec3<uint32_t>>& triangles, jtk::mutable_adjacency_list& adj_list);
+  JTKGDEF bool edge_swap(uint32_t v, uint32_t v2, std::vector<jtk::vec3<uint32_t>>& triangles, jtk::mutable_adjacency_list& adj_list);
 
-  std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles);
+  JTKGDEF std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles);
 
-  std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles);
+  JTKGDEF std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles);
   
-  std::vector<std::vector<uint32_t>> ordered_one_ring_vertices_from_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles, bool oriented = true);
+  JTKGDEF std::vector<std::vector<uint32_t>> ordered_one_ring_vertices_from_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles, bool oriented = true);
 
-  void compute_triangle_normals(std::vector<vec3<float>>& triangle_normals, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles);
+  JTKGDEF void compute_triangle_normals(std::vector<vec3<float>>& triangle_normals, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles);
 
-  void compute_vertex_normals(std::vector<vec3<float>>& vertex_normals, const vec3<float>* triangle_normals, const vec3<float>* vertices, const uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles);
+  JTKGDEF void compute_vertex_normals(std::vector<vec3<float>>& vertex_normals, const vec3<float>* triangle_normals, const vec3<float>* vertices, const uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles);
 
-  vec3<float> normal(uint32_t triangle_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles);
+  JTKGDEF vec3<float> normal(uint32_t triangle_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles);
 
-  vec3<float> normal(uint32_t vertex_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle = 0.86602540f);
+  JTKGDEF vec3<float> normal(uint32_t vertex_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle = 0.86602540f);
 
-  float area(uint32_t triangle_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles);
+  JTKGDEF float area(uint32_t triangle_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles);
 
-  std::vector<uint32_t> triangle_indices_from_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list);
+  JTKGDEF std::vector<uint32_t> triangle_indices_from_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list);
 
-  std::vector<uint32_t> triangle_indices_from_edge(uint32_t v0, uint32_t v1, const mutable_adjacency_list& adj_list);
+  JTKGDEF std::vector<uint32_t> triangle_indices_from_edge(uint32_t v0, uint32_t v1, const mutable_adjacency_list& adj_list);
 
-  float signed_volume(const vec3<float>* vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles);
+  JTKGDEF float signed_volume(const vec3<float>* vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles);
 
-  bool is_sharp_edge(uint32_t v0, uint32_t v1, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle = 0.86602540f);
+  JTKGDEF bool is_sharp_edge(uint32_t v0, uint32_t v1, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle = 0.86602540f);
 
-  bool is_sharp_edge(uint32_t v0, uint32_t v1, const vec3<float>* triangle_normals, const adjacency_list& adj_list, float cos_sharp_angle = 0.86602540f);
+  JTKGDEF bool is_sharp_edge(uint32_t v0, uint32_t v1, const vec3<float>* triangle_normals, const adjacency_list& adj_list, float cos_sharp_angle = 0.86602540f);
 
-  bool vertex_on_sharp_edge(uint32_t vertex_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle = 0.86602540f);
+  JTKGDEF bool vertex_on_sharp_edge(uint32_t vertex_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle = 0.86602540f);
 
-  std::vector<std::vector<uint32_t>> triangle_neighbour_indices(const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles, const adjacency_list& adj_list);
+  JTKGDEF std::vector<std::vector<uint32_t>> triangle_neighbour_indices(const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles, const adjacency_list& adj_list);
 
   // returns false if tria1 and tria2 share three or no edges (in the latter case e contains std::numeric_limits<size_t>::max() twice)
   // otherwise returns the shared edge oriented such as it appears in tria1
-  bool edge_between_triangles(uint32_t& v0, uint32_t& v1, const vec3<uint32_t>& tria1, const vec3<uint32_t>& tria2);
+  JTKGDEF bool edge_between_triangles(uint32_t& v0, uint32_t& v1, const vec3<uint32_t>& tria1, const vec3<uint32_t>& tria2);
 
-  bool is_manifold_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list);
+  JTKGDEF bool is_manifold_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list);
 
-  bool is_boundary_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list);
+  JTKGDEF bool is_boundary_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list);
 
-  bool is_boundary_edge(uint32_t v0, uint32_t v1, const mutable_adjacency_list& adj_list);
+  JTKGDEF bool is_boundary_edge(uint32_t v0, uint32_t v1, const mutable_adjacency_list& adj_list);
 
-  bool is_boundary_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles);
+  JTKGDEF bool is_boundary_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles);
 
-  bool is_boundary_vertex(uint32_t vertex_index, const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles);
+  JTKGDEF bool is_boundary_vertex(uint32_t vertex_index, const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles);
 
   enum class shell_connectivity { vertex, edge, manifold };
-  std::vector<uint32_t> shells(const uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles, shell_connectivity conn = shell_connectivity::edge);
+  JTKGDEF std::vector<uint32_t> shells(const uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles, shell_connectivity conn = shell_connectivity::edge);
 
-  std::vector<std::vector<uint32_t>> holes(const adjacency_list& adj_list, const vec3<uint32_t>* triangles);
+  JTKGDEF std::vector<std::vector<uint32_t>> holes(const adjacency_list& adj_list, const vec3<uint32_t>* triangles);
 
-  std::vector<std::vector<uint32_t>> holes(const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles);
+  JTKGDEF std::vector<std::vector<uint32_t>> holes(const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles);
 
   struct trivial_ear
     {
@@ -169,7 +185,7 @@ namespace jtk
     float angle_rad;
     };
 
-  float dihedral_angle(const vec3<float>& u, const vec3<float>& v, const vec3<float>& a, const vec3<float>& b);
+  JTKGDEF float dihedral_angle(const vec3<float>& u, const vec3<float>& v, const vec3<float>& a, const vec3<float>& b);
 
   struct minimum_weight_ear : public trivial_ear
     {
@@ -187,14 +203,14 @@ namespace jtk
   template <class Ear>
   void fill_holes(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, uint32_t max_holes_size);
 
-  void smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
-  void local_smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& vertex_indices, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
-  void dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
-  void dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv);
-  void dyadic_subdivide_triangle_indices_vector(std::vector<uint32_t>& triangle_indices, uint32_t original_number_of_triangles);
-  void undo_dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
-  void undo_dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv);
-  void butterfly(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
+  JTKGDEF void smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
+  JTKGDEF void local_smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& vertex_indices, uint32_t iterations = 100, float lambda = 0.33f, float mu = -0.34f);
+  JTKGDEF void dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
+  JTKGDEF void dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv);
+  JTKGDEF void dyadic_subdivide_triangle_indices_vector(std::vector<uint32_t>& triangle_indices, uint32_t original_number_of_triangles);
+  JTKGDEF void undo_dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
+  JTKGDEF void undo_dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv);
+  JTKGDEF void butterfly(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
 
   template <class TDistanceFunction, class TValidValue>
   void marching_cubes(
@@ -207,7 +223,7 @@ namespace jtk
     TValidValue valid_value);
     
     
-  bool stitch_points(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, float distance_tolerance);
+  JTKGDEF bool stitch_points(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, float distance_tolerance);
   
   
   
@@ -792,7 +808,7 @@ namespace jtk
 namespace jtk
   {
 
-  bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+  JTKGDEF bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
     {
     FILE* inputfile;
 
@@ -910,7 +926,7 @@ namespace jtk
     return true;
     }
 
-  bool write_stl(const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const vec3<float>* triangle_normals, const unsigned short* attributes, const char* filename)
+  JTKGDEF bool write_stl(const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const vec3<float>* triangle_normals, const unsigned short* attributes, const char* filename)
     {
     FILE* outputfile;
     outputfile = fopen(filename, "wb");
@@ -969,7 +985,7 @@ namespace jtk
     return true;
     }
 
-  bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+  JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
     {
     uint32_t nr_of_vertices = 0;
     uint32_t nr_of_triangles = 0;
@@ -1029,7 +1045,7 @@ namespace jtk
     return true;
     }
 
-  bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename)
+  JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename)
     {
     FILE* outputfile = fopen(filename, "w");
     if (!outputfile)
@@ -1060,7 +1076,7 @@ namespace jtk
     return true;
     }
 
-  bool read_obj(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+  JTKGDEF bool read_obj(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
     {
     FILE* f = nullptr;
     f = fopen(filename, "r");
@@ -1151,7 +1167,7 @@ namespace jtk
     return true;
     }
 
-  bool read_texture_filename_from_mtl(std::string& texture_file, const char* filename)
+  JTKGDEF bool read_texture_filename_from_mtl(std::string& texture_file, const char* filename)
     {
     FILE* f = nullptr;
     f = fopen(filename, "r");
@@ -1177,7 +1193,7 @@ namespace jtk
     return false;
     }
 
-  bool read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const char* filename)
+  JTKGDEF bool read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const char* filename)
     {
     mtl_filename = "";
     std::vector<vec3<float>>().swap(vertices);
@@ -1317,7 +1333,7 @@ namespace jtk
     return true;
     }
 
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts)
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts)
     {
     FILE* fp = fopen(filename, "wt");
     if (!fp)
@@ -1338,7 +1354,7 @@ namespace jtk
     return true;
     }
 
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<float>>& normals)
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<float>>& normals)
     {
     if (normals.empty())
       {
@@ -1367,7 +1383,7 @@ namespace jtk
     return true;
     }
     
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& clrs)
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& clrs)
     {
     if (clrs.empty())
       {
@@ -1396,7 +1412,7 @@ namespace jtk
     return true;
     }
 
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs)
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs)
     {
     if (normals.empty())
       {
@@ -1433,7 +1449,7 @@ namespace jtk
     return true;
     }
 
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles)
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles)
     {
     FILE* fp = fopen(filename, "wb");
     if (!fp)
@@ -1463,7 +1479,7 @@ namespace jtk
     }
 
 
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles)
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles)
     {
     FILE* fp = fopen(filename, "wb");
     if (!fp)
@@ -1501,7 +1517,7 @@ namespace jtk
     return true;
     }
 
-  bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles, const std::vector<jtk::vec3<jtk::vec2<float>>>& uv)
+  JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles, const std::vector<jtk::vec3<jtk::vec2<float>>>& uv)
     {
     FILE* fp = fopen(filename, "wb");
     if (!fp)
@@ -1537,22 +1553,22 @@ namespace jtk
     return true;
     }
 
-  adjacency_list::adjacency_list() : _nr_of_vertices(0)
+  JTKGINLINE adjacency_list::adjacency_list() : _nr_of_vertices(0)
     {
 
     }
 
-  adjacency_list::adjacency_list(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles) : _nr_of_vertices(nr_of_vertices)
+  JTKGINLINE adjacency_list::adjacency_list(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles) : _nr_of_vertices(nr_of_vertices)
     {
     build(nr_of_vertices, triangles, nr_of_triangles);
     }
 
-  adjacency_list::~adjacency_list()
+  JTKGINLINE adjacency_list::~adjacency_list()
     {
 
     }
 
-  void adjacency_list::build(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+  JTKGINLINE void adjacency_list::build(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
     {
     _nr_of_vertices = nr_of_vertices;
     std::vector<uint32_t>(nr_of_vertices + 1, 0).swap(offset_per_vertex);
@@ -1584,42 +1600,42 @@ namespace jtk
       }
     }
 
-  adjacency_list::const_iterator adjacency_list::begin(uint32_t vertex_index) const
+  JTKGINLINE adjacency_list::const_iterator adjacency_list::begin(uint32_t vertex_index) const
     {
     return triangles_per_vertex_list.begin() + offset_per_vertex[vertex_index];
     }
 
-  adjacency_list::const_iterator adjacency_list::end(uint32_t vertex_index) const
+  JTKGINLINE adjacency_list::const_iterator adjacency_list::end(uint32_t vertex_index) const
     {
     return triangles_per_vertex_list.begin() + offset_per_vertex[vertex_index + 1];
     }
 
-  uint32_t adjacency_list::size() const
+  JTKGINLINE uint32_t adjacency_list::size() const
     {
     return _nr_of_vertices;
     }
 
-  bool adjacency_list::empty() const
+  JTKGINLINE bool adjacency_list::empty() const
     {
     return _nr_of_vertices == 0;
     }
 
-  mutable_adjacency_list::mutable_adjacency_list()
+  JTKGINLINE mutable_adjacency_list::mutable_adjacency_list()
     {
 
     }
 
-  mutable_adjacency_list::mutable_adjacency_list(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+  JTKGINLINE mutable_adjacency_list::mutable_adjacency_list(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
     {
     build(nr_of_vertices, triangles, nr_of_triangles);
     }
 
-  mutable_adjacency_list::~mutable_adjacency_list()
+  JTKGINLINE mutable_adjacency_list::~mutable_adjacency_list()
     {
 
     }
 
-  void mutable_adjacency_list::build(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+  JTKGINLINE void mutable_adjacency_list::build(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
     {
     triangles_per_vertex_list.resize(nr_of_vertices);
     for (uint32_t v = 0; v < nr_of_vertices; ++v)
@@ -1634,7 +1650,7 @@ namespace jtk
       }
     }
 
-  void mutable_adjacency_list::add_triangle_to_vertex(uint32_t vertex_id, uint32_t triangle_id)
+  JTKGINLINE void mutable_adjacency_list::add_triangle_to_vertex(uint32_t vertex_id, uint32_t triangle_id)
     {
     auto first = triangles_per_vertex_list[vertex_id].begin();
     auto last = triangles_per_vertex_list[vertex_id].end();
@@ -1642,7 +1658,7 @@ namespace jtk
     triangles_per_vertex_list[vertex_id].insert(it, triangle_id);
     }
 
-  void mutable_adjacency_list::remove_triangle_from_vertex(uint32_t vertex_id, uint32_t triangle_id)
+  JTKGINLINE void mutable_adjacency_list::remove_triangle_from_vertex(uint32_t vertex_id, uint32_t triangle_id)
     {
     auto first = triangles_per_vertex_list[vertex_id].begin();
     auto last = triangles_per_vertex_list[vertex_id].end();
@@ -1653,8 +1669,7 @@ namespace jtk
       }
     }
 
-
-  void mutable_adjacency_list::add_triangles_to_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
+  JTKGINLINE void mutable_adjacency_list::add_triangles_to_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
     {
     auto sz = size(vertex_index);
     triangles_per_vertex_list[vertex_index].resize(sz + triangle_indices.size());
@@ -1683,7 +1698,7 @@ namespace jtk
       }
     }
 
-  void mutable_adjacency_list::remove_triangles_from_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
+  JTKGINLINE void mutable_adjacency_list::remove_triangles_from_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
     {
     auto first = triangles_per_vertex_list[vertex_index].begin();
     auto last = triangles_per_vertex_list[vertex_index].end();
@@ -1709,37 +1724,37 @@ namespace jtk
     triangles_per_vertex_list[vertex_index].resize(triangles_per_vertex_list[vertex_index].size() - offset);
     }
 
-  mutable_adjacency_list::const_iterator mutable_adjacency_list::begin(uint32_t vertex_index) const
+  JTKGINLINE mutable_adjacency_list::const_iterator mutable_adjacency_list::begin(uint32_t vertex_index) const
     {
     return triangles_per_vertex_list[vertex_index].begin();
     }
 
-  mutable_adjacency_list::const_iterator mutable_adjacency_list::end(uint32_t vertex_index) const
+  JTKGINLINE mutable_adjacency_list::const_iterator mutable_adjacency_list::end(uint32_t vertex_index) const
     {
     return triangles_per_vertex_list[vertex_index].end();
     }
 
-  uint32_t mutable_adjacency_list::size(uint32_t vertex_index) const
+  JTKGINLINE uint32_t mutable_adjacency_list::size(uint32_t vertex_index) const
     {
     return (uint32_t)triangles_per_vertex_list[vertex_index].size();
     }
 
-  uint32_t mutable_adjacency_list::size() const
+  JTKGINLINE uint32_t mutable_adjacency_list::size() const
     {
     return (uint32_t)triangles_per_vertex_list.size();
     }
 
-  bool mutable_adjacency_list::empty() const
+  JTKGINLINE bool mutable_adjacency_list::empty() const
     {
     return triangles_per_vertex_list.empty();
     }
 
-  void delete_triangles(std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& triangles_to_delete)
+  JTKGDEF void delete_triangles(std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& triangles_to_delete)
     {
     delete_items(triangles, triangles_to_delete);
     }
 
-  void remove_free_vertices(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
+  JTKGDEF void remove_free_vertices(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
     {
     std::vector<uint32_t> count_occurence(vertices.size(), 0);
     for (const auto& tria : triangles)
@@ -1776,7 +1791,7 @@ namespace jtk
     vertices.swap(new_vertices);
     }
 
-  bool edge_swap(uint32_t v, uint32_t v2, std::vector<jtk::vec3<uint32_t>>& triangles, jtk::mutable_adjacency_list& adj_list)
+  JTKGDEF bool edge_swap(uint32_t v, uint32_t v2, std::vector<jtk::vec3<uint32_t>>& triangles, jtk::mutable_adjacency_list& adj_list)
     {
     auto tria = jtk::triangle_indices_from_edge(v, v2, adj_list);
     if (tria.size() != 2)
@@ -1836,7 +1851,7 @@ namespace jtk
     return true;
     }
 
-  std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles)
+  JTKGDEF std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles)
     {
     std::vector<uint32_t> one_ring;
     one_ring.reserve(16);
@@ -1860,7 +1875,7 @@ namespace jtk
     return one_ring;
     }
 
-  std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles)
+  JTKGDEF std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles)
     {
     std::vector<uint32_t> one_ring;
     one_ring.reserve(16);
@@ -1884,7 +1899,7 @@ namespace jtk
     return one_ring;
     }
     
-  std::vector<std::vector<uint32_t>> ordered_one_ring_vertices_from_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles, bool oriented)
+  JTKGDEF std::vector<std::vector<uint32_t>> ordered_one_ring_vertices_from_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles, bool oriented)
     {
     auto it = adj_list.begin(vertex_index);
     const auto it_end = adj_list.end(vertex_index);
@@ -1965,7 +1980,7 @@ namespace jtk
     return batches;
     }
 
-  vec3<float> normal(uint32_t triangle_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles)
+  JTKGDEF vec3<float> normal(uint32_t triangle_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles)
     {
     const auto v0 = triangles[triangle_index][0];
     const auto v1 = triangles[triangle_index][1];
@@ -1977,7 +1992,7 @@ namespace jtk
     return n;
     }
 
-  vec3<float> normal(uint32_t vertex_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle)
+  JTKGDEF vec3<float> normal(uint32_t vertex_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle)
     {
     vec3<float> n(0, 0, 0);
     auto indices_first = adj_list.begin(vertex_index);
@@ -2003,7 +2018,7 @@ namespace jtk
     return n;
     }
 
-  void compute_triangle_normals(std::vector<vec3<float>>& triangle_normals, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles)
+  JTKGDEF void compute_triangle_normals(std::vector<vec3<float>>& triangle_normals, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles)
     {
         {
         std::vector<vec3<float>>().swap(triangle_normals);
@@ -2022,7 +2037,7 @@ namespace jtk
           });
     }
 
-  void compute_vertex_normals(std::vector<jtk::vec3<float>>& vertex_normals, const jtk::vec3<float>* triangle_normals,
+  JTKGDEF void compute_vertex_normals(std::vector<jtk::vec3<float>>& vertex_normals, const jtk::vec3<float>* triangle_normals,
     const jtk::vec3<float>* vertices, const uint32_t nr_of_vertices, const jtk::vec3<uint32_t>* triangles, const uint32_t nr_of_triangles)
     {
     vertex_normals.resize(nr_of_vertices, vec3<float>(0.f, 0.f, 0.f));
@@ -2082,7 +2097,7 @@ namespace jtk
       }
     }
 
-  std::vector<uint32_t> triangle_indices_from_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list)
+  JTKGDEF std::vector<uint32_t> triangle_indices_from_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list)
     {
     assert(v0 != v1);
     std::vector<uint32_t> result;
@@ -2090,7 +2105,7 @@ namespace jtk
     return result;
     }
 
-  std::vector<uint32_t> triangle_indices_from_edge(uint32_t v0, uint32_t v1, const mutable_adjacency_list& adj_list)
+  JTKGDEF std::vector<uint32_t> triangle_indices_from_edge(uint32_t v0, uint32_t v1, const mutable_adjacency_list& adj_list)
     {
     assert(v0 != v1);
     std::vector<uint32_t> result;
@@ -2099,7 +2114,7 @@ namespace jtk
     return result;
     }
 
-  float signed_volume(const vec3<float>* vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles)
+  JTKGDEF float signed_volume(const vec3<float>* vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles)
     {
     float vol = 0.f;
     for (uint32_t t = 0; t < nr_of_triangles; ++t)
@@ -2112,7 +2127,7 @@ namespace jtk
     return vol;
     }
 
-  float area(uint32_t triangle_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles)
+  JTKGDEF float area(uint32_t triangle_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles)
     {
     const auto v0 = triangles[triangle_index][0];
     const auto v1 = triangles[triangle_index][1];
@@ -2123,7 +2138,7 @@ namespace jtk
     return length(cross(V1 - V0, V2 - V0)) / 2.f;
     }
 
-  bool is_sharp_edge(uint32_t v0, uint32_t v1, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle)
+  JTKGDEF bool is_sharp_edge(uint32_t v0, uint32_t v1, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle)
     {
     auto trias = triangle_indices_from_edge(v0, v1, adj_list);
     if (trias.size() == 2)
@@ -2145,7 +2160,7 @@ namespace jtk
     return false;
     }
 
-  bool is_sharp_edge(uint32_t v0, uint32_t v1, const vec3<float>* triangle_normals, const adjacency_list& adj_list, float cos_sharp_angle)
+  JTKGDEF bool is_sharp_edge(uint32_t v0, uint32_t v1, const vec3<float>* triangle_normals, const adjacency_list& adj_list, float cos_sharp_angle)
     {
     auto trias = triangle_indices_from_edge(v0, v1, adj_list);
     if (trias.size() == 2)
@@ -2156,7 +2171,7 @@ namespace jtk
     return false;
     }
 
-  bool vertex_on_sharp_edge(uint32_t vertex_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle)
+  JTKGDEF bool vertex_on_sharp_edge(uint32_t vertex_index, const vec3<float>* vertices, const vec3<uint32_t>* triangles, const adjacency_list& adj_list, float cos_sharp_angle)
     {
     auto one_ring = one_ring_vertices_from_vertex(vertex_index, adj_list, triangles);
     for (auto v : one_ring)
@@ -2167,7 +2182,7 @@ namespace jtk
     return false;
     }
 
-  std::vector<std::vector<uint32_t>> triangle_neighbour_indices(const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles, const adjacency_list& adj_list)
+  JTKGDEF std::vector<std::vector<uint32_t>> triangle_neighbour_indices(const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles, const adjacency_list& adj_list)
     {
     std::vector<std::vector<uint32_t>> result(nr_of_triangles);
     parallel_for(uint32_t(0), nr_of_triangles, [&](uint32_t idx)
@@ -2188,7 +2203,7 @@ namespace jtk
     return result;
     }
 
-  bool edge_between_triangles(uint32_t& v0, uint32_t& v1, const vec3<uint32_t>& tria1, const vec3<uint32_t>& tria2)
+  JTKGDEF bool edge_between_triangles(uint32_t& v0, uint32_t& v1, const vec3<uint32_t>& tria1, const vec3<uint32_t>& tria2)
     {
     uint32_t idx = 0;
     std::array<uint32_t, 3> common, idces;
@@ -2215,23 +2230,23 @@ namespace jtk
     return (idx == 2);
     }
 
-  bool is_manifold_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list)
+  JTKGDEF bool is_manifold_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list)
     {
     auto tri_idces = triangle_indices_from_edge(v0, v1, adj_list);
     return tri_idces.size() == 2;
     }
 
-  bool is_boundary_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list)
+  JTKGDEF bool is_boundary_edge(uint32_t v0, uint32_t v1, const adjacency_list& adj_list)
     {
     return triangle_indices_from_edge(v0, v1, adj_list).size() == 1;
     }
 
-  bool is_boundary_edge(uint32_t v0, uint32_t v1, const mutable_adjacency_list& adj_list)
+  JTKGDEF bool is_boundary_edge(uint32_t v0, uint32_t v1, const mutable_adjacency_list& adj_list)
     {
     return triangle_indices_from_edge(v0, v1, adj_list).size() == 1;
     }
 
-  bool is_boundary_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles)
+  JTKGDEF bool is_boundary_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles)
     {
     auto vert = one_ring_vertices_from_vertex(vertex_index, adj_list, triangles);
     for (auto v : vert)
@@ -2242,7 +2257,7 @@ namespace jtk
     return false;
     }
 
-  bool is_boundary_vertex(uint32_t vertex_index, const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles)
+  JTKGDEF bool is_boundary_vertex(uint32_t vertex_index, const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles)
     {
     auto vert = one_ring_vertices_from_vertex(vertex_index, adj_list, triangles);
     for (auto v : vert)
@@ -2256,7 +2271,7 @@ namespace jtk
 
   namespace details
     {
-    std::vector<uint32_t> _shells(const uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles, bool manifold)
+    JTKGDEF std::vector<uint32_t> _shells(const uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles, bool manifold)
       {
       std::vector<uint32_t> sh(nr_of_triangles, 0);
       auto adj_list = adjacency_list(nr_of_vertices, triangles, nr_of_triangles);
@@ -2306,7 +2321,7 @@ namespace jtk
     }
 
 
-  std::vector<uint32_t> shells(const uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles, shell_connectivity conn)
+  JTKGDEF std::vector<uint32_t> shells(const uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, const uint32_t nr_of_triangles, shell_connectivity conn)
     {
     using namespace details;
     switch (conn)
@@ -2356,9 +2371,9 @@ namespace jtk
       }
     }
 
-  trivial_ear::trivial_ear() : vertices(nullptr), adj_list(nullptr), v0((uint32_t)-1), v1((uint32_t)-1), v2((uint32_t)-1) {}
+  JTKGINLINE trivial_ear::trivial_ear() : vertices(nullptr), adj_list(nullptr), v0((uint32_t)-1), v1((uint32_t)-1), v2((uint32_t)-1) {}
 
-  trivial_ear::trivial_ear(uint32_t p0, uint32_t p1, uint32_t p2, const vec3<float>* p_vertices, const vec3<uint32_t>* p_triangles, const mutable_adjacency_list* p_adj_list) :
+  JTKGINLINE trivial_ear::trivial_ear(uint32_t p0, uint32_t p1, uint32_t p2, const vec3<float>* p_vertices, const vec3<uint32_t>* p_triangles, const mutable_adjacency_list* p_adj_list) :
     v0(p0), v1(p1), v2(p2), vertices(p_vertices), adj_list(p_adj_list)
     {
     n = normalize(cross(vertices[v2] - vertices[v1], vertices[v0] - vertices[v1]));
@@ -2366,7 +2381,7 @@ namespace jtk
     compute_angle(p_triangles);
     }
 
-  void trivial_ear::compute_quality()
+  JTKGINLINE void trivial_ear::compute_quality()
     {
     auto p0 = vertices[v0];
     auto p1 = vertices[v1];
@@ -2378,7 +2393,7 @@ namespace jtk
     quality = area / (e1 + e2 + e3);
     }
 
-  void trivial_ear::compute_angle(const vec3<uint32_t>* triangles)
+  JTKGINLINE void trivial_ear::compute_angle(const vec3<uint32_t>* triangles)
     {
     auto point1 = vertices[v2] - vertices[v1];
     auto point2 = vertices[v0] - vertices[v1];
@@ -2396,12 +2411,12 @@ namespace jtk
       angle_rad = 2.f*3.141592653589793238462643383f - angle_rad;
     }
 
-  bool trivial_ear::is_concave() const
+  JTKGINLINE bool trivial_ear::is_concave() const
     {
     return angle_rad > 3.141592653589793238462643383f;
     }
 
-  bool trivial_ear::operator < (const trivial_ear& other) const
+  JTKGINLINE bool trivial_ear::operator < (const trivial_ear& other) const
     {
     if (is_concave() && !other.is_concave())
       return true;
@@ -2410,7 +2425,7 @@ namespace jtk
     return quality < other.quality;
     }
 
-  float dihedral_angle(const vec3<float>& u, const vec3<float>& v, const vec3<float>& a, const vec3<float>& b)
+  JTKGDEF float dihedral_angle(const vec3<float>& u, const vec3<float>& v, const vec3<float>& a, const vec3<float>& b)
     {
     auto n0 = normalize(cross(v - u, a - u));
     auto n1 = normalize(cross(u - v, b - v));
@@ -2422,16 +2437,16 @@ namespace jtk
     return acos(dt);
     }
 
-  minimum_weight_ear::minimum_weight_ear() : trivial_ear()
+  JTKGINLINE minimum_weight_ear::minimum_weight_ear() : trivial_ear()
     {}
 
-  minimum_weight_ear::minimum_weight_ear(uint32_t p0, uint32_t p1, uint32_t p2, const vec3<float>* p_vertices, const vec3<uint32_t>* p_triangles, const mutable_adjacency_list* p_adj_list) :
+  JTKGINLINE minimum_weight_ear::minimum_weight_ear(uint32_t p0, uint32_t p1, uint32_t p2, const vec3<float>* p_vertices, const vec3<uint32_t>* p_triangles, const mutable_adjacency_list* p_adj_list) :
     trivial_ear(p0, p1, p2, p_vertices, p_triangles, p_adj_list)
     {
     compute_quality(p_triangles);
     }
 
-  void minimum_weight_ear::compute_quality(const vec3<uint32_t>* triangles)
+  JTKGINLINE void minimum_weight_ear::compute_quality(const vec3<uint32_t>* triangles)
     {
     aspect_ratio = quality;
     dihedral_rad = 0.f;
@@ -2464,7 +2479,7 @@ namespace jtk
     dihedral_rad = std::max(dihedral_a, dihedral_b);
     }
 
-  bool minimum_weight_ear::operator < (const minimum_weight_ear& other) const
+  JTKGINLINE bool minimum_weight_ear::operator < (const minimum_weight_ear& other) const
     {
     if (is_concave() && !other.is_concave())
       return true;
@@ -2603,12 +2618,12 @@ namespace jtk
       }
     }
 
-  std::vector<std::vector<uint32_t>> holes(const adjacency_list& adj_list, const vec3<uint32_t>* triangles)
+  JTKGDEF std::vector<std::vector<uint32_t>> holes(const adjacency_list& adj_list, const vec3<uint32_t>* triangles)
     {
     return hole_filling_details::_holes<adjacency_list>(adj_list, triangles);
     }
 
-  std::vector<std::vector<uint32_t>> holes(const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles)
+  JTKGDEF std::vector<std::vector<uint32_t>> holes(const mutable_adjacency_list& adj_list, const vec3<uint32_t>* triangles)
     {
     return hole_filling_details::_holes<mutable_adjacency_list>(adj_list, triangles);
     }
@@ -2649,7 +2664,7 @@ namespace jtk
   namespace details
     {
 
-    void _CreateFilter(std::vector<std::vector<uint32_t>>& io_filter, const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles)
+    JTKGDEF void _CreateFilter(std::vector<std::vector<uint32_t>>& io_filter, const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles)
       {
       std::vector<std::vector<uint32_t>> filter(vertices.size());
       for (size_t i = 0; i < triangles.size(); ++i)
@@ -2664,7 +2679,7 @@ namespace jtk
       io_filter.swap(filter);
       }
 
-    void _ApplyFilter(std::vector<vec3<float>>& o_vertices, std::vector<vec3<float>>& i_vertices, const std::vector<std::vector<uint32_t>>& i_filter, float filter_value)
+    JTKGDEF void _ApplyFilter(std::vector<vec3<float>>& o_vertices, std::vector<vec3<float>>& i_vertices, const std::vector<std::vector<uint32_t>>& i_filter, float filter_value)
       {
       if (!filter_value)
         {
@@ -2683,7 +2698,7 @@ namespace jtk
         });
       }
 
-    void _ApplyLocalFilter(std::vector<vec3<float>>& o_vertices, std::vector<vec3<float>>& i_vertices, const std::vector<uint32_t>& vertex_indices, const std::vector<std::vector<uint32_t>>& i_filter, float filter_value)
+    JTKGDEF void _ApplyLocalFilter(std::vector<vec3<float>>& o_vertices, std::vector<vec3<float>>& i_vertices, const std::vector<uint32_t>& vertex_indices, const std::vector<std::vector<uint32_t>>& i_filter, float filter_value)
       {
       if (!filter_value)
         {
@@ -2705,7 +2720,7 @@ namespace jtk
       }
     }
 
-  void smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, uint32_t iterations, float lambda, float mu)
+  JTKGDEF void smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, uint32_t iterations, float lambda, float mu)
     {
     using namespace details;
     std::vector<std::vector<uint32_t>> filter;
@@ -2718,7 +2733,7 @@ namespace jtk
       }
     }
 
-  void local_smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& vertex_indices, uint32_t iterations, float lambda, float mu)
+  JTKGDEF void local_smooth(std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& vertex_indices, uint32_t iterations, float lambda, float mu)
     {
     using namespace details;
     std::vector<std::vector<uint32_t>> filter;
@@ -2731,7 +2746,7 @@ namespace jtk
       }
     }
 
-  void dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
+  JTKGDEF void dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
     {
     const uint32_t nr_of_vertices = (uint32_t)vertices.size();
     const uint32_t nr_of_triangles = (uint32_t)triangles.size();
@@ -2779,7 +2794,7 @@ namespace jtk
       }
     }
     
-  void dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv)
+  JTKGDEF void dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv)
     {
     size_t original_triangles = triangle_uv.size();
     std::vector<jtk::vec3<jtk::vec2<float>>> new_uv_out;
@@ -2808,7 +2823,7 @@ namespace jtk
     triangle_uv.swap(new_uv_out);
     }
     
-  void dyadic_subdivide_triangle_indices_vector(std::vector<uint32_t>& triangle_indices, uint32_t original_number_of_triangles)
+  JTKGDEF void dyadic_subdivide_triangle_indices_vector(std::vector<uint32_t>& triangle_indices, uint32_t original_number_of_triangles)
     {
     const size_t sz = triangle_indices.size();
     triangle_indices.reserve(sz*4);
@@ -2821,7 +2836,7 @@ namespace jtk
       }
     }
 
-  void undo_dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
+  JTKGDEF void undo_dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
     {
     const uint32_t nr_of_vertices = vertices.size();
     const uint32_t nr_of_triangles = triangles.size();
@@ -2849,7 +2864,7 @@ namespace jtk
     vertices.resize(original_nr_of_vertices);
     }
     
-  void undo_dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv)
+  JTKGDEF void undo_dyadic_subdivide_uv_map(std::vector<jtk::vec3<jtk::vec2<float>>>& triangle_uv)
     {
     const uint32_t number_of_original_triangles = (uint32_t)triangle_uv.size() / 4;
     for (uint32_t t = 0; t < number_of_original_triangles; ++t)
@@ -2861,7 +2876,7 @@ namespace jtk
     triangle_uv.resize(number_of_original_triangles);
     }
     
-  void butterfly(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
+  JTKGDEF void butterfly(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
     {
     const uint32_t nr_of_vertices = vertices.size();
     const uint32_t nr_of_triangles = triangles.size();
@@ -3053,7 +3068,7 @@ namespace jtk
       }
     }
 
-  bool stitch_points(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, float distance_tolerance)
+  JTKGDEF bool stitch_points(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, float distance_tolerance)
     {
     if (vertices.empty())
         return false;

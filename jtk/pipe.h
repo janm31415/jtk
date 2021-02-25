@@ -6,12 +6,29 @@
    #include ...
    #include ...
    #include ...
-   #define JTK_PIPE_IMPLEMENTATION
+   #define JTK_PIPE_IMPLEMENTATIONJTKQBVHINLINE
    #include "jtk/pipe.h"
  */
 
 #ifndef JTK_PIPE_H
 #define JTK_PIPE_H
+
+#ifndef JTKPIPEDEF
+#ifdef JTK_PIPE_STATIC
+#define JTKPIPEDEF static
+#define JTK_FILE_UTILS_STATIC
+#else
+#define JTKPIPEDEF extern
+#endif
+#endif
+
+#ifndef JTKPIPEINLINE
+#ifdef JTK_PIPE_STATIC
+#define JTKPIPEINLINE inline
+#else
+#define JTKPIPEINLINE
+#endif
+#endif
 
 #ifdef JTK_FILE_UTILS_IMPLEMENTATION
   #undef JTK_FILE_UTILS_IMPLEMENTATION
@@ -35,23 +52,23 @@ namespace jtk
 
   class active_folder;
 #ifdef _WIN32
-  int create_pipe(const char *path, char * const * argv, const char* current_dir, void** pr);
-  void close_pipe(void* pr);
-  void destroy_pipe(void* pr, int signal);
-  int send_to_pipe(void* process, const char* message);
-  std::string read_from_pipe(void* process, int time_out);
-  std::string read_std_input(int time_out);
-  int run_process(const char *path, char * const * argv, const char* current_dir, void** pr);
-  void destroy_process(void* pr, int signal);
+  JTKPIPEDEF int create_pipe(const char *path, char * const * argv, const char* current_dir, void** pr);
+  JTKPIPEDEF void close_pipe(void* pr);
+  JTKPIPEDEF void destroy_pipe(void* pr, int signal);
+  JTKPIPEDEF int send_to_pipe(void* process, const char* message);
+  JTKPIPEDEF std::string read_from_pipe(void* process, int time_out);
+  JTKPIPEDEF std::string read_std_input(int time_out);
+  JTKPIPEDEF int run_process(const char *path, char * const * argv, const char* current_dir, void** pr);
+  JTKPIPEDEF void destroy_process(void* pr, int signal);
 #else
-  int create_pipe(const char *path, char* const* argv, const char* current_dir, int* pipefd);
-  void close_pipe(int* pipefd);
-  void destroy_pipe(int* pipefd, int);
-  int send_to_pipe(int* pipefd, const char* message);
-  std::string read_from_pipe(int* pipefd, int time_out);
-  std::string read_std_input(int time_out);
-  int run_process(const char *path, char * const * argv, const char* current_dir, pid_t* process);
-  void destroy_process(pid_t process, int signal);
+  JTKPIPEDEF int create_pipe(const char *path, char* const* argv, const char* current_dir, int* pipefd);
+  JTKPIPEDEF void close_pipe(int* pipefd);
+  JTKPIPEDEF void destroy_pipe(int* pipefd, int);
+  JTKPIPEDEF int send_to_pipe(int* pipefd, const char* message);
+  JTKPIPEDEF std::string read_from_pipe(int* pipefd, int time_out);
+  JTKPIPEDEF std::string read_std_input(int time_out);
+  JTKPIPEDEF int run_process(const char *path, char * const * argv, const char* current_dir, pid_t* process);
+  JTKPIPEDEF void destroy_process(pid_t process, int signal);
 #endif
 
 #if defined(_WIN32)
@@ -112,7 +129,7 @@ namespace jtk
 
 #ifdef _WIN32
 
-  active_folder::active_folder(const char* folder)
+  JTKPIPEINLINE active_folder::active_folder(const char* folder)
     {
     GetCurrentDirectoryW(JTK_MAX_PATH, buf);
     if (folder)
@@ -122,7 +139,7 @@ namespace jtk
       }
     }
 
-  active_folder::~active_folder()
+  JTKPIPEINLINE active_folder::~active_folder()
     {
     SetCurrentDirectoryW(buf);
     }
@@ -135,7 +152,7 @@ namespace jtk
     HANDLE hFrom;
     };
 
-  int create_pipe(const char *path, char * const * argv, const char* current_dir, void** pr)
+  JTKPIPEDEF int create_pipe(const char *path, char * const * argv, const char* current_dir, void** pr)
     {
     HANDLE hChildStdinRd, hChildStdinWr, hChildStdoutRd, hChildStdoutWr;
     HANDLE hChildStdinWrDup, hChildStdoutRdDup;
@@ -270,7 +287,7 @@ namespace jtk
     return NO_ERROR;
     }
 
-  void close_pipe(void* pr)
+  JTKPIPEDEF void close_pipe(void* pr)
     {
     pipe_process *cp;
     int result;
@@ -297,7 +314,7 @@ namespace jtk
     free(cp);
     }
 
-  void destroy_pipe(void* pr, int signal)
+  JTKPIPEDEF void destroy_pipe(void* pr, int signal)
     {
     pipe_process *cp;
     int result;
@@ -336,7 +353,7 @@ namespace jtk
     free(cp);
     }
 
-  int send_to_pipe(void* process, const char* message)
+  JTKPIPEDEF int send_to_pipe(void* process, const char* message)
     {
     int count;
     DWORD dOutCount;
@@ -353,7 +370,7 @@ namespace jtk
     return SOCKET_ERROR;
     }
 
-  std::string read_from_pipe(void* process, int time_out)
+  JTKPIPEDEF std::string read_from_pipe(void* process, int time_out)
     {
     std::string input;
 
@@ -402,7 +419,7 @@ namespace jtk
     return input;
     }
 
-  std::string read_std_input(int time_out)
+  JTKPIPEDEF std::string read_std_input(int time_out)
     {
     pipe_process pr;
     pr.hFrom = GetStdHandle(STD_INPUT_HANDLE);
@@ -416,7 +433,7 @@ namespace jtk
     DWORD pid;
     };
 
-  int run_process(const char *path, char * const * argv, const char* current_dir, void** pr)
+  JTKPIPEDEF int run_process(const char *path, char * const * argv, const char* current_dir, void** pr)
     {
     STARTUPINFOW siStartInfo;
     process_info *cp;
@@ -488,7 +505,7 @@ namespace jtk
     return NO_ERROR;
     }
 
-  void destroy_process(void* pr, int signal)
+  JTKPIPEDEF void destroy_process(void* pr, int signal)
     {
     process_info *cp;
     int result;
@@ -518,19 +535,19 @@ namespace jtk
 
 #else
 
-  active_folder::active_folder(const char* folder)
+  JTKPIPEINLINE active_folder::active_folder(const char* folder)
     {
     ::getcwd(buf, sizeof(buf));
     if (folder)
       chdir(folder);
     }
 
-  active_folder::~active_folder()
+  JTKPIPEINLINE active_folder::~active_folder()
     {
     ::chdir(buf);
     }
 
-  int create_pipe(const char *path, char* const* argv, const char* current_dir, int* pipefd)
+  JTKPIPEDEF int create_pipe(const char *path, char* const* argv, const char* current_dir, int* pipefd)
     {
     pid_t pid = 0;
     int inpipefd[2];
@@ -583,7 +600,7 @@ namespace jtk
     return 0;
     }
 
-  void close_pipe(int* pipefd)
+  JTKPIPEDEF void close_pipe(int* pipefd)
     {
     if (pipefd[2] >= 0)
       {
@@ -592,7 +609,7 @@ namespace jtk
       }
     }
 
-  void destroy_pipe(int* pipefd, int)
+  JTKPIPEDEF void destroy_pipe(int* pipefd, int)
     {
     if (pipefd[2] >= 0)
       {
@@ -604,13 +621,13 @@ namespace jtk
       }
     }
 
-  int send_to_pipe(int* pipefd, const char* message)
+  JTKPIPEDEF int send_to_pipe(int* pipefd, const char* message)
     {
     write(pipefd[0], message, strlen(message));
     return 0;
     }
 
-  std::string read_from_pipe(int* pipefd, int time_out)
+  JTKPIPEDEF std::string read_from_pipe(int* pipefd, int time_out)
     {
     std::stringstream ss;
     auto tic = std::chrono::steady_clock::now();
@@ -638,7 +655,7 @@ namespace jtk
 
 
 
-  std::string read_std_input(int time_out)
+  JTKPIPEDEF std::string read_std_input(int time_out)
     {
 
     std::stringstream ss;
@@ -673,7 +690,7 @@ namespace jtk
 
     }
 
-  int run_process(const char *path, char * const * argv, const char* current_dir, pid_t* process)
+  JTKPIPEDEF int run_process(const char *path, char * const * argv, const char* current_dir, pid_t* process)
     {
     pid_t pid = fork();
 

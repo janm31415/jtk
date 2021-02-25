@@ -15,6 +15,14 @@
 
 #include <string>
 
+#ifndef JTKWINDOWDEF
+#ifdef JTK_WINDOW_STATIC
+#define JTKWINDOWDEF static
+#else
+#define JTKWINDOWDEF extern
+#endif
+#endif
+
 namespace jtk
   {
 
@@ -36,18 +44,18 @@ namespace jtk
   struct WindowHandleData;
   typedef WindowHandleData* WindowHandle;
 
-  WindowHandle create_window(const std::string& title, int w, int h);
-  WindowHandle create_window(const std::string& title, int x, int y, int w, int h);
+  JTKWINDOWDEF WindowHandle create_window(const std::string& title, int w, int h);
+  JTKWINDOWDEF WindowHandle create_window(const std::string& title, int x, int y, int w, int h);
 
-  void close_window(WindowHandle& h_wnd);
+  JTKWINDOWDEF void close_window(WindowHandle& h_wnd);
 
   // if h is negative the image will be flipped upside down
   // if channels is negative the order of the colors will be flipped (e.g. convert rgb to bgr)
-  void paint(WindowHandle h_wnd, const uint8_t* bytes, int w, int h, int channels);
+  JTKWINDOWDEF void paint(WindowHandle h_wnd, const uint8_t* bytes, int w, int h, int channels);
 
-  void resize(WindowHandle h_wnd, int w, int h);
+  JTKWINDOWDEF void resize(WindowHandle h_wnd, int w, int h);
 
-  void register_listener(WindowHandle h_wnd, IWindowListener* listener);
+  JTKWINDOWDEF void register_listener(WindowHandle h_wnd, IWindowListener* listener);
 
 } // namespace jtk
 
@@ -172,7 +180,7 @@ namespace jtk
     {
     static int window_id = 0;
 
-    LRESULT CALLBACK _wnd_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    JTKWINDOWDEF LRESULT CALLBACK _wnd_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
       {
       switch (msg)
         {
@@ -280,7 +288,7 @@ namespace jtk
       return 0;
       }
 
-    HWND _create_window(const std::string& title, int x, int y, int w, int h)
+    JTKWINDOWDEF HWND _create_window(const std::string& title, int x, int y, int w, int h)
       {
       std::stringstream class_name_ss;
       class_name_ss << "jam_window_" << window_id++;
@@ -330,7 +338,7 @@ namespace jtk
       return hwnd;
       }
 
-    void _create_window_with_message_loop(HWND* h_wnd, WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
+    JTKWINDOWDEF void _create_window_with_message_loop(HWND* h_wnd, WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
       {
       user_data->mt.lock();
       *h_wnd = _create_window(title, x, y, w, h);
@@ -347,7 +355,7 @@ namespace jtk
         }
       }
 
-    std::unique_ptr<std::thread> _create_threaded_window(HWND* h_wnd, WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
+    JTKWINDOWDEF std::unique_ptr<std::thread> _create_threaded_window(HWND* h_wnd, WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
       {
       user_data->initialised = false;
       std::unique_ptr<std::thread> res(new std::thread(_create_window_with_message_loop, h_wnd, user_data, title, x, y, w, h));
@@ -358,7 +366,7 @@ namespace jtk
       }
     }
 
-  void resize(WindowHandle h_wnd, int w, int h)
+  JTKWINDOWDEF void resize(WindowHandle h_wnd, int w, int h)
     {
     RECT rect;
     GetWindowRect(h_wnd->h_wnd, &rect);
@@ -371,7 +379,7 @@ namespace jtk
   namespace
     {
 
-    void _scale_line(uint32_t* Target, const uint32_t* Source, int SrcWidth, int TgtWidth)
+    JTKWINDOWDEF void _scale_line(uint32_t* Target, const uint32_t* Source, int SrcWidth, int TgtWidth)
       {
       // image scaling with Bresenham, Thiadmer Riemersma, Dr.Dobb's.
       int NumPixels = TgtWidth;
@@ -391,7 +399,7 @@ namespace jtk
         }
       }
 
-    void _scale(uint32_t* Target, int TgtWidth, int TgtHeight, const uint32_t* Source, int SrcWidth, int SrcHeight)
+    JTKWINDOWDEF void _scale(uint32_t* Target, int TgtWidth, int TgtHeight, const uint32_t* Source, int SrcWidth, int SrcHeight)
       {
       // image scaling with Bresenham, Thiadmer Riemersma, Dr.Dobb's.
       int NumPixels = TgtHeight;
@@ -425,7 +433,7 @@ namespace jtk
 
     static bool XThreads_initialized = false;
 
-    GC create_gc(Display* display, Window win, int reverse_video)
+    JTKWINDOWDEF GC create_gc(Display* display, Window win, int reverse_video)
       {
       GC gc;
       XGCValues values;
@@ -456,7 +464,7 @@ namespace jtk
       return gc;
       }
 
-    void _create_window_with_message_loop(WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
+    JTKWINDOWDEF void _create_window_with_message_loop(WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
       {
       user_data->mt.lock();
       user_data->display = XOpenDisplay(0);
@@ -582,7 +590,7 @@ namespace jtk
         }
       }
 
-    std::unique_ptr<std::thread> _create_threaded_window(WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
+    JTKWINDOWDEF std::unique_ptr<std::thread> _create_threaded_window(WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
       {
       user_data->initialised = false;
       std::unique_ptr<std::thread> res(new std::thread(_create_window_with_message_loop, user_data, title, x, y, w, h));
@@ -593,14 +601,14 @@ namespace jtk
       }
     }
 
-  void resize(WindowHandle h_wnd, int w, int h)
+  JTKWINDOWDEF void resize(WindowHandle h_wnd, int w, int h)
     {
     XResizeWindow(h_wnd->display, h_wnd->win, w, h);
     }
 
 #endif
 
-  void close_window(WindowHandle& h_wnd)
+  JTKWINDOWDEF void close_window(WindowHandle& h_wnd)
     {
     if (h_wnd)
       {
@@ -619,7 +627,7 @@ namespace jtk
       }
     }
 
-  WindowHandle create_window(const std::string& title, int x, int y, int w, int h)
+  JTKWINDOWDEF WindowHandle create_window(const std::string& title, int x, int y, int w, int h)
     {
 #ifdef _WIN32
     WindowHandle handle = new WindowHandleData();
@@ -653,7 +661,7 @@ namespace jtk
     return handle;
     }
 
-  WindowHandle create_window(const std::string& title, int w, int h)
+  JTKWINDOWDEF WindowHandle create_window(const std::string& title, int w, int h)
     {
 #ifdef _WIN32
     return create_window(title, CW_USEDEFAULT, CW_USEDEFAULT, w, h);
@@ -664,7 +672,7 @@ namespace jtk
 
   namespace
     {
-    void _process_pixels(uint8_t* dst, const uint8_t* src, int width, int height, int stride, int channels, bool bFlipColors, bool bFlip)
+    JTKWINDOWDEF void _process_pixels(uint8_t* dst, const uint8_t* src, int width, int height, int stride, int channels, bool bFlipColors, bool bFlip)
       {
       int SrcWidthInbytes = width * channels;
       int DstWidthInBytes = stride * channels;
@@ -732,7 +740,7 @@ namespace jtk
         }
       }
 
-    void _process_pixels_32(uint32_t* dst, const uint8_t* src, int width, int height, int channels, bool bFlipColors, bool bFlip)
+    JTKWINDOWDEF void _process_pixels_32(uint32_t* dst, const uint8_t* src, int width, int height, int channels, bool bFlipColors, bool bFlip)
       {
       if (channels == 4)
         return _process_pixels((uint8_t*)dst, src, width, height, width, channels, bFlipColors, bFlip);
@@ -758,7 +766,7 @@ namespace jtk
 
     } // namespace
 
-  void paint(WindowHandle h_wnd, const uint8_t* bytes, int w, int h, int channels)
+  JTKWINDOWDEF void paint(WindowHandle h_wnd, const uint8_t* bytes, int w, int h, int channels)
     {
 #ifndef _WIN32
     if (h_wnd->quit)
@@ -832,7 +840,7 @@ namespace jtk
 #endif
     }
 
-  void register_listener(WindowHandle h_wnd, IWindowListener* listener)
+  JTKWINDOWDEF void register_listener(WindowHandle h_wnd, IWindowListener* listener)
     {
     h_wnd->listener = listener;
     }
