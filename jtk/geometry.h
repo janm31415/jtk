@@ -2838,8 +2838,8 @@ namespace jtk
 
   JTKGDEF void undo_dyadic_subdivide(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
     {
-    const uint32_t nr_of_vertices = vertices.size();
-    const uint32_t nr_of_triangles = triangles.size();
+    const uint32_t nr_of_vertices = (uint32_t)vertices.size();
+    const uint32_t nr_of_triangles = (uint32_t)triangles.size();
 
     assert(nr_of_triangles % 4 == 0);
 
@@ -2878,8 +2878,8 @@ namespace jtk
     
   JTKGDEF void butterfly(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
     {
-    const uint32_t nr_of_vertices = vertices.size();
-    const uint32_t nr_of_triangles = triangles.size();
+    const uint32_t nr_of_vertices = (uint32_t)vertices.size();
+    const uint32_t nr_of_triangles = (uint32_t)triangles.size();
 
     assert(nr_of_triangles % 4 == 0);
 

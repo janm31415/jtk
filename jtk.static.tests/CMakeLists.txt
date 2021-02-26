@@ -14,28 +14,11 @@ if (APPLE)
 endif (APPLE)
 
 set(HDRS
-concurrency_tests.h
-container_tests.h
-file_utils_tests.h
-geometry_tests.h
-image_tests.h
-mat_tests.h
-qbvh_tests.h
-test_assert.h
-vec_tests.h
     )
 	
 set(SRCS
-concurrency_tests.cpp
-container_tests.cpp
-file_utils_tests.cpp
-geometry_tests.cpp
-image_tests.cpp
-mat_tests.cpp
-qbvh_tests.cpp
-test_assert.cpp
-test.cpp
-vec_tests.cpp
+static_tests.cpp
+static_tests_2.cpp
 )
 
 if (WIN32)
@@ -46,6 +29,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "/W4 /MP /GF /O2 /Ob2 /Oi /Ot /MD /Zi /DNDEBUG")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /bigobj")
+
+set(CMAKE_STATIC_LINKER_FLAGS_DEBUG "${CMAKE_STATIC_LINKER_FLAGS_DEBUG} /WX")
+set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "${CMAKE_STATIC_LINKER_FLAGS_RELEASE} /WX")
 endif (WIN32)
 
 if (UNIX)
@@ -70,19 +56,8 @@ include ("../jtk/jtk.cmake")
 
 add_definitions(-DMEMORY_LEAK_TRACKING)
 
-add_executable(jtk.tests ${HDRS} ${SRCS})
-source_group("Header Files" FILES ${hdrs})
+add_library(jtk.static.tests STATIC ${SRCS})
 source_group("Source Files" FILES ${srcs})	
-
-#if (WIN32)
-#add_custom_command(TARGET jtk.tests POST_BUILD 
-#   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/data" ${CMAKE_CURRENT_BINARY_DIR}/data)
-#endif (WIN32)
-
-#if (UNIX)
-#add_custom_command(TARGET jtk.tests POST_BUILD 
-#   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:libskiwi.tests>/data")
-#endif (UNIX)
 
 if (UNIX)
 
@@ -94,23 +69,23 @@ set(XLIBINCLUDE "/usr/X11/include/")
 set(XLIBLIBRARY "/usr/X11/lib/libX11.dylib")
 endif (APPLE)
 
-target_include_directories(jtk.tests
+target_include_directories(jtk.static.tests
    PRIVATE
    ${XLIBINCLUDE}
    )
    
-target_link_libraries(jtk.tests
+target_link_libraries(jtk.static.tests
     PRIVATE
     ${XLIBLIBRARY}
     )
 endif (UNIX)
 
 if (${JTK_THREADING} STREQUAL "tbb")
-  target_include_directories(jtk.tests
+  target_include_directories(jtk.static.tests
       PRIVATE
       ${TBB_INCLUDE_DIR}
       )
-  target_link_libraries(jtk.tests
+  target_link_libraries(jtk.static.tests
       PRIVATE
       ${TBB_LIBRARIES}
       )
