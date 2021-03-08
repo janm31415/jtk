@@ -29,11 +29,7 @@
 #endif
 
 #ifndef JTKGINLINE
-#ifdef JTK_GEOMETRY_STATIC
 #define JTKGINLINE inline 
-#else
-#define JTKGINLINE
-#endif
 #endif
 
 namespace jtk
