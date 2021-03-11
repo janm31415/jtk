@@ -323,8 +323,8 @@ namespace jtk
     parallel_for((unsigned int)0, number_of_threads, [&](unsigned int i)
       {
 #ifdef AVX2
-      const uint32_t s = (uint32_t)((uint64_t)i * (uint64_t)(sz / 8) / (uint64_t)number_of_threads);
-      const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(sz / 8) / (uint64_t)number_of_threads);
+      const uint32_t s = (uint32_t)((uint64_t)i * (uint64_t)(sz / 8)) / (uint64_t)number_of_threads;
+      const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(sz / 8)) / (uint64_t)number_of_threads;
       for (uint32_t t = s; t < e; ++t)
         {
         //https://software.intel.com/content/www/us/en/develop/articles/3d-vector-normalization-using-256-bit-intel-advanced-vector-extensions-intel-avx.html
@@ -392,8 +392,8 @@ namespace jtk
         mm[0] = clip;
         }
 #else
-      const uint32_t s = (uint32_t)((uint64_t)i * (uint64_t)(sz / 4) / (uint64_t)number_of_threads);
-      const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(sz / 4) / (uint64_t)number_of_threads);
+      const uint32_t s = (uint32_t)((uint64_t)i * (uint64_t)(sz / 4)) / (uint64_t)number_of_threads;
+      const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(sz / 4)) / (uint64_t)number_of_threads;
       for (uint32_t t = s; t < e; ++t)
         {
         //https://software.intel.com/content/www/us/en/develop/articles/3d-vector-normalization-using-256-bit-intel-advanced-vector-extensions-intel-avx.html
@@ -466,6 +466,7 @@ namespace jtk
 #endif
       });
 
+    p_vert = rd.obj.vertices + sz*3;
     for (uint32_t i = sz; i < rd.obj.number_of_vertices; ++i)
       {
 
@@ -847,6 +848,9 @@ namespace jtk
             {
             rd.fb.zbuffer[idx] = z;
             rd.fb.pixels[idx] = rgb.color;
+            __m128i index = _mm_set_epi32(0, 0, 0, idx);
+            __m128i final_mask = _mm_set_epi32(0, 0, 0, 0xffffffff);
+            callback(i, index, final_mask);
             }
           }
         }
