@@ -1065,7 +1065,7 @@ JTKGINLINE trivial_ear::trivial_ear() : vertices(nullptr), adj_list(nullptr), v0
       }
     float dihedral_a = dihedral_angle(vertices[v0], vertices[v1], vertices[v2], vertices[a]);
     float dihedral_b = dihedral_angle(vertices[v1], vertices[v2], vertices[v0], vertices[b]);
-    dihedral_rad = std::max(dihedral_a, dihedral_b);
+    dihedral_rad = dihedral_a > dihedral_b ? dihedral_a : dihedral_b;
     }
 
   JTKGINLINE bool minimum_weight_ear::operator < (const minimum_weight_ear& other) const
