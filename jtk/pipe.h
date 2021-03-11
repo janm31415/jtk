@@ -6,7 +6,7 @@
    #include ...
    #include ...
    #include ...
-   #define JTK_PIPE_IMPLEMENTATIONJTKQBVHINLINE
+   #define JTK_PIPE_IMPLEMENTATION
    #include "jtk/pipe.h"
  */
 
@@ -86,6 +86,38 @@ namespace jtk
       char buf[JTK_MAX_PATH];
     #endif
     };
+    
+#ifdef _WIN32
+
+  JTKPIPEINLINE active_folder::active_folder(const char* folder)
+    {
+    GetCurrentDirectoryW(JTK_MAX_PATH, buf);
+    if (folder)
+      {
+      std::wstring wdir(convert_string_to_wstring(std::string(folder)));
+      SetCurrentDirectoryW(wdir.c_str());
+      }
+    }
+
+  JTKPIPEINLINE active_folder::~active_folder()
+    {
+    SetCurrentDirectoryW(buf);
+    }
+#else
+
+  JTKPIPEINLINE active_folder::active_folder(const char* folder)
+    {
+    ::getcwd(buf, sizeof(buf));
+    if (folder)
+      chdir(folder);
+    }
+
+  JTKPIPEINLINE active_folder::~active_folder()
+    {
+    ::chdir(buf);
+    }
+    
+#endif
 
   } // namespace jtk
   
@@ -124,21 +156,6 @@ namespace jtk
 #define MAX_PIPE_BUFFER_SIZE 4096
 
 #ifdef _WIN32
-
-  JTKPIPEINLINE active_folder::active_folder(const char* folder)
-    {
-    GetCurrentDirectoryW(JTK_MAX_PATH, buf);
-    if (folder)
-      {
-      std::wstring wdir(convert_string_to_wstring(std::string(folder)));
-      SetCurrentDirectoryW(wdir.c_str());
-      }
-    }
-
-  JTKPIPEINLINE active_folder::~active_folder()
-    {
-    SetCurrentDirectoryW(buf);
-    }
 
   struct pipe_process
     {
@@ -530,18 +547,6 @@ namespace jtk
     }
 
 #else
-
-  JTKPIPEINLINE active_folder::active_folder(const char* folder)
-    {
-    ::getcwd(buf, sizeof(buf));
-    if (folder)
-      chdir(folder);
-    }
-
-  JTKPIPEINLINE active_folder::~active_folder()
-    {
-    ::chdir(buf);
-    }
 
   JTKPIPEDEF int create_pipe(const char *path, char* const* argv, const char* current_dir, int* pipefd)
     {

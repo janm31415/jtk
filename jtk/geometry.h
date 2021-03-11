@@ -775,6 +775,371 @@ namespace jtk
       }
     }
     
+    
+JTKGINLINE adjacency_list::adjacency_list() : _nr_of_vertices(0)
+    {
+
+    }
+
+  JTKGINLINE adjacency_list::adjacency_list(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles) : _nr_of_vertices(nr_of_vertices)
+    {
+    build(nr_of_vertices, triangles, nr_of_triangles);
+    }
+
+  JTKGINLINE adjacency_list::~adjacency_list()
+    {
+
+    }
+
+  JTKGINLINE void adjacency_list::build(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+    {
+    _nr_of_vertices = nr_of_vertices;
+    std::vector<uint32_t>(nr_of_vertices + 1, 0).swap(offset_per_vertex);
+    for (uint32_t t = 0; t < nr_of_triangles; ++t)
+      {
+      ++offset_per_vertex[triangles[t][0]];
+      ++offset_per_vertex[triangles[t][1]];
+      ++offset_per_vertex[triangles[t][2]];
+      }
+    uint32_t prev_value = offset_per_vertex[0];
+    offset_per_vertex[0] = 0;
+    for (uint32_t v = 0; v < nr_of_vertices; ++v)
+      {
+      uint32_t current = offset_per_vertex[v + 1];
+      offset_per_vertex[v + 1] = offset_per_vertex[v] + prev_value;
+      prev_value = current;
+      }
+    std::vector<uint32_t>(offset_per_vertex.back()).swap(triangles_per_vertex_list);
+    std::vector<uint32_t> vertex_count(nr_of_vertices, 0);
+    for (uint32_t t = 0; t < nr_of_triangles; ++t)
+      {
+      for (int j = 0; j < 3; ++j)
+        {
+        const uint32_t v = triangles[t][j];
+        const uint32_t pos = offset_per_vertex[v];
+        const uint32_t off = vertex_count[v]++;
+        triangles_per_vertex_list[pos + off] = t;
+        }
+      }
+    }
+
+  JTKGINLINE adjacency_list::const_iterator adjacency_list::begin(uint32_t vertex_index) const
+    {
+    return triangles_per_vertex_list.begin() + offset_per_vertex[vertex_index];
+    }
+
+  JTKGINLINE adjacency_list::const_iterator adjacency_list::end(uint32_t vertex_index) const
+    {
+    return triangles_per_vertex_list.begin() + offset_per_vertex[vertex_index + 1];
+    }
+
+  JTKGINLINE uint32_t adjacency_list::size() const
+    {
+    return _nr_of_vertices;
+    }
+
+  JTKGINLINE bool adjacency_list::empty() const
+    {
+    return _nr_of_vertices == 0;
+    }
+
+  JTKGINLINE mutable_adjacency_list::mutable_adjacency_list()
+    {
+
+    }
+
+  JTKGINLINE mutable_adjacency_list::mutable_adjacency_list(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+    {
+    build(nr_of_vertices, triangles, nr_of_triangles);
+    }
+
+  JTKGINLINE mutable_adjacency_list::~mutable_adjacency_list()
+    {
+
+    }
+
+  JTKGINLINE void mutable_adjacency_list::build(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+    {
+    triangles_per_vertex_list.resize(nr_of_vertices);
+    for (uint32_t v = 0; v < nr_of_vertices; ++v)
+      {
+      triangles_per_vertex_list[v].reserve(6);
+      }
+    for (uint32_t t = 0; t < nr_of_triangles; ++t)
+      {
+      triangles_per_vertex_list[triangles[t][0]].push_back(t);
+      triangles_per_vertex_list[triangles[t][1]].push_back(t);
+      triangles_per_vertex_list[triangles[t][2]].push_back(t);
+      }
+    }
+
+  JTKGINLINE void mutable_adjacency_list::add_triangle_to_vertex(uint32_t vertex_id, uint32_t triangle_id)
+    {
+    auto first = triangles_per_vertex_list[vertex_id].begin();
+    auto last = triangles_per_vertex_list[vertex_id].end();
+    auto it = std::lower_bound(first, last, triangle_id);
+    triangles_per_vertex_list[vertex_id].insert(it, triangle_id);
+    }
+
+  JTKGINLINE void mutable_adjacency_list::remove_triangle_from_vertex(uint32_t vertex_id, uint32_t triangle_id)
+    {
+    auto first = triangles_per_vertex_list[vertex_id].begin();
+    auto last = triangles_per_vertex_list[vertex_id].end();
+    auto it = std::lower_bound(first, last, triangle_id);
+    if (it != last && *it == triangle_id)
+      {
+      triangles_per_vertex_list[vertex_id].erase(it);
+      }
+    }
+
+  JTKGINLINE void mutable_adjacency_list::add_triangles_to_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
+    {
+    auto sz = size(vertex_index);
+    triangles_per_vertex_list[vertex_index].resize(sz + triangle_indices.size());
+    auto first = triangles_per_vertex_list[vertex_index].begin();
+    auto last = first + sz;
+    size_t offset = triangle_indices.size();
+    auto first_ind = triangle_indices.rbegin();
+    while (offset && (first != last))
+      {
+      if (*(last - 1) < *first_ind)
+        {
+        *(last + offset - 1) = *first_ind;
+        ++first_ind;
+        --offset;
+        }
+      else
+        {
+        *(last + offset - 1) = *(last - 1);
+        --last;
+        }
+      }
+    while (offset)
+      {
+      *(last + offset - 1) = *first_ind++;
+      --offset;
+      }
+    }
+
+  JTKGINLINE void mutable_adjacency_list::remove_triangles_from_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
+    {
+    auto first = triangles_per_vertex_list[vertex_index].begin();
+    auto last = triangles_per_vertex_list[vertex_index].end();
+
+    size_t offset = 0;
+
+    auto first_ind = triangle_indices.begin();
+    auto last_ind = triangle_indices.end();
+    for (; (first + offset) < last; ++first)
+      {
+      while ((first_ind != last_ind) && (*(first + offset) > *first_ind))
+        ++first_ind;
+      while ((first_ind != last_ind) && (*(first + offset) == *first_ind))
+        {
+        ++offset;
+        ++first_ind;
+        }
+      if ((first + offset) < last)
+        *first = *(first + offset);
+      else
+        break;
+      }
+    triangles_per_vertex_list[vertex_index].resize(triangles_per_vertex_list[vertex_index].size() - offset);
+    }
+
+  JTKGINLINE mutable_adjacency_list::const_iterator mutable_adjacency_list::begin(uint32_t vertex_index) const
+    {
+    return triangles_per_vertex_list[vertex_index].begin();
+    }
+
+  JTKGINLINE mutable_adjacency_list::const_iterator mutable_adjacency_list::end(uint32_t vertex_index) const
+    {
+    return triangles_per_vertex_list[vertex_index].end();
+    }
+
+  JTKGINLINE uint32_t mutable_adjacency_list::size(uint32_t vertex_index) const
+    {
+    return (uint32_t)triangles_per_vertex_list[vertex_index].size();
+    }
+
+  JTKGINLINE uint32_t mutable_adjacency_list::size() const
+    {
+    return (uint32_t)triangles_per_vertex_list.size();
+    }
+
+  JTKGINLINE bool mutable_adjacency_list::empty() const
+    {
+    return triangles_per_vertex_list.empty();
+    }
+    
+JTKGINLINE trivial_ear::trivial_ear() : vertices(nullptr), adj_list(nullptr), v0((uint32_t)-1), v1((uint32_t)-1), v2((uint32_t)-1) {}
+
+  JTKGINLINE trivial_ear::trivial_ear(uint32_t p0, uint32_t p1, uint32_t p2, const vec3<float>* p_vertices, const vec3<uint32_t>* p_triangles, const mutable_adjacency_list* p_adj_list) :
+    v0(p0), v1(p1), v2(p2), vertices(p_vertices), adj_list(p_adj_list)
+    {
+    n = normalize(cross(vertices[v2] - vertices[v1], vertices[v0] - vertices[v1]));
+    compute_quality();
+    compute_angle(p_triangles);
+    }
+
+  JTKGINLINE void trivial_ear::compute_quality()
+    {
+    auto p0 = vertices[v0];
+    auto p1 = vertices[v1];
+    auto p2 = vertices[v2];
+    float e1 = distance_sqr(p0, p1);
+    float e2 = distance_sqr(p0, p2);
+    float e3 = distance_sqr(p1, p2);
+    float area = length(cross(p2 - p1, p0 - p1)) * 0.5f;
+    quality = area / (e1 + e2 + e3);
+    }
+
+  JTKGINLINE void trivial_ear::compute_angle(const vec3<uint32_t>* triangles)
+    {
+    auto point1 = vertices[v2] - vertices[v1];
+    auto point2 = vertices[v0] - vertices[v1];
+    auto tmp1 = point1 * length(point2);
+    auto tmp2 = point2 * length(point1);
+    angle_rad = 2.f * std::atan(length(tmp1 - tmp2) / length(tmp1 + tmp2));
+    auto tria_idcs = triangle_indices_from_edge(v0, v1, *adj_list);
+    if (tria_idcs.empty())
+      return;
+    uint32_t t = tria_idcs.front();
+    auto tria = triangles[t];
+    auto tria_n = normalize(cross(vertices[tria[2]] - vertices[tria[1]], vertices[tria[0]] - vertices[tria[1]]));
+    float flip_angle = dot(n, tria_n);
+    if (flip_angle < 0.f)
+      angle_rad = 2.f*3.141592653589793238462643383f - angle_rad;
+    }
+
+  JTKGINLINE bool trivial_ear::is_concave() const
+    {
+    return angle_rad > 3.141592653589793238462643383f;
+    }
+
+  JTKGINLINE bool trivial_ear::operator < (const trivial_ear& other) const
+    {
+    if (is_concave() && !other.is_concave())
+      return true;
+    if (!is_concave() && other.is_concave())
+      return false;
+    return quality < other.quality;
+    }
+    
+ JTKGINLINE minimum_weight_ear::minimum_weight_ear() : trivial_ear()
+    {}
+
+  JTKGINLINE minimum_weight_ear::minimum_weight_ear(uint32_t p0, uint32_t p1, uint32_t p2, const vec3<float>* p_vertices, const vec3<uint32_t>* p_triangles, const mutable_adjacency_list* p_adj_list) :
+    trivial_ear(p0, p1, p2, p_vertices, p_triangles, p_adj_list)
+    {
+    compute_quality(p_triangles);
+    }
+
+  JTKGINLINE void minimum_weight_ear::compute_quality(const vec3<uint32_t>* triangles)
+    {
+    aspect_ratio = quality;
+    dihedral_rad = 0.f;
+    auto tria_idcs_a = triangle_indices_from_edge(v0, v1, *adj_list);
+    if (tria_idcs_a.empty())
+      return;
+    auto tria_idcs_b = triangle_indices_from_edge(v1, v2, *adj_list);
+    if (tria_idcs_b.empty())
+      return;
+    uint32_t t = tria_idcs_a.front();
+    auto tria_a = triangles[t];
+    size_t a = tria_a[0];
+    if (a == v0 || a == v1)
+      {
+      a = tria_a[1];
+      if (a == v0 || a == v1)
+        a = tria_a[2];
+      }
+    t = tria_idcs_b.front();
+    auto tria_b = triangles[t];
+    size_t b = tria_b[0];
+    if (b == v2 || b == v1)
+      {
+      b = tria_b[1];
+      if (b == v2 || b == v1)
+        b = tria_b[2];
+      }
+    float dihedral_a = dihedral_angle(vertices[v0], vertices[v1], vertices[v2], vertices[a]);
+    float dihedral_b = dihedral_angle(vertices[v1], vertices[v2], vertices[v0], vertices[b]);
+    dihedral_rad = std::max(dihedral_a, dihedral_b);
+    }
+
+  JTKGINLINE bool minimum_weight_ear::operator < (const minimum_weight_ear& other) const
+    {
+    if (is_concave() && !other.is_concave())
+      return true;
+    if (!is_concave() && other.is_concave())
+      return false;
+    return (aspect_ratio - (dihedral_rad / 3.141592653589793238462643383f)*0.1f) < (other.aspect_ratio - (other.dihedral_rad / 3.141592653589793238462643383f)*0.1f);
+    }
+
+  template <class Ear>
+  void fill_hole_ear(std::vector<vec3<uint32_t>>& triangles, const vec3<float>* vertices, mutable_adjacency_list& mal, const std::vector<uint32_t>& hole)
+    {
+    size_t sz = hole.size();
+    if (sz < 3)
+      return;
+
+    std::vector<Ear> ear_heap;
+    ear_heap.reserve(sz);
+    for (size_t v1 = 0; v1 < sz; ++v1)
+      {
+      size_t v0 = (v1 + (sz - 1)) % sz;
+      size_t v2 = (v1 + 1) % sz;
+      Ear new_ear(hole[v0], hole[v1], hole[v2], vertices, triangles.data(), &mal);
+      ear_heap.push_back(new_ear);
+      }
+    std::make_heap(ear_heap.begin(), ear_heap.end());
+    size_t cnt = sz;
+    while (cnt > 2 && !ear_heap.empty())
+      {
+      Ear best_ear = ear_heap.front();
+      std::pop_heap(ear_heap.begin(), ear_heap.end());
+      ear_heap.pop_back();
+
+      auto trias02 = triangle_indices_from_edge(best_ear.v0, best_ear.v2, mal);
+      auto trias01 = triangle_indices_from_edge(best_ear.v0, best_ear.v1, mal);
+      auto trias12 = triangle_indices_from_edge(best_ear.v1, best_ear.v2, mal);
+      if (trias02.size() < 2 && trias01.size() == 1 && trias12.size() == 1)
+        {
+        uint32_t id = (uint32_t)triangles.size();
+        triangles.emplace_back(best_ear.v0, best_ear.v1, best_ear.v2);
+        mal.add_triangle_to_vertex(best_ear.v0, id);
+        mal.add_triangle_to_vertex(best_ear.v1, id);
+        mal.add_triangle_to_vertex(best_ear.v2, id);
+        --cnt;
+        auto neighbour_vertices_v0 = one_ring_vertices_from_vertex(best_ear.v0, mal, triangles.data());
+        for (auto nv0 : neighbour_vertices_v0)
+          {
+          if (nv0 == best_ear.v2)
+            continue;
+          if (triangle_indices_from_edge(best_ear.v0, nv0, mal).size() == 1)
+            {
+            Ear new_ear(nv0, best_ear.v0, best_ear.v2, vertices, triangles.data(), &mal);
+            ear_heap.push_back(new_ear);
+            std::push_heap(ear_heap.begin(), ear_heap.end());
+            }
+          }
+        auto neighbour_vertices_v2 = one_ring_vertices_from_vertex(best_ear.v2, mal, triangles.data());
+        for (auto nv2 : neighbour_vertices_v2)
+          {
+          if (nv2 == best_ear.v0)
+            continue;
+          if (triangle_indices_from_edge(best_ear.v2, nv2, mal).size() == 1)
+            {
+            Ear new_ear(best_ear.v0, best_ear.v2, nv2, vertices, triangles.data(), &mal);
+            ear_heap.push_back(new_ear);
+            std::push_heap(ear_heap.begin(), ear_heap.end());
+            }
+          }
+        }
+      }
+    }
+    
   } // namespace jtk
 
 #endif // #ifndef JTK_GEOMETRY_H
@@ -1549,202 +1914,6 @@ namespace jtk
     return true;
     }
 
-  JTKGINLINE adjacency_list::adjacency_list() : _nr_of_vertices(0)
-    {
-
-    }
-
-  JTKGINLINE adjacency_list::adjacency_list(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles) : _nr_of_vertices(nr_of_vertices)
-    {
-    build(nr_of_vertices, triangles, nr_of_triangles);
-    }
-
-  JTKGINLINE adjacency_list::~adjacency_list()
-    {
-
-    }
-
-  JTKGINLINE void adjacency_list::build(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
-    {
-    _nr_of_vertices = nr_of_vertices;
-    std::vector<uint32_t>(nr_of_vertices + 1, 0).swap(offset_per_vertex);
-    for (uint32_t t = 0; t < nr_of_triangles; ++t)
-      {
-      ++offset_per_vertex[triangles[t][0]];
-      ++offset_per_vertex[triangles[t][1]];
-      ++offset_per_vertex[triangles[t][2]];
-      }
-    uint32_t prev_value = offset_per_vertex[0];
-    offset_per_vertex[0] = 0;
-    for (uint32_t v = 0; v < nr_of_vertices; ++v)
-      {
-      uint32_t current = offset_per_vertex[v + 1];
-      offset_per_vertex[v + 1] = offset_per_vertex[v] + prev_value;
-      prev_value = current;
-      }
-    std::vector<uint32_t>(offset_per_vertex.back()).swap(triangles_per_vertex_list);
-    std::vector<uint32_t> vertex_count(nr_of_vertices, 0);
-    for (uint32_t t = 0; t < nr_of_triangles; ++t)
-      {
-      for (int j = 0; j < 3; ++j)
-        {
-        const uint32_t v = triangles[t][j];
-        const uint32_t pos = offset_per_vertex[v];
-        const uint32_t off = vertex_count[v]++;
-        triangles_per_vertex_list[pos + off] = t;
-        }
-      }
-    }
-
-  JTKGINLINE adjacency_list::const_iterator adjacency_list::begin(uint32_t vertex_index) const
-    {
-    return triangles_per_vertex_list.begin() + offset_per_vertex[vertex_index];
-    }
-
-  JTKGINLINE adjacency_list::const_iterator adjacency_list::end(uint32_t vertex_index) const
-    {
-    return triangles_per_vertex_list.begin() + offset_per_vertex[vertex_index + 1];
-    }
-
-  JTKGINLINE uint32_t adjacency_list::size() const
-    {
-    return _nr_of_vertices;
-    }
-
-  JTKGINLINE bool adjacency_list::empty() const
-    {
-    return _nr_of_vertices == 0;
-    }
-
-  JTKGINLINE mutable_adjacency_list::mutable_adjacency_list()
-    {
-
-    }
-
-  JTKGINLINE mutable_adjacency_list::mutable_adjacency_list(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
-    {
-    build(nr_of_vertices, triangles, nr_of_triangles);
-    }
-
-  JTKGINLINE mutable_adjacency_list::~mutable_adjacency_list()
-    {
-
-    }
-
-  JTKGINLINE void mutable_adjacency_list::build(uint32_t nr_of_vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
-    {
-    triangles_per_vertex_list.resize(nr_of_vertices);
-    for (uint32_t v = 0; v < nr_of_vertices; ++v)
-      {
-      triangles_per_vertex_list[v].reserve(6);
-      }
-    for (uint32_t t = 0; t < nr_of_triangles; ++t)
-      {
-      triangles_per_vertex_list[triangles[t][0]].push_back(t);
-      triangles_per_vertex_list[triangles[t][1]].push_back(t);
-      triangles_per_vertex_list[triangles[t][2]].push_back(t);
-      }
-    }
-
-  JTKGINLINE void mutable_adjacency_list::add_triangle_to_vertex(uint32_t vertex_id, uint32_t triangle_id)
-    {
-    auto first = triangles_per_vertex_list[vertex_id].begin();
-    auto last = triangles_per_vertex_list[vertex_id].end();
-    auto it = std::lower_bound(first, last, triangle_id);
-    triangles_per_vertex_list[vertex_id].insert(it, triangle_id);
-    }
-
-  JTKGINLINE void mutable_adjacency_list::remove_triangle_from_vertex(uint32_t vertex_id, uint32_t triangle_id)
-    {
-    auto first = triangles_per_vertex_list[vertex_id].begin();
-    auto last = triangles_per_vertex_list[vertex_id].end();
-    auto it = std::lower_bound(first, last, triangle_id);
-    if (it != last && *it == triangle_id)
-      {
-      triangles_per_vertex_list[vertex_id].erase(it);
-      }
-    }
-
-  JTKGINLINE void mutable_adjacency_list::add_triangles_to_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
-    {
-    auto sz = size(vertex_index);
-    triangles_per_vertex_list[vertex_index].resize(sz + triangle_indices.size());
-    auto first = triangles_per_vertex_list[vertex_index].begin();
-    auto last = first + sz;
-    size_t offset = triangle_indices.size();
-    auto first_ind = triangle_indices.rbegin();
-    while (offset && (first != last))
-      {
-      if (*(last - 1) < *first_ind)
-        {
-        *(last + offset - 1) = *first_ind;
-        ++first_ind;
-        --offset;
-        }
-      else
-        {
-        *(last + offset - 1) = *(last - 1);
-        --last;
-        }
-      }
-    while (offset)
-      {
-      *(last + offset - 1) = *first_ind++;
-      --offset;
-      }
-    }
-
-  JTKGINLINE void mutable_adjacency_list::remove_triangles_from_vertex(uint32_t vertex_index, const std::vector<uint32_t>& triangle_indices)
-    {
-    auto first = triangles_per_vertex_list[vertex_index].begin();
-    auto last = triangles_per_vertex_list[vertex_index].end();
-
-    size_t offset = 0;
-
-    auto first_ind = triangle_indices.begin();
-    auto last_ind = triangle_indices.end();
-    for (; (first + offset) < last; ++first)
-      {
-      while ((first_ind != last_ind) && (*(first + offset) > *first_ind))
-        ++first_ind;
-      while ((first_ind != last_ind) && (*(first + offset) == *first_ind))
-        {
-        ++offset;
-        ++first_ind;
-        }
-      if ((first + offset) < last)
-        *first = *(first + offset);
-      else
-        break;
-      }
-    triangles_per_vertex_list[vertex_index].resize(triangles_per_vertex_list[vertex_index].size() - offset);
-    }
-
-  JTKGINLINE mutable_adjacency_list::const_iterator mutable_adjacency_list::begin(uint32_t vertex_index) const
-    {
-    return triangles_per_vertex_list[vertex_index].begin();
-    }
-
-  JTKGINLINE mutable_adjacency_list::const_iterator mutable_adjacency_list::end(uint32_t vertex_index) const
-    {
-    return triangles_per_vertex_list[vertex_index].end();
-    }
-
-  JTKGINLINE uint32_t mutable_adjacency_list::size(uint32_t vertex_index) const
-    {
-    return (uint32_t)triangles_per_vertex_list[vertex_index].size();
-    }
-
-  JTKGINLINE uint32_t mutable_adjacency_list::size() const
-    {
-    return (uint32_t)triangles_per_vertex_list.size();
-    }
-
-  JTKGINLINE bool mutable_adjacency_list::empty() const
-    {
-    return triangles_per_vertex_list.empty();
-    }
-
   JTKGDEF void delete_triangles(std::vector<vec3<uint32_t>>& triangles, const std::vector<uint32_t>& triangles_to_delete)
     {
     delete_items(triangles, triangles_to_delete);
@@ -2367,60 +2536,6 @@ namespace jtk
       }
     }
 
-  JTKGINLINE trivial_ear::trivial_ear() : vertices(nullptr), adj_list(nullptr), v0((uint32_t)-1), v1((uint32_t)-1), v2((uint32_t)-1) {}
-
-  JTKGINLINE trivial_ear::trivial_ear(uint32_t p0, uint32_t p1, uint32_t p2, const vec3<float>* p_vertices, const vec3<uint32_t>* p_triangles, const mutable_adjacency_list* p_adj_list) :
-    v0(p0), v1(p1), v2(p2), vertices(p_vertices), adj_list(p_adj_list)
-    {
-    n = normalize(cross(vertices[v2] - vertices[v1], vertices[v0] - vertices[v1]));
-    compute_quality();
-    compute_angle(p_triangles);
-    }
-
-  JTKGINLINE void trivial_ear::compute_quality()
-    {
-    auto p0 = vertices[v0];
-    auto p1 = vertices[v1];
-    auto p2 = vertices[v2];
-    float e1 = distance_sqr(p0, p1);
-    float e2 = distance_sqr(p0, p2);
-    float e3 = distance_sqr(p1, p2);
-    float area = length(cross(p2 - p1, p0 - p1)) * 0.5f;
-    quality = area / (e1 + e2 + e3);
-    }
-
-  JTKGINLINE void trivial_ear::compute_angle(const vec3<uint32_t>* triangles)
-    {
-    auto point1 = vertices[v2] - vertices[v1];
-    auto point2 = vertices[v0] - vertices[v1];
-    auto tmp1 = point1 * length(point2);
-    auto tmp2 = point2 * length(point1);
-    angle_rad = 2.f * std::atan(length(tmp1 - tmp2) / length(tmp1 + tmp2));
-    auto tria_idcs = triangle_indices_from_edge(v0, v1, *adj_list);
-    if (tria_idcs.empty())
-      return;
-    uint32_t t = tria_idcs.front();
-    auto tria = triangles[t];
-    auto tria_n = normalize(cross(vertices[tria[2]] - vertices[tria[1]], vertices[tria[0]] - vertices[tria[1]]));
-    float flip_angle = dot(n, tria_n);
-    if (flip_angle < 0.f)
-      angle_rad = 2.f*3.141592653589793238462643383f - angle_rad;
-    }
-
-  JTKGINLINE bool trivial_ear::is_concave() const
-    {
-    return angle_rad > 3.141592653589793238462643383f;
-    }
-
-  JTKGINLINE bool trivial_ear::operator < (const trivial_ear& other) const
-    {
-    if (is_concave() && !other.is_concave())
-      return true;
-    if (!is_concave() && other.is_concave())
-      return false;
-    return quality < other.quality;
-    }
-
   JTKGDEF float dihedral_angle(const vec3<float>& u, const vec3<float>& v, const vec3<float>& a, const vec3<float>& b)
     {
     auto n0 = normalize(cross(v - u, a - u));
@@ -2431,121 +2546,7 @@ namespace jtk
     else if (dt < -1.f)
       return 3.141592653589793238462643383f;
     return acos(dt);
-    }
-
-  JTKGINLINE minimum_weight_ear::minimum_weight_ear() : trivial_ear()
-    {}
-
-  JTKGINLINE minimum_weight_ear::minimum_weight_ear(uint32_t p0, uint32_t p1, uint32_t p2, const vec3<float>* p_vertices, const vec3<uint32_t>* p_triangles, const mutable_adjacency_list* p_adj_list) :
-    trivial_ear(p0, p1, p2, p_vertices, p_triangles, p_adj_list)
-    {
-    compute_quality(p_triangles);
-    }
-
-  JTKGINLINE void minimum_weight_ear::compute_quality(const vec3<uint32_t>* triangles)
-    {
-    aspect_ratio = quality;
-    dihedral_rad = 0.f;
-    auto tria_idcs_a = triangle_indices_from_edge(v0, v1, *adj_list);
-    if (tria_idcs_a.empty())
-      return;
-    auto tria_idcs_b = triangle_indices_from_edge(v1, v2, *adj_list);
-    if (tria_idcs_b.empty())
-      return;
-    uint32_t t = tria_idcs_a.front();
-    auto tria_a = triangles[t];
-    size_t a = tria_a[0];
-    if (a == v0 || a == v1)
-      {
-      a = tria_a[1];
-      if (a == v0 || a == v1)
-        a = tria_a[2];
-      }
-    t = tria_idcs_b.front();
-    auto tria_b = triangles[t];
-    size_t b = tria_b[0];
-    if (b == v2 || b == v1)
-      {
-      b = tria_b[1];
-      if (b == v2 || b == v1)
-        b = tria_b[2];
-      }
-    float dihedral_a = dihedral_angle(vertices[v0], vertices[v1], vertices[v2], vertices[a]);
-    float dihedral_b = dihedral_angle(vertices[v1], vertices[v2], vertices[v0], vertices[b]);
-    dihedral_rad = std::max(dihedral_a, dihedral_b);
-    }
-
-  JTKGINLINE bool minimum_weight_ear::operator < (const minimum_weight_ear& other) const
-    {
-    if (is_concave() && !other.is_concave())
-      return true;
-    if (!is_concave() && other.is_concave())
-      return false;
-    return (aspect_ratio - (dihedral_rad / 3.141592653589793238462643383f)*0.1f) < (other.aspect_ratio - (other.dihedral_rad / 3.141592653589793238462643383f)*0.1f);
-    }
-
-  template <class Ear>
-  void fill_hole_ear(std::vector<vec3<uint32_t>>& triangles, const vec3<float>* vertices, mutable_adjacency_list& mal, const std::vector<uint32_t>& hole)
-    {
-    size_t sz = hole.size();
-    if (sz < 3)
-      return;
-
-    std::vector<Ear> ear_heap;
-    ear_heap.reserve(sz);
-    for (size_t v1 = 0; v1 < sz; ++v1)
-      {
-      size_t v0 = (v1 + (sz - 1)) % sz;
-      size_t v2 = (v1 + 1) % sz;
-      Ear new_ear(hole[v0], hole[v1], hole[v2], vertices, triangles.data(), &mal);
-      ear_heap.push_back(new_ear);
-      }
-    std::make_heap(ear_heap.begin(), ear_heap.end());
-    size_t cnt = sz;
-    while (cnt > 2 && !ear_heap.empty())
-      {
-      Ear best_ear = ear_heap.front();
-      std::pop_heap(ear_heap.begin(), ear_heap.end());
-      ear_heap.pop_back();
-
-      auto trias02 = triangle_indices_from_edge(best_ear.v0, best_ear.v2, mal);
-      auto trias01 = triangle_indices_from_edge(best_ear.v0, best_ear.v1, mal);
-      auto trias12 = triangle_indices_from_edge(best_ear.v1, best_ear.v2, mal);
-      if (trias02.size() < 2 && trias01.size() == 1 && trias12.size() == 1)
-        {
-        uint32_t id = (uint32_t)triangles.size();
-        triangles.emplace_back(best_ear.v0, best_ear.v1, best_ear.v2);
-        mal.add_triangle_to_vertex(best_ear.v0, id);
-        mal.add_triangle_to_vertex(best_ear.v1, id);
-        mal.add_triangle_to_vertex(best_ear.v2, id);
-        --cnt;
-        auto neighbour_vertices_v0 = one_ring_vertices_from_vertex(best_ear.v0, mal, triangles.data());
-        for (auto nv0 : neighbour_vertices_v0)
-          {
-          if (nv0 == best_ear.v2)
-            continue;
-          if (triangle_indices_from_edge(best_ear.v0, nv0, mal).size() == 1)
-            {
-            Ear new_ear(nv0, best_ear.v0, best_ear.v2, vertices, triangles.data(), &mal);
-            ear_heap.push_back(new_ear);
-            std::push_heap(ear_heap.begin(), ear_heap.end());
-            }
-          }
-        auto neighbour_vertices_v2 = one_ring_vertices_from_vertex(best_ear.v2, mal, triangles.data());
-        for (auto nv2 : neighbour_vertices_v2)
-          {
-          if (nv2 == best_ear.v0)
-            continue;
-          if (triangle_indices_from_edge(best_ear.v2, nv2, mal).size() == 1)
-            {
-            Ear new_ear(best_ear.v0, best_ear.v2, nv2, vertices, triangles.data(), &mal);
-            ear_heap.push_back(new_ear);
-            std::push_heap(ear_heap.begin(), ear_heap.end());
-            }
-          }
-        }
-      }
-    }
+    } 
 
   namespace hole_filling_details
     {

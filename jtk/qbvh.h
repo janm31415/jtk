@@ -506,6 +506,8 @@ namespace jtk
       std::vector<uint32_t> _ids;
     };
 
+  JTKQBVHDEF void intersect_sphere(const vec3<float4>& sphere_origin, const float4& sphere_radius, const vec3<float4>& r_orig, const vec3<float4>& ray_dir, const float4& t_near, const float4& t_far, spherehit4& h);
+
   class sphere_qbvh
     {
     public:
@@ -1210,49 +1212,23 @@ I'm following the same algorithm steps, but do everything in place.
 
     return mid;
     }
+    
+  static const uint32_t order[8][4] =
+    { { 3,2,1,0 },
+    { 3,2,0,1 },
+    { 2,3,1,0 },
+    { 2,3,0,1 },
+    { 1,0,3,2 },
+    { 1,0,2,3 },
+    { 0,1,3,2 },
+    { 0,1,2,3 }
+    };
 
-  } // namespace jtk
 
-#endif //#ifndef JTK_QBVH_H
-
-
-#ifdef JTK_QBVH_IMPLEMENTATION
-
-namespace jtk
-  {
-
-  /////////////////////////////////////////////////////////////////////////
-  // implementations
-  /////////////////////////////////////////////////////////////////////////
-
-  /////////////////////////////////////////////////////////////////////////
-  // aligned allocators
-  /////////////////////////////////////////////////////////////////////////
-
-  JTKQBVHDEF void* aligned_malloc(size_t size, size_t align)
-    {
-    if (size == 0)
-      return nullptr;
-
-    assert((align & (align - 1)) == 0);
-    void* ptr = _mm_malloc(size, align);
-
-    if (ptr == nullptr)
-      throw std::bad_alloc();
-
-    return ptr;
-    }
-
-  JTKQBVHDEF void aligned_free(void* ptr)
-    {
-    if (ptr)
-      _mm_free(ptr);
-    }
-
-  /////////////////////////////////////////////////////////////////////////
-  // globals
-  /////////////////////////////////////////////////////////////////////////
-
+  static const uint32_t sign_bit = 0x80000000;
+  static const int4 sign_mask = int4(0x80000000, 0x80000000, 0x80000000, 0x80000000);
+  static const int4 bit_mask = int4(0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF);
+  
   static const __m128 lookup_mask[16] =
     {
     _mm_castsi128_ps(_mm_set_epi32(0x00000000, 0x00000000, 0x00000000, 0x00000000)), // 0000b
@@ -1283,422 +1259,25 @@ namespace jtk
   static const __m128 minus_epsilon_128 = _mm_set1_ps(-epsilon);
   static const __m128 one_plus_epsilon_128 = _mm_set1_ps(1.f + epsilon);
   static const uint32_t modulo[] = { 0,1,2,0,1 };
-
-  /////////////////////////////////////////////////////////////////////////
-  // bool4
-  /////////////////////////////////////////////////////////////////////////
-
+    
   JTKQBVHINLINE bool4::bool4() {}
   JTKQBVHINLINE bool4::bool4(const __m128 in) : m128(in) {}
   JTKQBVHINLINE bool4::bool4(const __m128i in) : m128(_mm_castsi128_ps(in)) {}
   JTKQBVHINLINE bool4::bool4(bool b) : m128(lookup_mask[b ? 15 : 0]) {}
   JTKQBVHINLINE bool4::bool4(bool b0, bool b1, bool b2, bool b3) : m128(lookup_mask[(uint8_t(b3) << 3) | (uint8_t(b2) << 2) | (uint8_t(b1) << 1) | (uint8_t(b0))]) {}
 
-  JTKQBVHDEF bool all(const bool4& b)
-    {
-    return _mm_movemask_ps(b.m128) == 0xf;
-    }
-
-  JTKQBVHDEF bool any(const bool4& b)
-    {
-    return _mm_movemask_ps(b.m128) != 0x0;
-    }
-
-  JTKQBVHDEF bool none(const bool4& b)
-    {
-    return _mm_movemask_ps(b.m128) == 0x0;
-    }
-
-  JTKQBVHDEF bool4 operator ! (const bool4& a)
-    {
-    return _mm_xor_ps(a.m128, bool4(true).m128);
-    }
-
-  JTKQBVHDEF bool4 operator & (const bool4& a, const bool4& b)
-    {
-    return _mm_and_ps(a.m128, b.m128);
-    }
-
-  JTKQBVHDEF bool4 operator | (const bool4& a, const bool4& b)
-    {
-    return _mm_or_ps(a.m128, b.m128);
-    }
-
-  JTKQBVHDEF bool4 operator ^ (const bool4& a, const bool4& b)
-    {
-    return _mm_xor_ps(a.m128, b.m128);
-    }
-
-  JTKQBVHDEF bool4& operator &= (bool4& a, const bool4& b)
-    {
-    //return a = a & b; 
-    /*
-    DANGEROUS: Don't do return a = a & b;
-    Lanes will be mixed by compiler in release
-    */
-    const __m128 res = _mm_and_ps(a.m128, b.m128);
-    a.m128 = res;
-    return a;
-    }
-
-  JTKQBVHDEF bool4& operator |= (bool4& a, const bool4& b)
-    {
-    //return a = a | b; 
-    /*
-    DANGEROUS: Don't do return a = a & b;
-    Lanes will be mixed by compiler in release
-    */
-    const __m128 res = _mm_or_ps(a.m128, b.m128);
-    a.m128 = res;
-    return a;
-    }
-
-  JTKQBVHDEF bool4& operator ^= (bool4& a, const bool4& b)
-    {
-    //return a = a ^ b; 
-    /*
-    DANGEROUS: Don't do return a = a & b;
-    Lanes will be mixed by compiler in release
-    */
-    const __m128 res = _mm_xor_ps(a.m128, b.m128);
-    a.m128 = res;
-    return a;
-    }
-
-  JTKQBVHDEF bool4 operator != (const bool4& a, const bool4& b)
-    {
-    return _mm_xor_ps(a.m128, b.m128);
-    }
-
-  JTKQBVHDEF bool4 operator == (const bool4& a, const bool4& b)
-    {
-    return _mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(a.m128), _mm_castps_si128(b.m128)));
-    }
-
-  /////////////////////////////////////////////////////////////////////////
-  // struct int4
-  /////////////////////////////////////////////////////////////////////////
-
   JTKQBVHINLINE int4::int4() {}
   JTKQBVHINLINE int4::int4(const __m128i& in) : m128i(in) {}
   JTKQBVHINLINE int4::int4(int32_t in) : m128i(_mm_set1_epi32(in)) {}
   JTKQBVHINLINE int4::int4(int32_t i0, int32_t i1, int32_t i2, int32_t i3) : m128i(_mm_set_epi32(i3, i2, i1, i0)) {}
   JTKQBVHINLINE int4::int4(const bool4& in) : m128i(_mm_castps_si128(in.m128)) {}
-
-  JTKQBVHDEF int4 operator + (const int4& a)
-    {
-    return a;
-    }
-
-  JTKQBVHDEF int4 operator - (const int4& a)
-    {
-    return _mm_sub_epi32(_mm_set1_epi32(0), a.m128i);
-    }
-
-  JTKQBVHDEF int4 operator + (const int4& left, const int4& right)
-    {
-    return _mm_add_epi32(left.m128i, right.m128i);
-    }
-
-  JTKQBVHDEF int4 operator - (const int4& left, const int4& right)
-    {
-    return _mm_sub_epi32(left.m128i, right.m128i);
-    }
-
-  JTKQBVHDEF int4 operator * (const int4& left, const int4& right)
-    {
-    return _mm_mullo_epi32(left.m128i, right.m128i);
-    }
-
-  JTKQBVHDEF int4 operator * (const int4& left, int32_t right)
-    {
-    return left * int4(right);
-    }
-
-  JTKQBVHDEF int4 operator * (int32_t left, const int4& right)
-    {
-    return int4(left)*right;
-    }
-
-  JTKQBVHDEF int4 min(const int4& left, const int4& right)
-    {
-    return _mm_min_epi32(left.m128i, right.m128i);
-    }
-
-  JTKQBVHDEF int4 max(const int4& left, const int4& right)
-    {
-    return _mm_max_epi32(left.m128i, right.m128i);
-    }
-
-  JTKQBVHDEF bool4 operator == (const int4& left, const int4& right)
-    {
-    return _mm_cmpeq_epi32(left.m128i, right.m128i);
-    }
-
-  JTKQBVHDEF bool4 operator != (const int4& left, const int4& right)
-    {
-    return _mm_andnot_si128(_mm_cmpeq_epi32(left.m128i, right.m128i), not_zero);
-    }
-
-  JTKQBVHDEF bool4 operator < (const int4& left, const int4& right)
-    {
-    return _mm_cmplt_epi32(left.m128i, right.m128i);
-    }
-
-  JTKQBVHDEF bool4 operator > (const int4& left, const int4& right)
-    {
-    return _mm_cmpgt_epi32(left.m128i, right.m128i);
-    }
-
-  JTKQBVHDEF bool4 operator <= (const int4& left, const int4& right)
-    {
-    return _mm_andnot_si128(_mm_cmpgt_epi32(left.m128i, right.m128i), not_zero);
-    }
-
-  JTKQBVHDEF bool4 operator >= (const int4& left, const int4& right)
-    {
-    return _mm_andnot_si128(_mm_cmplt_epi32(left.m128i, right.m128i), not_zero);
-    }
-
-  JTKQBVHDEF int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values)
-    {
-    return _mm_castps_si128(_mm_or_ps(_mm_and_ps(mask.m128, _mm_castsi128_ps(updated_values.m128i)), _mm_andnot_ps(mask.m128, _mm_castsi128_ps(original.m128i))));
-    }
-
-  JTKQBVHDEF int4 operator & (const int4& left, const int4& right)
-    {
-    return _mm_and_si128(left.m128i, right.m128i);
-    }
-
-  JTKQBVHDEF int4 operator | (const int4& left, const int4& right)
-    {
-    return _mm_and_si128(left.m128i, right.m128i);
-    }
-
-#ifndef _JTK_FOR_ARM
-  JTKQBVHDEF int4 operator >> (const int4& a, int n)
-    {
-    return _mm_srai_epi32(a.m128i, n);
-    }
-
-  JTKQBVHDEF int4 operator << (const int4& a, int n)
-    {
-    return _mm_slli_epi32(a.m128i, n);
-    }
-#endif
-
-  JTKQBVHDEF int any(const int4& a)
-    {
-    return _mm_movemask_ps(_mm_castsi128_ps(a.m128i));
-    }
-
-  /////////////////////////////////////////////////////////////////////////
-  // struct float4
-  /////////////////////////////////////////////////////////////////////////
-
+  
   JTKQBVHINLINE float4::float4() {}
   JTKQBVHINLINE float4::float4(const __m128 in) : m128(in) {}
   JTKQBVHINLINE float4::float4(float f) : m128(_mm_set1_ps(f)) {}
   JTKQBVHINLINE float4::float4(float _x, float _y, float _z) : m128(_mm_set_ps(1.f, _z, _y, _x)) {}
   JTKQBVHINLINE float4::float4(float _x, float _y, float _z, float _w) : m128(_mm_set_ps(_w, _z, _y, _x)) {}
-
-
-  JTKQBVHDEF float4 operator + (const float4& a)
-    {
-    return a;
-    }
-
-  JTKQBVHDEF float4 operator - (const float4& a)
-    {
-    return _mm_xor_ps(a.m128, _mm_castsi128_ps(_mm_set1_epi32(0x80000000)));
-    }
-
-  JTKQBVHDEF float4 operator + (const float4& left, const float4& right)
-    {
-    return _mm_add_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF float4 operator - (const float4& left, const float4& right)
-    {
-    return _mm_sub_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF float4 operator * (const float4& left, const float4& right)
-    {
-    return _mm_mul_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF float4 operator * (const float4& left, float right)
-    {
-    return left * float4(right);
-    }
-
-  JTKQBVHDEF float4 operator * (float left, const float4& right)
-    {
-    return float4(left)*right;
-    }
-
-  JTKQBVHDEF float4 operator / (const float4& left, const float4& right)
-    {
-    return _mm_div_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF float4 operator / (const float4& left, float right)
-    {
-    return left / float4(right);
-    }
-
-  JTKQBVHDEF float4 operator / (float left, const float4& right)
-    {
-    return float4(left) / right;
-    }
-
-  JTKQBVHDEF float4 min(const float4& left, const float4& right)
-    {
-    return _mm_min_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF float4 max(const float4& left, const float4& right)
-    {
-    return _mm_max_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF float min_horizontal(const float4& x)
-    {
-    __m128 max1 = _mm_shuffle_ps(x.m128, x.m128, _MM_SHUFFLE(0, 0, 3, 2));
-    __m128 max2 = _mm_min_ps(x.m128, max1);
-    __m128 max3 = _mm_shuffle_ps(max2, max2, _MM_SHUFFLE(0, 0, 0, 1));
-    __m128 max4 = _mm_min_ps(max2, max3);
-    float result = _mm_cvtss_f32(max4);
-    return result;
-    }
-
-  JTKQBVHDEF float max_horizontal(const float4& x)
-    {
-    __m128 max1 = _mm_shuffle_ps(x.m128, x.m128, _MM_SHUFFLE(0, 0, 3, 2));
-    __m128 max2 = _mm_max_ps(x.m128, max1);
-    __m128 max3 = _mm_shuffle_ps(max2, max2, _MM_SHUFFLE(0, 0, 0, 1));
-    __m128 max4 = _mm_max_ps(max2, max3);
-    float result = _mm_cvtss_f32(max4);
-    return result;
-    }
-
-  JTKQBVHDEF float4 cross(const float4& left, const float4& right)
-    {
-    float4 rs(_mm_shuffle_ps(right.m128, right.m128, _MM_SHUFFLE(3, 0, 2, 1)));
-    float4 ls(_mm_shuffle_ps(left.m128, left.m128, _MM_SHUFFLE(3, 0, 2, 1)));
-    float4 res = left * rs - ls * right;
-    return float4(_mm_shuffle_ps(res.m128, res.m128, _MM_SHUFFLE(3, 0, 2, 1)));
-    }
-
-  JTKQBVHDEF float dot(const float4& left, const float4& right)
-    {
-    return _mm_cvtss_f32(_mm_dp_ps(left.m128, right.m128, 0x7F));
-    }
-
-  JTKQBVHDEF float dot4(const float4& left, const float4& right)
-    {
-    return _mm_cvtss_f32(_mm_dp_ps(left.m128, right.m128, 255));
-    }
-
-  JTKQBVHDEF float4 abs(const float4& a)
-    {
-    const __m128 mask = _mm_castsi128_ps(_mm_set1_epi32(0x7fffffff));
-    return _mm_and_ps(a.m128, mask);
-    }
-
-  JTKQBVHDEF float4 sqrt(const float4& a)
-    {
-    return _mm_sqrt_ps(a.m128);
-    }
-
-  JTKQBVHDEF float4 rsqrt(const float4& a)
-    {
-    __m128 mask = _mm_cmpeq_ps(_mm_set1_ps(0.f), a.m128);
-    __m128 res = _mm_rsqrt_ps(a.m128);
-    __m128 muls = _mm_mul_ps(_mm_mul_ps(a.m128, res), res);
-    auto res_newton_raphson = _mm_mul_ps(_mm_mul_ps(half_128, res), _mm_sub_ps(three_128, muls));
-    return _mm_or_ps(_mm_and_ps(mask, res), _mm_andnot_ps(mask, res_newton_raphson));
-    }
-
-  JTKQBVHDEF float4 reciprocal(const float4& a)
-    {
-    __m128 mask = _mm_cmpeq_ps(_mm_set1_ps(0.f), a.m128);
-    auto res = _mm_rcp_ps(a.m128);
-    __m128 muls = _mm_mul_ps(a.m128, _mm_mul_ps(res, res));
-    auto res_newton_raphson = _mm_sub_ps(_mm_add_ps(res, res), muls);
-    return _mm_or_ps(_mm_and_ps(mask, res), _mm_andnot_ps(mask, res_newton_raphson));
-    }
-
-  JTKQBVHDEF bool4 operator == (const float4& left, const float4& right)
-    {
-    return _mm_cmpeq_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF bool4 operator != (const float4& left, const float4& right)
-    {
-    return _mm_cmpneq_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF bool4 operator < (const float4& left, const float4& right)
-    {
-    return _mm_cmplt_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF bool4 operator > (const float4& left, const float4& right)
-    {
-    return _mm_cmpnle_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF bool4 operator <= (const float4& left, const float4& right)
-    {
-    return _mm_cmple_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF bool4 operator >= (const float4& left, const float4& right)
-    {
-    return _mm_cmpnlt_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF float4 unpacklo(const float4& left, const float4& right)
-    {
-    return _mm_unpacklo_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF float4 unpackhi(const float4& left, const float4& right)
-    {
-    return _mm_unpackhi_ps(left.m128, right.m128);
-    }
-
-  JTKQBVHDEF void transpose(float4& r0, float4& r1, float4& r2, float4& r3, const float4& c0, const float4& c1, const float4& c2, const float4& c3)
-    {
-    float4 l02(unpacklo(c0.m128, c2.m128));
-    float4 h02(unpackhi(c0.m128, c2.m128));
-    float4 l13(unpacklo(c1.m128, c3.m128));
-    float4 h13(unpackhi(c1.m128, c3.m128));
-    r0 = unpacklo(l02, l13);
-    r1 = unpackhi(l02, l13);
-    r2 = unpacklo(h02, h13);
-    r3 = unpackhi(h02, h13);
-    }
-
-  JTKQBVHDEF float4 masked_update(const bool4& mask, const float4& original, const float4& updated_values)
-    {
-    return _mm_or_ps(_mm_and_ps(mask.m128, updated_values.m128), _mm_andnot_ps(mask.m128, original.m128));
-    }
-
-  JTKQBVHDEF float4 masked_update(const int4& mask, const float4& original, const float4& updated_values)
-    {
-    const __m128 m = _mm_castsi128_ps(mask.m128i);
-    return _mm_or_ps(_mm_and_ps(m, updated_values.m128), _mm_andnot_ps(m, original.m128));
-    }
-
-  /////////////////////////////////////////////////////////////////////////
-  // struct float4x4
-  /////////////////////////////////////////////////////////////////////////
-
-  // COLUMN MAJOR 4x4 MATRIX
-
+  
   JTKQBVHINLINE float4x4::float4x4() {}
   JTKQBVHINLINE float4x4::float4x4(const float4& col0, const float4& col1, const float4& col2, const float4& col3) : col{ col0, col1, col2, col3 } {}
   JTKQBVHINLINE float4x4::float4x4(float* m)
@@ -1706,1191 +1285,11 @@ namespace jtk
     for (int i = 0; i < 16; ++i)
       f[i] = m[i];
     }
-
-  JTKQBVHDEF float4x4 get_identity()
-    {
-    float4x4 m(_mm_set_ps(0.f, 0.f, 0.f, 1.f), _mm_set_ps(0.f, 0.f, 1.f, 0.f), _mm_set_ps(0.f, 1.f, 0.f, 0.f), _mm_set_ps(1.f, 0.f, 0.f, 0.f));
-    return m;
-    }
-
-  JTKQBVHDEF float4x4 make_translation(float x, float y, float z)
-    {
-    float4x4 m(_mm_set_ps(0.f, 0.f, 0.f, 1.f), _mm_set_ps(0.f, 0.f, 1.f, 0.f), _mm_set_ps(0.f, 1.f, 0.f, 0.f), _mm_set_ps(1.f, z, y, x));
-    return m;
-    }
-
-  JTKQBVHDEF float4x4 transpose(const float4x4& m)
-    {
-    float4x4 out;
-    transpose(out.col[0], out.col[1], out.col[2], out.col[3], m.col[0], m.col[1], m.col[2], m.col[3]);
-    return out;
-    }
-
-  JTKQBVHDEF float4x4 invert_orthonormal(const float4x4& m)
-    {
-    float4x4 out;
-    transpose(out.col[0], out.col[1], out.col[2], out.col[3], m.col[0], m.col[1], m.col[2], _mm_set_ps(1.f, 0.f, 0.f, 0.f));
-    out.col[3] = -(out.col[0] * m[12] + out.col[1] * m[13] + out.col[2] * m[14]);
-    out.f[15] = 1.f;
-    return out;
-    }
-
-  // for column major matrix
-  // we use __m128 to represent 2x2 matrix as A = | A0  A1 |
-  //                                              | A2  A3 |
-  // 2x2 column major matrix multiply A*B
-  JTKQBVHDEF __m128 mat2mul(__m128 vec1, __m128 vec2)
-    {
-    const auto vec3 = _mm_mul_ps(vec1, _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(3, 3, 0, 0)));
-    const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 0, 3, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 2, 1, 1)));
-    return _mm_add_ps(vec3, vec4);
-    }
-
-  // 2x2 column major matrix adjugate multiply (A#)*B
-  JTKQBVHDEF __m128 mat2adjmul(__m128 vec1, __m128 vec2)
-    {
-    const auto vec3 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(0, 3, 0, 3)), vec2);
-    const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 2, 1, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 3, 0, 1)));
-    return _mm_sub_ps(vec3, vec4);
-    }
-
-  // 2x2 column major matrix multiply adjugate A*(B#)
-  JTKQBVHDEF __m128 mat2muladj(__m128 vec1, __m128 vec2)
-    {
-    const auto vec3 = _mm_mul_ps(vec1, _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(0, 0, 3, 3)));
-    const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 0, 3, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 2, 1, 1)));
-    return _mm_sub_ps(vec3, vec4);
-    }
-
-  JTKQBVHDEF float4x4 invert(const float4x4& m)
-    {
-    float4x4 out;
-    // sub matrices
-    __m128 A = _mm_shuffle_ps(m.col[0].m128, m.col[1].m128, _MM_SHUFFLE(1, 0, 1, 0));
-    __m128 C = _mm_shuffle_ps(m.col[0].m128, m.col[1].m128, _MM_SHUFFLE(3, 2, 3, 2));
-    __m128 B = _mm_shuffle_ps(m.col[2].m128, m.col[3].m128, _MM_SHUFFLE(1, 0, 1, 0));
-    __m128 D = _mm_shuffle_ps(m.col[2].m128, m.col[3].m128, _MM_SHUFFLE(3, 2, 3, 2));
-
-    // determinant as (|A| |B| |C| |D|)
-    __m128 detSub = _mm_sub_ps(_mm_mul_ps(
-      _mm_shuffle_ps(m.col[0].m128, m.col[2].m128, _MM_SHUFFLE(2, 0, 2, 0)),
-      _mm_shuffle_ps(m.col[1].m128, m.col[3].m128, _MM_SHUFFLE(3, 1, 3, 1))),
-      _mm_mul_ps(_mm_shuffle_ps(m.col[0].m128, m.col[2].m128, _MM_SHUFFLE(3, 1, 3, 1)),
-        _mm_shuffle_ps(m.col[1].m128, m.col[3].m128, _MM_SHUFFLE(2, 0, 2, 0))));
-    __m128 detA = _mm_shuffle_ps(detSub, detSub, _MM_SHUFFLE(0, 0, 0, 0));
-    __m128 detC = _mm_shuffle_ps(detSub, detSub, _MM_SHUFFLE(1, 1, 1, 1));
-    __m128 detB = _mm_shuffle_ps(detSub, detSub, _MM_SHUFFLE(2, 2, 2, 2));
-    __m128 detD = _mm_shuffle_ps(detSub, detSub, _MM_SHUFFLE(3, 3, 3, 3));
-
-    // let iM = 1/|M| * | X  Y |
-    //                  | Z  W |
-
-    // D#C
-    __m128 D_C = mat2adjmul(D, C);
-    // A#B
-    __m128 A_B = mat2adjmul(A, B);
-    // X# = |D|A - B(D#C)
-    __m128 X_ = _mm_sub_ps(_mm_mul_ps(detD, A), mat2mul(B, D_C));
-    // W# = |A|D - C(A#B)
-    __m128 W_ = _mm_sub_ps(_mm_mul_ps(detA, D), mat2mul(C, A_B));
-
-    // |M| = |A|*|D| + ... (continue later)
-    __m128 detM = _mm_mul_ps(detA, detD);
-
-    // Y# = |B|C - D(A#B)#
-    __m128 Y_ = _mm_sub_ps(_mm_mul_ps(detB, C), mat2muladj(D, A_B));
-    // Z# = |C|B - A(D#C)#
-    __m128 Z_ = _mm_sub_ps(_mm_mul_ps(detC, B), mat2muladj(A, D_C));
-
-    // |M| = |A|*|D| + |B|*|C| ... (continue later)
-    detM = _mm_add_ps(detM, _mm_mul_ps(detB, detC));
-
-    // tr((A#B)(D#C))
-    __m128 tr = _mm_mul_ps(A_B, _mm_shuffle_ps(D_C, D_C, _MM_SHUFFLE(3, 1, 2, 0)));
-    tr = _mm_hadd_ps(tr, tr);
-    tr = _mm_hadd_ps(tr, tr);
-    // |M| = |A|*|D| + |B|*|C| - tr((A#B)(D#C)
-    detM = _mm_sub_ps(detM, tr);
-
-    const __m128 adjSignMask = _mm_setr_ps(1.f, -1.f, -1.f, 1.f);
-    // (1/|M|, -1/|M|, -1/|M|, 1/|M|)
-    __m128 rDetM = _mm_div_ps(adjSignMask, detM);
-
-    X_ = _mm_mul_ps(X_, rDetM);
-    Y_ = _mm_mul_ps(Y_, rDetM);
-    Z_ = _mm_mul_ps(Z_, rDetM);
-    W_ = _mm_mul_ps(W_, rDetM);
-
-    // apply adjugate and store, here we combine adjugate shuffle and store shuffle
-    out.col[0] = float4(_mm_shuffle_ps(X_, Z_, _MM_SHUFFLE(1, 3, 1, 3)));
-    out.col[1] = float4(_mm_shuffle_ps(X_, Z_, _MM_SHUFFLE(0, 2, 0, 2)));
-    out.col[2] = float4(_mm_shuffle_ps(Y_, W_, _MM_SHUFFLE(1, 3, 1, 3)));
-    out.col[3] = float4(_mm_shuffle_ps(Y_, W_, _MM_SHUFFLE(0, 2, 0, 2)));
-
-    return out;
-    }
-
-  JTKQBVHDEF float4 matrix_vector_multiply(const float4x4& m, const float4& v)
-    {
-    float4 out = m.col[0] * v[0] + m.col[1] * v[1] + m.col[2] * v[2] + m.col[3] * v[3];
-    return out;
-    }
-
-  JTKQBVHDEF float4x4 matrix_matrix_multiply(const float4x4& left, const float4x4& right)
-    {
-    float4x4 out;
-    float4 r[4];
-    transpose(r[0], r[1], r[2], r[3], left.col[0], left.col[1], left.col[2], left.col[3]);
-    out[0] = _mm_cvtss_f32(_mm_dp_ps(r[0].m128, right.col[0].m128, 255));
-    out[1] = _mm_cvtss_f32(_mm_dp_ps(r[1].m128, right.col[0].m128, 255));
-    out[2] = _mm_cvtss_f32(_mm_dp_ps(r[2].m128, right.col[0].m128, 255));
-    out[3] = _mm_cvtss_f32(_mm_dp_ps(r[3].m128, right.col[0].m128, 255));
-    out[4] = _mm_cvtss_f32(_mm_dp_ps(r[0].m128, right.col[1].m128, 255));
-    out[5] = _mm_cvtss_f32(_mm_dp_ps(r[1].m128, right.col[1].m128, 255));
-    out[6] = _mm_cvtss_f32(_mm_dp_ps(r[2].m128, right.col[1].m128, 255));
-    out[7] = _mm_cvtss_f32(_mm_dp_ps(r[3].m128, right.col[1].m128, 255));
-    out[8] = _mm_cvtss_f32(_mm_dp_ps(r[0].m128, right.col[2].m128, 255));
-    out[9] = _mm_cvtss_f32(_mm_dp_ps(r[1].m128, right.col[2].m128, 255));
-    out[10] = _mm_cvtss_f32(_mm_dp_ps(r[2].m128, right.col[2].m128, 255));
-    out[11] = _mm_cvtss_f32(_mm_dp_ps(r[3].m128, right.col[2].m128, 255));
-    out[12] = _mm_cvtss_f32(_mm_dp_ps(r[0].m128, right.col[3].m128, 255));
-    out[13] = _mm_cvtss_f32(_mm_dp_ps(r[1].m128, right.col[3].m128, 255));
-    out[14] = _mm_cvtss_f32(_mm_dp_ps(r[2].m128, right.col[3].m128, 255));
-    out[15] = _mm_cvtss_f32(_mm_dp_ps(r[3].m128, right.col[3].m128, 255));
-    return out;
-    }
-
-  JTKQBVHDEF float4x4 operator + (const float4x4& left, const float4x4& right)
-    {
-    return float4x4(left.col[0] + right.col[0], left.col[1] + right.col[1], left.col[2] + right.col[2], left.col[3] + right.col[3]);
-    }
-
-  JTKQBVHDEF float4x4 operator - (const float4x4& left, const float4x4& right)
-    {
-    return float4x4(left.col[0] - right.col[0], left.col[1] - right.col[1], left.col[2] - right.col[2], left.col[3] - right.col[3]);
-    }
-
-  JTKQBVHDEF float4x4 operator / (const float4x4& left, float value)
-    {
-    return float4x4(left.col[0] / value, left.col[1] / value, left.col[2] / value, left.col[3] / value);
-    }
-
-  JTKQBVHDEF float4x4 operator * (const float4x4& left, float value)
-    {
-    return float4x4(left.col[0] * value, left.col[1] * value, left.col[2] * value, left.col[3] * value);
-    }
-
-  JTKQBVHDEF float4x4 operator * (float value, const float4x4& right)
-    {
-    return float4x4(right.col[0] * value, right.col[1] * value, right.col[2] * value, right.col[3] * value);
-    }
-
-
-  /////////////////////////////////////////////////////////////////////////
-  // intersection
-  /////////////////////////////////////////////////////////////////////////
-
-  JTKQBVHDEF woop_precompute intersect_woop_precompute(const float4& r_dir)
-    {
-    woop_precompute out;
-    const auto abs_dir = abs(r_dir);
-    out.kz = 2;
-    if (abs_dir[0] > abs_dir[1])
-      {
-      if (abs_dir[0] > abs_dir[2])
-        out.kz = 0;
-      }
-    else
-      {
-      if (abs_dir[1] > abs_dir[2])
-        out.kz = 1;
-      }
-    out.kx = modulo[out.kz + 1];
-    out.ky = modulo[out.kx + 1];
-
-    if (r_dir[out.kz] < (typename float4::value_type)0)
-      {
-      const uint32_t tmp = out.kx;
-      out.kx = out.ky;
-      out.ky = tmp;
-      }
-
-    out.Sz = (typename float4::value_type)1 / r_dir[out.kz];
-    out.Sx = r_dir[out.kx] * out.Sz;
-    out.Sy = r_dir[out.ky] * out.Sz;
-
-    return out;
-    }
-
-  JTKQBVHDEF void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h)
-    {
-    h.found = bool4(true);
-
-    const auto A = acc.v0 - r_orig;
-    const auto B = acc.v1 - r_orig;
-    const auto C = acc.v2 - r_orig;
-
-    const float4 Ax = A[pre.kx] - pre.Sx*A[pre.kz];
-    const float4 Ay = A[pre.ky] - pre.Sy*A[pre.kz];
-    const float4 Bx = B[pre.kx] - pre.Sx*B[pre.kz];
-    const float4 By = B[pre.ky] - pre.Sy*B[pre.kz];
-    const float4 Cx = C[pre.kx] - pre.Sx*C[pre.kz];
-    const float4 Cy = C[pre.ky] - pre.Sy*C[pre.kz];
-
-    float4 U = Cx * By - Cy * Bx;
-    float4 V = Ax * Cy - Ay * Cx;
-    float4 W = Bx * Ay - By * Ax;
-
-    h.found &= (((U <= float4(0)) & (V <= float4(0)) & (W <= float4(0))) | ((U >= float4(0)) & (V >= float4(0)) & (W >= float4(0))));
-
-    if (none(h.found))
-      return;
-
-    const float4 det = U + V + W;
-
-    h.found &= (det != float4(0));
-
-    if (none(h.found))
-      return;
-
-    const float4 inv_det = reciprocal(det);
-
-    const float4 Az = pre.Sz*A[pre.kz];
-    const float4 Bz = pre.Sz*B[pre.kz];
-    const float4 Cz = pre.Sz*C[pre.kz];
-    const float4 T = U * Az + V * Bz + W * Cz;
-    const float4 t = T * inv_det;
-
-    h.found &= ((t_far > t) & (t > t_near));
-
-    h.u = V * inv_det;
-    h.v = W * inv_det;
-    h.distance = t;
-    }
-
-  JTKQBVHDEF bool4 intersect(const float4* aabb, const vec3<float4>& r_origin, const float4& t_near, const float4& t_far, const int32_t* ray_dir_sign, const vec3<float4>& ray_inverse_dir)
-    {
-    bool4 res(true);
-    const float4 min_x = ray_dir_sign[0] ? aabb[3] : aabb[0];
-    const float4 max_x = ray_dir_sign[0] ? aabb[0] : aabb[3];
-    const float4 min_y = ray_dir_sign[1] ? aabb[4] : aabb[1];
-    const float4 max_y = ray_dir_sign[1] ? aabb[1] : aabb[4];
-    const float4 min_z = ray_dir_sign[2] ? aabb[5] : aabb[2];
-    const float4 max_z = ray_dir_sign[2] ? aabb[2] : aabb[5];
-
-    float4 txmin = (min_x - r_origin[0]) * ray_inverse_dir[0];
-    float4 txmax = (max_x - r_origin[0]) * ray_inverse_dir[0];
-
-    const float4 tymin = (min_y - r_origin[1]) * ray_inverse_dir[1];
-    const float4 tymax = (max_y - r_origin[1]) * ray_inverse_dir[1];
-
-    res &= (txmin <= tymax);
-    res &= (tymin <= txmax);
-
-    if (none(res))
-      return res;
-
-    const float4 tzmin = (min_z - r_origin[2]) * ray_inverse_dir[2];
-    const float4 tzmax = (max_z - r_origin[2]) * ray_inverse_dir[2];
-
-    txmin = max(txmin, tymin);
-    txmax = min(txmax, tymax);
-    res &= (txmin <= tzmax);
-    res &= (tzmin <= txmax);
-
-    if (none(res))
-      return res;
-
-    txmin = max(txmin, tzmin);
-    txmax = min(txmax, tzmax);
-    res &= (txmin <= t_far);
-    res &= (txmax >= t_near);
-    return res;
-    }
-
-  JTKQBVHDEF void intersect_sphere(const vec3<float4>& sphere_origin, const float4& sphere_radius, const vec3<float4>& r_orig, const vec3<float4>& ray_dir, const float4& t_near, const float4& t_far, spherehit4& h)
-    {
-#if 0
-    h.found = bool4(true);
-    const vec3<float4> L = sphere_origin - r_orig;
-    const float4 tca = dot(L, ray_dir);
-    const float4 d2 = dot(L, L) - tca * tca;
-    const float4 sphere_radius_sqr = sphere_radius * sphere_radius;
-    h.found &= (d2 <= sphere_radius_sqr);
-    if (none(h.found))
-      return;
-    const float4 thc = sqrt(sphere_radius_sqr - d2);
-    const float4 t0 = tca - thc;
-    const float4 t1 = tca + thc;
-    const bool4 t0_is_valid = (t_near <= t0) & (t0 <= t_far);
-    const bool4 t1_is_valid = (t_near <= t1) & (t1 <= t_far);
-    h.found &= t0_is_valid | t1_is_valid;
-    if (none(h.found))
-      return;
-    const bool4 t0_is_closest = abs(t0) < abs(t1);
-    const float4 t_closest = masked_update(t0_is_closest, t1, t0);
-    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
-#else
-    /*
-    Precision Improvements for Ray/Sphere Intersection
-    Authors:
-      Eric Haines (NVIDIA)
-      Johannes Gunther (Intel)
-      Tomas Akenine-Möller
-    Publication Date:
-      Friday, March 1, 2019
-    Published in:
-      Ray Tracing Gems
-    */
-
-    /*
-    h.found = bool4(true);
-    const vec3<float4> f = sphere_origin - r_orig;
-    const float4 sphere_radius_sqr = sphere_radius * sphere_radius;
-    const vec3<float4> l = f - dot(f, ray_dir)*ray_dir;
-    const float4 discr = 4.f*(sphere_radius_sqr - dot(l, l));
-    h.found &= discr >= 0.f;
-    if (none(h.found))
-      return;
-    const float4 b = dot(f, ray_dir);
-    const float4 sqrt_discr_div_2 = sqrt(discr) / 2.f;
-    const float4 t0 = b - sqrt_discr_div_2;
-    const float4 t1 = b + sqrt_discr_div_2;
-    const bool4 t0_is_valid = (t_near <= t0) & (t0 <= t_far);
-    const bool4 t1_is_valid = (t_near <= t1) & (t1 <= t_far);
-    h.found &= t0_is_valid | t1_is_valid;
-    if (none(h.found))
-      return;
-    const bool4 t0_is_closest = abs(t0) < abs(t1);
-    const float4 t_closest = masked_update(t0_is_closest, t1, t0);
-    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
-    */
-
-    h.found = bool4(true);
-    const vec3<float4> f = sphere_origin - r_orig;
-    const float4 b = dot(f, ray_dir);
-    const float4 sphere_radius_sqr = sphere_radius * sphere_radius;
-    const vec3<float4> l = b * ray_dir - f;
-    const float4 delta = sphere_radius_sqr - dot(l, l);
-    h.found &= delta >= 0.f;
-    if (none(h.found))
-      return;
-    const float4 c = dot(f, f) - sphere_radius_sqr;
-    const float4 q = b + masked_update(b > float4(0.f), float4(-1.f), float4(1.f))*sqrt(delta);
-    const float4 t0 = c / q;
-    const float4 t1 = q;
-    const bool4 t0_is_valid = (t_near <= t0) & (t0 <= t_far);
-    const bool4 t1_is_valid = (t_near <= t1) & (t1 <= t_far);
-    h.found &= t0_is_valid | t1_is_valid;
-    if (none(h.found))
-      return;
-    const bool4 t0_is_closest = abs(t0) < abs(t1);
-    const float4 t_closest = masked_update(t0_is_closest, t1, t0);
-    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
-#endif
-    }
-
-  /////////////////////////////////////////////////////////////////////////
-  // distance
-  /////////////////////////////////////////////////////////////////////////
-
-  //http://jcgt.org/published/0003/04/05/paper.pdf
-  JTKQBVHDEF void distance_sqr(const woop_triangle& acc, const vec3<float4>& point, distance4& dist)
-    {
-    const vec3<float4> ab = acc.v1 - acc.v0;
-    const vec3<float4> ac = acc.v2 - acc.v0;
-    const vec3<float4> ap = point - acc.v0;
-    const float4 d1 = dot(ab, ap);
-    const float4 d2 = dot(ac, ap);
-    const auto mask1 = (d1 <= float4(0)) & (d2 <= float4(0));
-    // closest point is v0
-    dist.u = float4(0);
-    dist.v = float4(0);
-    auto exit(mask1);
-    if (all(exit))
-      {
-      dist.distance_sqr = length_sqr(acc.v0 - point);
-      return;
-      }
-
-    const vec3<float4> bp = ap - ab;
-    const float4 d3 = dot(ab, bp);
-    const float4 d4 = dot(ac, bp);
-    const auto mask2 = (d3 >= float4(0)) & (d4 <= d3);
-    // closest point is v1  
-    dist.u = masked_update(exit, masked_update(mask2, dist.u, float4(1)), dist.u);
-    dist.v = masked_update(exit, masked_update(mask2, dist.v, float4(0)), dist.v);
-    exit |= mask2;
-    if (all(exit))
-      {
-      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
-      dist.distance_sqr = length_sqr(closest_point - point);
-      return;
-      }
-
-    const vec3<float4> cp = ap - ac;
-    const float4 d5 = dot(ab, cp);
-    const float4 d6 = dot(ac, cp);
-    const auto mask3 = (d6 >= float4(0)) & (d5 <= d6);
-    // closest point is v2  
-    dist.u = masked_update(exit, masked_update(mask3, dist.u, float4(0)), dist.u);
-    dist.v = masked_update(exit, masked_update(mask3, dist.v, float4(1)), dist.v);
-    exit |= mask3;
-    if (all(exit))
-      {
-      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
-      dist.distance_sqr = length_sqr(closest_point - point);
-      return;
-      }
-
-    const float4 vc = d1 * d4 - d3 * d2;
-    const auto mask4 = (vc <= float4(0)) & (d1 >= float4(0)) & (d3 <= float4(0));
-    const float4 v1 = d1 / (d1 - d3);
-    //const vec3<float4> answer1 = acc.v0 + v1 * ab;
-    // closest point is on the line ab  
-    dist.u = masked_update(exit, masked_update(mask4, dist.u, v1), dist.u);
-    dist.v = masked_update(exit, masked_update(mask4, dist.v, 0.0), dist.v);
-    exit |= mask4;
-    if (all(exit))
-      {
-      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
-      dist.distance_sqr = length_sqr(closest_point - point);
-      return;
-      }
-
-    const float4 vb = d5 * d2 - d1 * d6;
-    const auto mask5 = (vb <= float4(0)) & (d2 >= float4(0)) & (d6 <= float4(0));
-    const float4 w1 = d2 / (d2 - d6);
-    //const vec3<float4> answer2 = acc.v0 + w1 * ac;
-    // closest point is on the line ac  
-    dist.u = masked_update(exit, masked_update(mask5, dist.u, float4(0)), dist.u);
-    dist.v = masked_update(exit, masked_update(mask5, dist.v, w1), dist.v);
-    exit |= mask5;
-    if (all(exit))
-      {
-      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
-      dist.distance_sqr = length_sqr(closest_point - point);
-      return;
-      }
-
-    const float4 va = d3 * d6 - d5 * d4;
-    const auto mask6 = (va <= float4(0)) & ((d4 - d3) >= float4(0)) & ((d5 - d6) >= float4(0));
-    const float4 w2 = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-    //const vec3<float4> answer3 = (float4(1) - w2)*ab + w2 * ac;
-    // closest point is on the line bc  
-    dist.u = masked_update(exit, masked_update(mask6, dist.u, float4(1) - w2), dist.u);
-    dist.v = masked_update(exit, masked_update(mask6, dist.v, w2), dist.v);
-    exit |= mask6;
-    if (all(exit))
-      {
-      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
-      dist.distance_sqr = length_sqr(closest_point - point);
-      return;
-      }
-
-    const float4 denom = float4(1) / (va + vb + vc);
-    const float4 v2 = vb * denom;
-    const float4 w3 = vc * denom;
-    //const vec3<float4> answer4 = acc.v0 + ab * v2 + ac * w3;
-    const auto mask7 = !exit;
-    dist.u = masked_update(exit, masked_update(mask7, dist.u, v2), dist.u);
-    dist.v = masked_update(exit, masked_update(mask7, dist.v, w3), dist.v);
-    const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
-    dist.distance_sqr = length_sqr(closest_point - point);
-    }
-
-  JTKQBVHDEF float4 distance_sqr(const float4* aabb, const vec3<float4>& point)
-    {
-    const float4 x = point[0] - min(aabb[3], max(aabb[0], point[0]));
-    const float4 y = point[1] - min(aabb[4], max(aabb[1], point[1]));
-    const float4 z = point[2] - min(aabb[5], max(aabb[2], point[2]));
-
-    return x * x + y * y + z * z;
-    }
-
-  /////////////////////////////////////////////////////////////////////////
-  // transformation
-  /////////////////////////////////////////////////////////////////////////
-
-  JTKQBVHDEF float4x4 make_identity()
-    {
-    return get_identity();
-    }
-
-  JTKQBVHDEF vec3<float> transform(const float4x4& matrix, const vec3<float>& pt)
-    {
-    auto res = matrix_vector_multiply(matrix, float4(pt[0], pt[1], pt[2], 1.f));
-    return vec3<float>(res[0], res[1], res[2]);
-    }
-
-  JTKQBVHDEF vec3<float> transform_vector(const float4x4& matrix, const vec3<float>& vec)
-    {
-    auto res = matrix_vector_multiply(matrix, float4(vec[0], vec[1], vec[2], 0.f));
-    return vec3<float>(res[0], res[1], res[2]);
-    }
-
-  JTKQBVHDEF vec3<float> transform(const float4x4& matrix, const vec3<float>& pt, bool is_vector)
-    {
-    if (is_vector)
-      return transform_vector(matrix, pt);
-    else
-      return transform(matrix, pt);
-    }
-
-  JTKQBVHDEF float4 transform(const float4x4& matrix, const float4& pt)
-    {
-    auto res = matrix_vector_multiply(matrix, pt);
-    if (res[3] != 1.f && res[3])
-      {
-      res[0] /= res[3];
-      res[1] /= res[3];
-      res[2] /= res[3];
-      res[3] = 1.f;
-      }
-    return res;
-    }
-
-  JTKQBVHDEF float4x4 make_transformation(const vec3<float>& i_origin, const vec3<float>& i_x_axis, const vec3<float>& i_y_axis, const vec3<float>& i_z_axis)
-    {
-    float4x4 matrix;
-    matrix[0] = i_x_axis[0];
-    matrix[1] = i_x_axis[1];
-    matrix[2] = i_x_axis[2];
-    matrix[3] = 0;
-    matrix[4] = i_y_axis[0];
-    matrix[5] = i_y_axis[1];
-    matrix[6] = i_y_axis[2];
-    matrix[7] = 0;
-    matrix[8] = i_z_axis[0];
-    matrix[9] = i_z_axis[1];
-    matrix[10] = i_z_axis[2];
-    matrix[11] = 0;
-    matrix[12] = i_origin[0];
-    matrix[13] = i_origin[1];
-    matrix[14] = i_origin[2];
-    matrix[15] = 1;
-    return matrix;
-    }
-
-  JTKQBVHDEF float4x4 make_rotation(const vec3<float>& i_position, const vec3<float>& i_direction, float i_angle_radians)
-    {
-    auto matrix = make_identity();
-    auto direction = normalize(i_direction);
-
-    auto cos_alpha = std::cos(i_angle_radians);
-    auto sin_alpha = std::sin(i_angle_radians);
-
-    matrix[0] = (direction[0] * direction[0]) * (1 - cos_alpha) + cos_alpha;
-    matrix[4] = (direction[0] * direction[1]) * (1 - cos_alpha) - direction[2] * sin_alpha;
-    matrix[8] = (direction[0] * direction[2]) * (1 - cos_alpha) + direction[1] * sin_alpha;
-
-    matrix[1] = (direction[0] * direction[1]) * (1 - cos_alpha) + direction[2] * sin_alpha;
-    matrix[5] = (direction[1] * direction[1]) * (1 - cos_alpha) + cos_alpha;
-    matrix[9] = (direction[1] * direction[2]) * (1 - cos_alpha) - direction[0] * sin_alpha;
-
-    matrix[2] = (direction[0] * direction[2]) * (1 - cos_alpha) - direction[1] * sin_alpha;
-    matrix[6] = (direction[1] * direction[2]) * (1 - cos_alpha) + direction[0] * sin_alpha;
-    matrix[10] = (direction[2] * direction[2]) * (1 - cos_alpha) + cos_alpha;
-
-    auto rotated_position = transform_vector(matrix, i_position);
-
-    matrix[12] = i_position[0] - rotated_position[0];
-    matrix[13] = i_position[1] - rotated_position[1];
-    matrix[14] = i_position[2] - rotated_position[2];
-
-    return matrix;
-    }
-
-  JTKQBVHDEF float4x4 make_scale3d(float scale_x, float scale_y, float scale_z)
-    {
-    return float4x4(float4(scale_x, 0.f, 0.f, 0.f), float4(0.f, scale_y, 0.f, 0.f), float4(0.f, 0.f, scale_z, 0.f), float4(0.f, 0.f, 0.f, 1.f));
-    }
-
-  JTKQBVHDEF float4x4 make_translation(const vec3<float>& i_translation)
-    {
-    return make_translation(i_translation[0], i_translation[1], i_translation[2]);
-    }
-
-  JTKQBVHDEF vec3<float> get_translation(const float4x4& matrix)
-    {
-    return vec3<float>(matrix[12], matrix[13], matrix[14]);
-    }
-
-  JTKQBVHDEF void set_x_axis(float4x4& matrix, const vec3<float>& x)
-    {
-    matrix[0] = x[0];
-    matrix[1] = x[1];
-    matrix[2] = x[2];
-    }
-
-  JTKQBVHDEF void set_y_axis(float4x4& matrix, const vec3<float>& y)
-    {
-    matrix[4] = y[0];
-    matrix[5] = y[1];
-    matrix[6] = y[2];
-    }
-
-  JTKQBVHDEF void set_z_axis(float4x4& matrix, const vec3<float>& z)
-    {
-    matrix[8] = z[0];
-    matrix[9] = z[1];
-    matrix[10] = z[2];
-    }
-
-  JTKQBVHDEF void set_translation(float4x4& matrix, const vec3<float>& t)
-    {
-    matrix[12] = t[0];
-    matrix[13] = t[1];
-    matrix[14] = t[2];
-    }
-
-  JTKQBVHDEF vec3<float> get_x_axis(const float4x4& matrix)
-    {
-    return vec3<float>(matrix[0], matrix[1], matrix[2]);
-    }
-
-  JTKQBVHDEF vec3<float> get_y_axis(const float4x4& matrix)
-    {
-    return vec3<float>(matrix[4], matrix[5], matrix[6]);
-    }
-
-  JTKQBVHDEF vec3<float> get_z_axis(const float4x4& matrix)
-    {
-    return vec3<float>(matrix[8], matrix[9], matrix[10]);
-    }
-
-  JTKQBVHDEF float determinant(const float4x4& m)
-    {
-    auto inv0 = m[5] * m[10] * m[15] -
-      m[5] * m[11] * m[14] -
-      m[9] * m[6] * m[15] +
-      m[9] * m[7] * m[14] +
-      m[13] * m[6] * m[11] -
-      m[13] * m[7] * m[10];
-
-    auto inv4 = -m[4] * m[10] * m[15] +
-      m[4] * m[11] * m[14] +
-      m[8] * m[6] * m[15] -
-      m[8] * m[7] * m[14] -
-      m[12] * m[6] * m[11] +
-      m[12] * m[7] * m[10];
-
-    auto inv8 = m[4] * m[9] * m[15] -
-      m[4] * m[11] * m[13] -
-      m[8] * m[5] * m[15] +
-      m[8] * m[7] * m[13] +
-      m[12] * m[5] * m[11] -
-      m[12] * m[7] * m[9];
-
-    auto inv12 = -m[4] * m[9] * m[14] +
-      m[4] * m[10] * m[13] +
-      m[8] * m[5] * m[14] -
-      m[8] * m[6] * m[13] -
-      m[12] * m[5] * m[10] +
-      m[12] * m[6] * m[9];
-
-    return m[0] * inv0 + m[1] * inv4 + m[2] * inv8 + m[3] * inv12;
-    }
-
-  /////////////////////////////////////////////////////////////////////////
-  // qbvh
-  /////////////////////////////////////////////////////////////////////////
-
+    
   JTKQBVHINLINE void* qbvh_voxel::operator new(size_t size) { return aligned_malloc(size, 16); }
   JTKQBVHINLINE void qbvh_voxel::operator delete(void* ptr) { aligned_free(ptr); }
   JTKQBVHINLINE void* qbvh_voxel::operator new[](size_t size) { return aligned_malloc(size, 16); }
   JTKQBVHINLINE void qbvh_voxel::operator delete[](void* ptr) { aligned_free(ptr); }
-
-
-  JTKQBVHDEF qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
-    {
-    qbvh_voxel* lst = new qbvh_voxel[nr_of_triangles];
-    total_bb.bbox_min = std::numeric_limits<float>::max();
-    total_bb.bbox_max = -std::numeric_limits<float>::max();
-    centroid_bb.bbox_min = total_bb.bbox_min;
-    centroid_bb.bbox_max = total_bb.bbox_max;
-    const unsigned int number_of_threads = hardware_concurrency();
-
-    aligned_vector<qbvh_voxel> total_bbs(number_of_threads, total_bb);
-    aligned_vector<qbvh_voxel> total_centroids(number_of_threads, centroid_bb);
-    parallel_for((unsigned int)0, number_of_threads, [&](unsigned int i)
-      {
-      uint32_t s = (uint32_t)((uint64_t)i * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_threads);
-      const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_threads);
-      for (uint32_t t = s; t < e; ++t)
-        {
-        const float4 v0(vertices[triangles[t][0]][0], vertices[triangles[t][0]][1], vertices[triangles[t][0]][2], 1);
-        const float4 v1(vertices[triangles[t][1]][0], vertices[triangles[t][1]][1], vertices[triangles[t][1]][2], 1);
-        const float4 v2(vertices[triangles[t][2]][0], vertices[triangles[t][2]][1], vertices[triangles[t][2]][2], 1);
-        lst[t].bbox_min = min(min(v0, v1), v2);
-        lst[t].bbox_max = max(max(v0, v1), v2);
-        lst[t].centroid = (lst[t].bbox_min + lst[t].bbox_max)*0.5;
-        total_bbs[i].bbox_min = min(total_bbs[i].bbox_min, lst[t].bbox_min);
-        total_bbs[i].bbox_max = max(total_bbs[i].bbox_max, lst[t].bbox_max);
-        total_centroids[i].bbox_min = min(total_centroids[i].bbox_min, lst[t].centroid);
-        total_centroids[i].bbox_max = max(total_centroids[i].bbox_max, lst[t].centroid);
-        }
-      });
-
-    for (uint32_t i = 0; i < number_of_threads; ++i)
-      {
-      total_bb.bbox_min = min(total_bb.bbox_min, total_bbs[i].bbox_min);
-      total_bb.bbox_max = max(total_bb.bbox_max, total_bbs[i].bbox_max);
-      centroid_bb.bbox_min = min(centroid_bb.bbox_min, total_centroids[i].bbox_min);
-      centroid_bb.bbox_max = max(centroid_bb.bbox_max, total_centroids[i].bbox_max);
-      }
-    total_bb.centroid = (total_bb.bbox_min + total_bb.bbox_max)*0.5;
-    centroid_bb.centroid = (centroid_bb.bbox_min + centroid_bb.bbox_max)*0.5;
-    return lst;
-    }
-
-  JTKQBVHDEF qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
-    {
-    qbvh_voxel* lst = new qbvh_voxel[nr_of_spheres];
-    total_bb.bbox_min = std::numeric_limits<float>::max();
-    total_bb.bbox_max = -std::numeric_limits<float>::max();
-    centroid_bb.bbox_min = total_bb.bbox_min;
-    centroid_bb.bbox_max = total_bb.bbox_max;
-    const unsigned int number_of_threads = hardware_concurrency();
-
-    aligned_vector<qbvh_voxel> total_bbs(number_of_threads, total_bb);
-    aligned_vector<qbvh_voxel> total_centroids(number_of_threads, centroid_bb);
-    parallel_for((unsigned int)0, number_of_threads, [&](unsigned int i)
-      {
-      uint32_t s = (uint32_t)((uint64_t)i * (uint64_t)(nr_of_spheres) / (uint64_t)number_of_threads);
-      const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(nr_of_spheres) / (uint64_t)number_of_threads);
-      for (uint32_t t = s; t < e; ++t)
-        {
-        const float4 v(origins[t][0], origins[t][1], origins[t][2], 1);
-        lst[t].bbox_min = v - float4(radii[t], radii[t], radii[t], 0.f);
-        lst[t].bbox_max = v + float4(radii[t], radii[t], radii[t], 0.f);
-        lst[t].centroid = v;
-        total_bbs[i].bbox_min = min(total_bbs[i].bbox_min, lst[t].bbox_min);
-        total_bbs[i].bbox_max = max(total_bbs[i].bbox_max, lst[t].bbox_max);
-        total_centroids[i].bbox_min = min(total_centroids[i].bbox_min, lst[t].centroid);
-        total_centroids[i].bbox_max = max(total_centroids[i].bbox_max, lst[t].centroid);
-        }
-      });
-
-    for (uint32_t i = 0; i < number_of_threads; ++i)
-      {
-      total_bb.bbox_min = min(total_bb.bbox_min, total_bbs[i].bbox_min);
-      total_bb.bbox_max = max(total_bb.bbox_max, total_bbs[i].bbox_max);
-      centroid_bb.bbox_min = min(centroid_bb.bbox_min, total_centroids[i].bbox_min);
-      centroid_bb.bbox_max = max(centroid_bb.bbox_max, total_centroids[i].bbox_max);
-      }
-    total_bb.centroid = (total_bb.bbox_min + total_bb.bbox_max)*0.5;
-    centroid_bb.centroid = (centroid_bb.bbox_min + centroid_bb.bbox_max)*0.5;
-    return lst;
-    }
-
-  JTKQBVHDEF void unite_four_aabbs(float4* out, float4* in, int k)
-    {
-    out[0][k] = min_horizontal(in[0]);
-    out[1][k] = min_horizontal(in[1]);
-    out[2][k] = min_horizontal(in[2]);
-    out[3][k] = max_horizontal(in[3]);
-    out[4][k] = max_horizontal(in[4]);
-    out[5][k] = max_horizontal(in[5]);
-    }
-
-
-  JTKQBVHDEF void get_bbox(float4* bbox, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int k)
-    {
-    assert(first != last);
-    bbox[0][k] = voxels[*first].bbox_min[0];
-    bbox[1][k] = voxels[*first].bbox_min[1];
-    bbox[2][k] = voxels[*first].bbox_min[2];
-    bbox[3][k] = voxels[*first].bbox_max[0];
-    bbox[4][k] = voxels[*first].bbox_max[1];
-    bbox[5][k] = voxels[*first].bbox_max[2];
-    for (auto it = first + 1; it != last; ++it)
-      {
-      bbox[0][k] = std::min<float>(bbox[0][k], voxels[*it].bbox_min[0]);
-      bbox[1][k] = std::min<float>(bbox[1][k], voxels[*it].bbox_min[1]);
-      bbox[2][k] = std::min<float>(bbox[2][k], voxels[*it].bbox_min[2]);
-      bbox[3][k] = std::max<float>(bbox[3][k], voxels[*it].bbox_max[0]);
-      bbox[4][k] = std::max<float>(bbox[4][k], voxels[*it].bbox_max[1]);
-      bbox[5][k] = std::max<float>(bbox[5][k], voxels[*it].bbox_max[2]);
-      }
-    }
-
-
-  JTKQBVHDEF float calculate_half_surface_area(const float4& left, const float4& right)
-    {
-    const float4 diff = right - left;
-    const float4 diff2(diff[1], diff[2], diff[0], 0);
-    float4 tmp = diff * diff2;
-    return tmp[0] + tmp[1] + tmp[2];
-    }
-
-
-  JTKQBVHDEF uint8_t find_largest_dimension(const qbvh_voxel& bb)
-    {
-    const float4 diff = bb.bbox_max - bb.bbox_min;
-    const uint8_t dim = diff[1] > diff[0] ? (diff[2] > diff[1] ? 2 : 1) : (diff[2] > diff[0] ? 2 : 0);
-    return dim;
-    }
-
-
-  JTKQBVHDEF std::vector<uint32_t>::iterator partition(qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, const uint32_t dim, const float split_pos, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
-    {
-    auto last_save = last;
-    while (first != last)
-      {
-      while (voxels[*first].centroid[dim] < split_pos)
-        {
-        bbox_left.bbox_min = min(bbox_left.bbox_min, voxels[*first].bbox_min);
-        bbox_left.bbox_max = max(bbox_left.bbox_max, voxels[*first].bbox_max);
-        centroid_left.bbox_min = min(centroid_left.bbox_min, voxels[*first].centroid);
-        centroid_left.bbox_max = max(centroid_left.bbox_max, voxels[*first].centroid);
-        ++first;
-        if (first == last)
-          return first;
-        }
-      do
-        {
-        if (last != last_save)
-          {
-          bbox_right.bbox_min = min(bbox_right.bbox_min, voxels[*last].bbox_min);
-          bbox_right.bbox_max = max(bbox_right.bbox_max, voxels[*last].bbox_max);
-          centroid_right.bbox_min = min(centroid_right.bbox_min, voxels[*last].centroid);
-          centroid_right.bbox_max = max(centroid_right.bbox_max, voxels[*last].centroid);
-          }
-        --last;
-        if (first == last)
-          {
-          bbox_right.bbox_min = min(bbox_right.bbox_min, voxels[*last].bbox_min);
-          bbox_right.bbox_max = max(bbox_right.bbox_max, voxels[*last].bbox_max);
-          centroid_right.bbox_min = min(centroid_right.bbox_min, voxels[*last].centroid);
-          centroid_right.bbox_max = max(centroid_right.bbox_max, voxels[*last].centroid);
-          return first;
-          }
-        } while (voxels[*last].centroid[dim] >= split_pos);
-        std::swap(*first, *last);
-        bbox_left.bbox_min = min(bbox_left.bbox_min, voxels[*first].bbox_min);
-        bbox_left.bbox_max = max(bbox_left.bbox_max, voxels[*first].bbox_max);
-        centroid_left.bbox_min = min(centroid_left.bbox_min, voxels[*first].centroid);
-        centroid_left.bbox_max = max(centroid_left.bbox_max, voxels[*first].centroid);
-        bbox_right.bbox_min = min(bbox_right.bbox_min, voxels[*last].bbox_min);
-        bbox_right.bbox_max = max(bbox_right.bbox_max, voxels[*last].bbox_max);
-        centroid_right.bbox_min = min(centroid_right.bbox_min, voxels[*last].centroid);
-        centroid_right.bbox_max = max(centroid_right.bbox_max, voxels[*last].centroid);
-        ++first;
-      }
-    return first;
-    }
-
-
-  template <int K>
-  void sah_optimized(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
-    {
-    const uint32_t nr_of_triangles = (uint32_t)std::distance(first, last);
-    const float eps = std::numeric_limits<float>::epsilon() * 1024;
-    const float one_minus_eps = (float)1 - eps;
-    const float one_over_K = (float)1 / (float)K;
-    std::array<uint32_t, 2 * K> bin;
-    memset(&bin[0], 0, sizeof(uint32_t) * 2 * K);
-
-    dim = find_largest_dimension(centroid_bb);
-
-    const float s = bbox.bbox_max[dim] - bbox.bbox_min[dim];
-    const float k1 = (float)K * one_minus_eps / s;
-    const float k0 = bbox.bbox_min[dim];
-
-
-    for (auto it = first; it != last; ++it)
-      {
-      const uint32_t bmin = (uint32_t)std::floor(k1*(voxels[*it].bbox_min[dim] - k0));
-      const uint32_t bmax = (uint32_t)std::floor(k1*(voxels[*it].bbox_max[dim] - k0));
-      ++bin[bmin];
-      ++bin[K + bmax];
-      }
-
-    const float total_surface_area = calculate_half_surface_area(bbox.bbox_min, bbox.bbox_max);
-
-    float inv_total_surface_area = 0;
-
-    if (total_surface_area > eps)
-      inv_total_surface_area = (float)1 / total_surface_area;
-
-    float split_pos;
-    float minimal_cost;
-
-
-    const float bsize = s;
-    const float bstep = bsize * one_over_K;
-
-    split_pos = k0 + (float)0.5*bstep;
-    minimal_cost = std::numeric_limits<float>::max();
-
-    uint32_t left = 0;
-    uint32_t right = nr_of_triangles;
-    float4 bminleft = bbox.bbox_min;
-    float4 bminright = bbox.bbox_min;
-    float4 bmaxleft = bbox.bbox_max;
-    float4 bmaxright = bbox.bbox_max;
-
-    for (int i = 0; i < K - 1; ++i)
-      {
-      left += bin[i];
-      right -= bin[K + i];
-
-      assert(left <= nr_of_triangles);
-      assert(right <= nr_of_triangles);
-
-      const float pos = k0 + (i + 0.5f)*bstep;
-      bmaxleft[dim] = pos;
-      bminright[dim] = pos;
-
-      const float saleft = calculate_half_surface_area(bminleft, bmaxleft);
-      const float saright = calculate_half_surface_area(bminright, bmaxright);
-
-      const float twice_Taabb = (float)0.4;
-      const float Ttri = (float)0.8;
-      //float cost = 2.0*Taabb + (saleft * inv_total_surface_area) * left * Ttri + (saright * inv_total_surface_area) * right * Ttri;
-      const float cost = twice_Taabb + (saleft * left + saright * right) * inv_total_surface_area * Ttri;
-
-      if (cost < minimal_cost)
-        {
-        minimal_cost = cost;
-        split_pos = pos;
-        }
-      }
-
-    bbox_left.bbox_min = std::numeric_limits<float>::max();
-    bbox_left.bbox_max = -std::numeric_limits<float>::max();
-
-    bbox_right.bbox_min = bbox_left.bbox_min;
-    bbox_right.bbox_max = bbox_left.bbox_max;
-
-    centroid_left.bbox_min = bbox_left.bbox_min;
-    centroid_left.bbox_max = bbox_left.bbox_max;
-
-    centroid_right.bbox_min = bbox_left.bbox_min;
-    centroid_right.bbox_max = bbox_left.bbox_max;
-
-    mid = partition(bbox_left, bbox_right, centroid_left, centroid_right, dim, split_pos, voxels, first, last);
-    if ((mid == first) || (mid == last))
-      {
-      bbox_left.bbox_min = std::numeric_limits<float>::max();
-      bbox_left.bbox_max = -std::numeric_limits<float>::max();
-
-      bbox_right.bbox_min = bbox_left.bbox_min;
-      bbox_right.bbox_max = bbox_left.bbox_max;
-
-      centroid_left.bbox_min = bbox_left.bbox_min;
-      centroid_left.bbox_max = bbox_left.bbox_max;
-
-      centroid_right.bbox_min = bbox_left.bbox_min;
-      centroid_right.bbox_max = bbox_left.bbox_max;
-
-      mid = first + (last - first) / 2;
-
-      std::nth_element(first, mid, last, [&](uint32_t id1, uint32_t id2)
-        {
-        return voxels[id1].centroid[dim] < voxels[id2].centroid[dim];
-        });
-
-      for (auto it = first; it != mid; ++it)
-        {
-        bbox_left.bbox_min = min(bbox_left.bbox_min, voxels[*it].bbox_min);
-        bbox_left.bbox_max = max(bbox_left.bbox_max, voxels[*it].bbox_max);
-        centroid_left.bbox_min = min(centroid_left.bbox_min, voxels[*it].centroid);
-        centroid_left.bbox_max = max(centroid_left.bbox_max, voxels[*it].centroid);
-        }
-      for (auto it = mid; it != last; ++it)
-        {
-        bbox_right.bbox_min = min(bbox_right.bbox_min, voxels[*it].bbox_min);
-        bbox_right.bbox_max = max(bbox_right.bbox_max, voxels[*it].bbox_max);
-        centroid_right.bbox_min = min(centroid_right.bbox_min, voxels[*it].centroid);
-        centroid_right.bbox_max = max(centroid_right.bbox_max, voxels[*it].centroid);
-        }
-      }
-    }
-
-
-  template <int K>
-  void sah_parallel(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
-    {
-    const uint32_t nr_of_triangles = (uint32_t)std::distance(first, last);
-    const float eps = std::numeric_limits<float>::epsilon() * 1024;
-    const float one_minus_eps = (float)1 - eps;
-    const float one_over_K = (float)1 / (float)K;
-    std::array<uint32_t, 2 * K> bin;
-    memset(&bin[0], 0, sizeof(uint32_t) * 2 * K);
-
-    dim = find_largest_dimension(centroid_bb);
-
-    const float sw = bbox.bbox_max[dim] - bbox.bbox_min[dim];
-    const float k1 = (float)K * one_minus_eps / sw;
-    const float k0 = bbox.bbox_min[dim];
-
-    static const unsigned int number_of_threads = hardware_concurrency();
-    static const unsigned int number_of_blocks = number_of_threads * 4;
-
-    std::vector<std::array<uint32_t, 2 * K>> local_bins(number_of_blocks, bin);
-
-    parallel_for((unsigned int)0, number_of_blocks, [&](unsigned int t)
-      {
-      const uint32_t s = (uint32_t)((uint64_t)t * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_blocks);
-      const uint32_t e = (uint32_t)((uint64_t)(t + 1) * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_blocks);
-      auto it = first + s;
-      const auto it_end = first + e;
-      for (; it != it_end; ++it)
-        {
-        const uint32_t bmin = (uint32_t)std::floor(k1*(voxels[*it].bbox_min[dim] - k0));
-        const uint32_t bmax = (uint32_t)std::floor(k1*(voxels[*it].bbox_max[dim] - k0));
-        ++local_bins[t][bmin];
-        ++local_bins[t][K + bmax];
-        }
-      });
-
-    parallel_for(uint32_t(0), uint32_t(2 * K), [&](uint32_t i)
-      {
-      for (unsigned int t = 0; t < number_of_blocks; ++t)
-        bin[i] += local_bins[t][i];
-      });
-
-    const float total_surface_area = calculate_half_surface_area(bbox.bbox_min, bbox.bbox_max);
-
-    float inv_total_surface_area = 0;
-
-    if (total_surface_area > eps)
-      inv_total_surface_area = (float)1 / total_surface_area;
-
-    float split_pos;
-    float minimal_cost;
-
-
-    const float bsize = sw;
-    const float bstep = bsize * one_over_K;
-
-    split_pos = k0 + (float)0.5*bstep;
-    minimal_cost = std::numeric_limits<float>::max();
-
-    uint32_t left = 0;
-    uint32_t right = nr_of_triangles;
-    float4 bminleft = bbox.bbox_min;
-    float4 bminright = bbox.bbox_min;
-    float4 bmaxleft = bbox.bbox_max;
-    float4 bmaxright = bbox.bbox_max;
-
-    for (int i = 0; i < K - 1; ++i)
-      {
-      left += bin[i];
-      right -= bin[K + i];
-
-      assert(left <= nr_of_triangles);
-      assert(right <= nr_of_triangles);
-
-      const float pos = k0 + (i + (float)0.5)*bstep;
-      bmaxleft[dim] = pos;
-      bminright[dim] = pos;
-
-      const float saleft = calculate_half_surface_area(bminleft, bmaxleft);
-      const float saright = calculate_half_surface_area(bminright, bmaxright);
-
-      const float twice_Taabb = (float)0.4;
-      const float Ttri = (float)0.8;
-      const float cost = twice_Taabb + (saleft * left + saright * right) * inv_total_surface_area * Ttri;
-
-      if (cost < minimal_cost)
-        {
-        minimal_cost = cost;
-        split_pos = pos;
-        }
-      }
-
-    mid = parallel_partition(first, last, [&](uint32_t id)
-      {
-      return voxels[id].centroid[dim] < split_pos;
-      });
-    if ((mid == first) || (mid == last))
-      {
-      mid = first + (last - first) / 2;
-      std::nth_element(first, mid, last, [&](uint32_t id1, uint32_t id2)
-        {
-        return voxels[id1].centroid[dim] < voxels[id2].centroid[dim];
-        });
-      }
-
-    bbox_left.bbox_min = std::numeric_limits<float>::max();
-    bbox_left.bbox_max = -std::numeric_limits<float>::max();
-
-    bbox_right.bbox_min = bbox_left.bbox_min;
-    bbox_right.bbox_max = bbox_left.bbox_max;
-
-    centroid_left.bbox_min = bbox_left.bbox_min;
-    centroid_left.bbox_max = bbox_left.bbox_max;
-
-    centroid_right.bbox_min = bbox_left.bbox_min;
-    centroid_right.bbox_max = bbox_left.bbox_max;
-
-    aligned_vector<qbvh_voxel> bbox_left_blocks(number_of_blocks, bbox_left);
-    aligned_vector<qbvh_voxel> bbox_right_blocks(number_of_blocks, bbox_left);
-    aligned_vector<qbvh_voxel> centroid_left_blocks(number_of_blocks, bbox_left);
-    aligned_vector<qbvh_voxel> centroid_right_blocks(number_of_blocks, bbox_left);
-
-    const uint32_t nr_of_left_items = (uint32_t)std::distance(first, mid);
-    const uint32_t nr_of_right_items = (uint32_t)std::distance(mid, last);
-
-    parallel_for((unsigned int)0, number_of_blocks, [&](unsigned int t)
-      {
-      const uint64_t s1 = (uint64_t)t * (uint64_t)(nr_of_left_items) / (uint64_t)number_of_blocks;
-      const uint64_t e1 = (uint64_t)(t + 1) *(uint64_t)(nr_of_left_items) / (uint64_t)number_of_blocks;
-      auto it1 = first + s1;
-      const auto it1_end = first + e1;
-      for (; it1 != it1_end; ++it1)
-        {
-        bbox_left_blocks[t].bbox_min = min(bbox_left_blocks[t].bbox_min, voxels[*it1].bbox_min);
-        bbox_left_blocks[t].bbox_max = max(bbox_left_blocks[t].bbox_max, voxels[*it1].bbox_max);
-        centroid_left_blocks[t].bbox_min = min(centroid_left_blocks[t].bbox_min, voxels[*it1].centroid);
-        centroid_left_blocks[t].bbox_max = max(centroid_left_blocks[t].bbox_max, voxels[*it1].centroid);
-        }
-
-      const uint32_t s2 = (uint64_t)t * (uint64_t)(nr_of_right_items) / (uint64_t)number_of_blocks;
-      const uint32_t e2 = (uint64_t)(t + 1) * (uint64_t)(nr_of_right_items) / (uint64_t)number_of_blocks;
-      auto it2 = mid + s2;
-      const auto it2_end = mid + e2;
-      for (; it2 != it2_end; ++it2)
-        {
-        bbox_right_blocks[t].bbox_min = min(bbox_right_blocks[t].bbox_min, voxels[*it2].bbox_min);
-        bbox_right_blocks[t].bbox_max = max(bbox_right_blocks[t].bbox_max, voxels[*it2].bbox_max);
-        centroid_right_blocks[t].bbox_min = min(centroid_right_blocks[t].bbox_min, voxels[*it2].centroid);
-        centroid_right_blocks[t].bbox_max = max(centroid_right_blocks[t].bbox_max, voxels[*it2].centroid);
-        }
-      });
-
-    for (unsigned int t = 0; t < number_of_blocks; ++t)
-      {
-      bbox_left.bbox_min = min(bbox_left.bbox_min, bbox_left_blocks[t].bbox_min);
-      bbox_left.bbox_max = max(bbox_left.bbox_max, bbox_left_blocks[t].bbox_max);
-      centroid_left.bbox_min = min(centroid_left.bbox_min, centroid_left_blocks[t].bbox_min);
-      centroid_left.bbox_max = max(centroid_left.bbox_max, centroid_left_blocks[t].bbox_max);
-      bbox_right.bbox_min = min(bbox_right.bbox_min, bbox_right_blocks[t].bbox_min);
-      bbox_right.bbox_max = max(bbox_right.bbox_max, bbox_right_blocks[t].bbox_max);
-      centroid_right.bbox_min = min(centroid_right.bbox_min, centroid_right_blocks[t].bbox_min);
-      centroid_right.bbox_max = max(centroid_right.bbox_max, centroid_right_blocks[t].bbox_max);
-      }
-    }
-
-  static const uint32_t order[8][4] =
-    { { 3,2,1,0 },
-    { 3,2,0,1 },
-    { 2,3,1,0 },
-    { 2,3,0,1 },
-    { 1,0,3,2 },
-    { 1,0,2,3 },
-    { 0,1,3,2 },
-    { 0,1,2,3 }
-    };
-
-
-  static const uint32_t sign_bit = 0x80000000;
-  static const int4 sign_mask = int4(0x80000000, 0x80000000, 0x80000000, 0x80000000);
-  static const int4 bit_mask = int4(0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF);
-
 
 
   JTKQBVHINLINE qbvh::qbvh(const std::vector<vec3<uint32_t>>& triangles, const vec3<float>* vertices)
@@ -4263,23 +2662,8 @@ namespace jtk
 
     return id;
     }
-
-  /////////////////////////////////////////////////////////////////////////
-  // qbvh_two_level
-  /////////////////////////////////////////////////////////////////////////
-
-  JTKQBVHDEF void unite_four_aabbs(qbvh_voxel& out, const float4* in)
-    {
-    out.bbox_min[0] = min_horizontal(in[0]);
-    out.bbox_min[1] = min_horizontal(in[1]);
-    out.bbox_min[2] = min_horizontal(in[2]);
-    out.bbox_min[3] = 1.f;
-    out.bbox_max[0] = max_horizontal(in[3]);
-    out.bbox_max[1] = max_horizontal(in[4]);
-    out.bbox_max[2] = max_horizontal(in[5]);
-    out.bbox_max[3] = 1.f;
-    }
-
+    
+    
 
   JTKQBVHINLINE qbvh_two_level::qbvh_two_level(const qbvh** objects, uint32_t nr_of_objects)
     {
@@ -4477,25 +2861,7 @@ namespace jtk
       return node_id;
       }
     }
-
-  /////////////////////////////////////////////////////////////////////////
-  // qbvh_two_level_with_transformations
-  /////////////////////////////////////////////////////////////////////////
-
-  JTKQBVHDEF void transform(qbvh_voxel& voxel, const float4x4& matrix)
-    {
-    auto xa = matrix.col[0] * voxel.bbox_min[0];
-    auto xb = matrix.col[0] * voxel.bbox_max[0];
-
-    auto ya = matrix.col[1] * voxel.bbox_min[1];
-    auto yb = matrix.col[1] * voxel.bbox_max[1];
-
-    auto za = matrix.col[2] * voxel.bbox_min[2];
-    auto zb = matrix.col[2] * voxel.bbox_max[2];
-
-    voxel.bbox_min = min(xa, xb) + min(ya, yb) + min(za, zb) + matrix.col[3];
-    voxel.bbox_max = max(xa, xb) + max(ya, yb) + max(za, zb) + matrix.col[3];
-    }
+    
 
   JTKQBVHINLINE qbvh_two_level_with_transformations::qbvh_two_level_with_transformations(const qbvh** objects, const float4x4* transformations, uint32_t nr_of_objects)
     {
@@ -4696,6 +3062,1642 @@ namespace jtk
       return node_id;
       }
     }
+    
+  } // namespace jtk
+
+#endif //#ifndef JTK_QBVH_H
+
+
+#ifdef JTK_QBVH_IMPLEMENTATION
+
+namespace jtk
+  {
+
+  /////////////////////////////////////////////////////////////////////////
+  // implementations
+  /////////////////////////////////////////////////////////////////////////
+
+  /////////////////////////////////////////////////////////////////////////
+  // aligned allocators
+  /////////////////////////////////////////////////////////////////////////
+
+  JTKQBVHDEF void* aligned_malloc(size_t size, size_t align)
+    {
+    if (size == 0)
+      return nullptr;
+
+    assert((align & (align - 1)) == 0);
+    void* ptr = _mm_malloc(size, align);
+
+    if (ptr == nullptr)
+      throw std::bad_alloc();
+
+    return ptr;
+    }
+
+  JTKQBVHDEF void aligned_free(void* ptr)
+    {
+    if (ptr)
+      _mm_free(ptr);
+    }
+
+  /////////////////////////////////////////////////////////////////////////
+  // globals
+  /////////////////////////////////////////////////////////////////////////
+
+  /////////////////////////////////////////////////////////////////////////
+  // bool4
+  /////////////////////////////////////////////////////////////////////////
+
+  JTKQBVHDEF bool all(const bool4& b)
+    {
+    return _mm_movemask_ps(b.m128) == 0xf;
+    }
+
+  JTKQBVHDEF bool any(const bool4& b)
+    {
+    return _mm_movemask_ps(b.m128) != 0x0;
+    }
+
+  JTKQBVHDEF bool none(const bool4& b)
+    {
+    return _mm_movemask_ps(b.m128) == 0x0;
+    }
+
+  JTKQBVHDEF bool4 operator ! (const bool4& a)
+    {
+    return _mm_xor_ps(a.m128, bool4(true).m128);
+    }
+
+  JTKQBVHDEF bool4 operator & (const bool4& a, const bool4& b)
+    {
+    return _mm_and_ps(a.m128, b.m128);
+    }
+
+  JTKQBVHDEF bool4 operator | (const bool4& a, const bool4& b)
+    {
+    return _mm_or_ps(a.m128, b.m128);
+    }
+
+  JTKQBVHDEF bool4 operator ^ (const bool4& a, const bool4& b)
+    {
+    return _mm_xor_ps(a.m128, b.m128);
+    }
+
+  JTKQBVHDEF bool4& operator &= (bool4& a, const bool4& b)
+    {
+    //return a = a & b; 
+    /*
+    DANGEROUS: Don't do return a = a & b;
+    Lanes will be mixed by compiler in release
+    */
+    const __m128 res = _mm_and_ps(a.m128, b.m128);
+    a.m128 = res;
+    return a;
+    }
+
+  JTKQBVHDEF bool4& operator |= (bool4& a, const bool4& b)
+    {
+    //return a = a | b; 
+    /*
+    DANGEROUS: Don't do return a = a & b;
+    Lanes will be mixed by compiler in release
+    */
+    const __m128 res = _mm_or_ps(a.m128, b.m128);
+    a.m128 = res;
+    return a;
+    }
+
+  JTKQBVHDEF bool4& operator ^= (bool4& a, const bool4& b)
+    {
+    //return a = a ^ b; 
+    /*
+    DANGEROUS: Don't do return a = a & b;
+    Lanes will be mixed by compiler in release
+    */
+    const __m128 res = _mm_xor_ps(a.m128, b.m128);
+    a.m128 = res;
+    return a;
+    }
+
+  JTKQBVHDEF bool4 operator != (const bool4& a, const bool4& b)
+    {
+    return _mm_xor_ps(a.m128, b.m128);
+    }
+
+  JTKQBVHDEF bool4 operator == (const bool4& a, const bool4& b)
+    {
+    return _mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(a.m128), _mm_castps_si128(b.m128)));
+    }
+
+  /////////////////////////////////////////////////////////////////////////
+  // struct int4
+  /////////////////////////////////////////////////////////////////////////
+
+  JTKQBVHDEF int4 operator + (const int4& a)
+    {
+    return a;
+    }
+
+  JTKQBVHDEF int4 operator - (const int4& a)
+    {
+    return _mm_sub_epi32(_mm_set1_epi32(0), a.m128i);
+    }
+
+  JTKQBVHDEF int4 operator + (const int4& left, const int4& right)
+    {
+    return _mm_add_epi32(left.m128i, right.m128i);
+    }
+
+  JTKQBVHDEF int4 operator - (const int4& left, const int4& right)
+    {
+    return _mm_sub_epi32(left.m128i, right.m128i);
+    }
+
+  JTKQBVHDEF int4 operator * (const int4& left, const int4& right)
+    {
+    return _mm_mullo_epi32(left.m128i, right.m128i);
+    }
+
+  JTKQBVHDEF int4 operator * (const int4& left, int32_t right)
+    {
+    return left * int4(right);
+    }
+
+  JTKQBVHDEF int4 operator * (int32_t left, const int4& right)
+    {
+    return int4(left)*right;
+    }
+
+  JTKQBVHDEF int4 min(const int4& left, const int4& right)
+    {
+    return _mm_min_epi32(left.m128i, right.m128i);
+    }
+
+  JTKQBVHDEF int4 max(const int4& left, const int4& right)
+    {
+    return _mm_max_epi32(left.m128i, right.m128i);
+    }
+
+  JTKQBVHDEF bool4 operator == (const int4& left, const int4& right)
+    {
+    return _mm_cmpeq_epi32(left.m128i, right.m128i);
+    }
+
+  JTKQBVHDEF bool4 operator != (const int4& left, const int4& right)
+    {
+    return _mm_andnot_si128(_mm_cmpeq_epi32(left.m128i, right.m128i), not_zero);
+    }
+
+  JTKQBVHDEF bool4 operator < (const int4& left, const int4& right)
+    {
+    return _mm_cmplt_epi32(left.m128i, right.m128i);
+    }
+
+  JTKQBVHDEF bool4 operator > (const int4& left, const int4& right)
+    {
+    return _mm_cmpgt_epi32(left.m128i, right.m128i);
+    }
+
+  JTKQBVHDEF bool4 operator <= (const int4& left, const int4& right)
+    {
+    return _mm_andnot_si128(_mm_cmpgt_epi32(left.m128i, right.m128i), not_zero);
+    }
+
+  JTKQBVHDEF bool4 operator >= (const int4& left, const int4& right)
+    {
+    return _mm_andnot_si128(_mm_cmplt_epi32(left.m128i, right.m128i), not_zero);
+    }
+
+  JTKQBVHDEF int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values)
+    {
+    return _mm_castps_si128(_mm_or_ps(_mm_and_ps(mask.m128, _mm_castsi128_ps(updated_values.m128i)), _mm_andnot_ps(mask.m128, _mm_castsi128_ps(original.m128i))));
+    }
+
+  JTKQBVHDEF int4 operator & (const int4& left, const int4& right)
+    {
+    return _mm_and_si128(left.m128i, right.m128i);
+    }
+
+  JTKQBVHDEF int4 operator | (const int4& left, const int4& right)
+    {
+    return _mm_and_si128(left.m128i, right.m128i);
+    }
+
+#ifndef _JTK_FOR_ARM
+  JTKQBVHDEF int4 operator >> (const int4& a, int n)
+    {
+    return _mm_srai_epi32(a.m128i, n);
+    }
+
+  JTKQBVHDEF int4 operator << (const int4& a, int n)
+    {
+    return _mm_slli_epi32(a.m128i, n);
+    }
+#endif
+
+  JTKQBVHDEF int any(const int4& a)
+    {
+    return _mm_movemask_ps(_mm_castsi128_ps(a.m128i));
+    }
+
+  /////////////////////////////////////////////////////////////////////////
+  // struct float4
+  /////////////////////////////////////////////////////////////////////////
+
+  JTKQBVHDEF float4 operator + (const float4& a)
+    {
+    return a;
+    }
+
+  JTKQBVHDEF float4 operator - (const float4& a)
+    {
+    return _mm_xor_ps(a.m128, _mm_castsi128_ps(_mm_set1_epi32(0x80000000)));
+    }
+
+  JTKQBVHDEF float4 operator + (const float4& left, const float4& right)
+    {
+    return _mm_add_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF float4 operator - (const float4& left, const float4& right)
+    {
+    return _mm_sub_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF float4 operator * (const float4& left, const float4& right)
+    {
+    return _mm_mul_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF float4 operator * (const float4& left, float right)
+    {
+    return left * float4(right);
+    }
+
+  JTKQBVHDEF float4 operator * (float left, const float4& right)
+    {
+    return float4(left)*right;
+    }
+
+  JTKQBVHDEF float4 operator / (const float4& left, const float4& right)
+    {
+    return _mm_div_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF float4 operator / (const float4& left, float right)
+    {
+    return left / float4(right);
+    }
+
+  JTKQBVHDEF float4 operator / (float left, const float4& right)
+    {
+    return float4(left) / right;
+    }
+
+  JTKQBVHDEF float4 min(const float4& left, const float4& right)
+    {
+    return _mm_min_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF float4 max(const float4& left, const float4& right)
+    {
+    return _mm_max_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF float min_horizontal(const float4& x)
+    {
+    __m128 max1 = _mm_shuffle_ps(x.m128, x.m128, _MM_SHUFFLE(0, 0, 3, 2));
+    __m128 max2 = _mm_min_ps(x.m128, max1);
+    __m128 max3 = _mm_shuffle_ps(max2, max2, _MM_SHUFFLE(0, 0, 0, 1));
+    __m128 max4 = _mm_min_ps(max2, max3);
+    float result = _mm_cvtss_f32(max4);
+    return result;
+    }
+
+  JTKQBVHDEF float max_horizontal(const float4& x)
+    {
+    __m128 max1 = _mm_shuffle_ps(x.m128, x.m128, _MM_SHUFFLE(0, 0, 3, 2));
+    __m128 max2 = _mm_max_ps(x.m128, max1);
+    __m128 max3 = _mm_shuffle_ps(max2, max2, _MM_SHUFFLE(0, 0, 0, 1));
+    __m128 max4 = _mm_max_ps(max2, max3);
+    float result = _mm_cvtss_f32(max4);
+    return result;
+    }
+
+  JTKQBVHDEF float4 cross(const float4& left, const float4& right)
+    {
+    float4 rs(_mm_shuffle_ps(right.m128, right.m128, _MM_SHUFFLE(3, 0, 2, 1)));
+    float4 ls(_mm_shuffle_ps(left.m128, left.m128, _MM_SHUFFLE(3, 0, 2, 1)));
+    float4 res = left * rs - ls * right;
+    return float4(_mm_shuffle_ps(res.m128, res.m128, _MM_SHUFFLE(3, 0, 2, 1)));
+    }
+
+  JTKQBVHDEF float dot(const float4& left, const float4& right)
+    {
+    return _mm_cvtss_f32(_mm_dp_ps(left.m128, right.m128, 0x7F));
+    }
+
+  JTKQBVHDEF float dot4(const float4& left, const float4& right)
+    {
+    return _mm_cvtss_f32(_mm_dp_ps(left.m128, right.m128, 255));
+    }
+
+  JTKQBVHDEF float4 abs(const float4& a)
+    {
+    const __m128 mask = _mm_castsi128_ps(_mm_set1_epi32(0x7fffffff));
+    return _mm_and_ps(a.m128, mask);
+    }
+
+  JTKQBVHDEF float4 sqrt(const float4& a)
+    {
+    return _mm_sqrt_ps(a.m128);
+    }
+
+  JTKQBVHDEF float4 rsqrt(const float4& a)
+    {
+    __m128 mask = _mm_cmpeq_ps(_mm_set1_ps(0.f), a.m128);
+    __m128 res = _mm_rsqrt_ps(a.m128);
+    __m128 muls = _mm_mul_ps(_mm_mul_ps(a.m128, res), res);
+    auto res_newton_raphson = _mm_mul_ps(_mm_mul_ps(half_128, res), _mm_sub_ps(three_128, muls));
+    return _mm_or_ps(_mm_and_ps(mask, res), _mm_andnot_ps(mask, res_newton_raphson));
+    }
+
+  JTKQBVHDEF float4 reciprocal(const float4& a)
+    {
+    __m128 mask = _mm_cmpeq_ps(_mm_set1_ps(0.f), a.m128);
+    auto res = _mm_rcp_ps(a.m128);
+    __m128 muls = _mm_mul_ps(a.m128, _mm_mul_ps(res, res));
+    auto res_newton_raphson = _mm_sub_ps(_mm_add_ps(res, res), muls);
+    return _mm_or_ps(_mm_and_ps(mask, res), _mm_andnot_ps(mask, res_newton_raphson));
+    }
+
+  JTKQBVHDEF bool4 operator == (const float4& left, const float4& right)
+    {
+    return _mm_cmpeq_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF bool4 operator != (const float4& left, const float4& right)
+    {
+    return _mm_cmpneq_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF bool4 operator < (const float4& left, const float4& right)
+    {
+    return _mm_cmplt_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF bool4 operator > (const float4& left, const float4& right)
+    {
+    return _mm_cmpnle_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF bool4 operator <= (const float4& left, const float4& right)
+    {
+    return _mm_cmple_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF bool4 operator >= (const float4& left, const float4& right)
+    {
+    return _mm_cmpnlt_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF float4 unpacklo(const float4& left, const float4& right)
+    {
+    return _mm_unpacklo_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF float4 unpackhi(const float4& left, const float4& right)
+    {
+    return _mm_unpackhi_ps(left.m128, right.m128);
+    }
+
+  JTKQBVHDEF void transpose(float4& r0, float4& r1, float4& r2, float4& r3, const float4& c0, const float4& c1, const float4& c2, const float4& c3)
+    {
+    float4 l02(unpacklo(c0.m128, c2.m128));
+    float4 h02(unpackhi(c0.m128, c2.m128));
+    float4 l13(unpacklo(c1.m128, c3.m128));
+    float4 h13(unpackhi(c1.m128, c3.m128));
+    r0 = unpacklo(l02, l13);
+    r1 = unpackhi(l02, l13);
+    r2 = unpacklo(h02, h13);
+    r3 = unpackhi(h02, h13);
+    }
+
+  JTKQBVHDEF float4 masked_update(const bool4& mask, const float4& original, const float4& updated_values)
+    {
+    return _mm_or_ps(_mm_and_ps(mask.m128, updated_values.m128), _mm_andnot_ps(mask.m128, original.m128));
+    }
+
+  JTKQBVHDEF float4 masked_update(const int4& mask, const float4& original, const float4& updated_values)
+    {
+    const __m128 m = _mm_castsi128_ps(mask.m128i);
+    return _mm_or_ps(_mm_and_ps(m, updated_values.m128), _mm_andnot_ps(m, original.m128));
+    }
+
+  /////////////////////////////////////////////////////////////////////////
+  // struct float4x4
+  /////////////////////////////////////////////////////////////////////////
+
+  // COLUMN MAJOR 4x4 MATRIX
+
+  JTKQBVHDEF float4x4 get_identity()
+    {
+    float4x4 m(_mm_set_ps(0.f, 0.f, 0.f, 1.f), _mm_set_ps(0.f, 0.f, 1.f, 0.f), _mm_set_ps(0.f, 1.f, 0.f, 0.f), _mm_set_ps(1.f, 0.f, 0.f, 0.f));
+    return m;
+    }
+
+  JTKQBVHDEF float4x4 make_translation(float x, float y, float z)
+    {
+    float4x4 m(_mm_set_ps(0.f, 0.f, 0.f, 1.f), _mm_set_ps(0.f, 0.f, 1.f, 0.f), _mm_set_ps(0.f, 1.f, 0.f, 0.f), _mm_set_ps(1.f, z, y, x));
+    return m;
+    }
+
+  JTKQBVHDEF float4x4 transpose(const float4x4& m)
+    {
+    float4x4 out;
+    transpose(out.col[0], out.col[1], out.col[2], out.col[3], m.col[0], m.col[1], m.col[2], m.col[3]);
+    return out;
+    }
+
+  JTKQBVHDEF float4x4 invert_orthonormal(const float4x4& m)
+    {
+    float4x4 out;
+    transpose(out.col[0], out.col[1], out.col[2], out.col[3], m.col[0], m.col[1], m.col[2], _mm_set_ps(1.f, 0.f, 0.f, 0.f));
+    out.col[3] = -(out.col[0] * m[12] + out.col[1] * m[13] + out.col[2] * m[14]);
+    out.f[15] = 1.f;
+    return out;
+    }
+
+  // for column major matrix
+  // we use __m128 to represent 2x2 matrix as A = | A0  A1 |
+  //                                              | A2  A3 |
+  // 2x2 column major matrix multiply A*B
+  JTKQBVHDEF __m128 mat2mul(__m128 vec1, __m128 vec2)
+    {
+    const auto vec3 = _mm_mul_ps(vec1, _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(3, 3, 0, 0)));
+    const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 0, 3, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 2, 1, 1)));
+    return _mm_add_ps(vec3, vec4);
+    }
+
+  // 2x2 column major matrix adjugate multiply (A#)*B
+  JTKQBVHDEF __m128 mat2adjmul(__m128 vec1, __m128 vec2)
+    {
+    const auto vec3 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(0, 3, 0, 3)), vec2);
+    const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 2, 1, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 3, 0, 1)));
+    return _mm_sub_ps(vec3, vec4);
+    }
+
+  // 2x2 column major matrix multiply adjugate A*(B#)
+  JTKQBVHDEF __m128 mat2muladj(__m128 vec1, __m128 vec2)
+    {
+    const auto vec3 = _mm_mul_ps(vec1, _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(0, 0, 3, 3)));
+    const auto vec4 = _mm_mul_ps(_mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(1, 0, 3, 2)), _mm_shuffle_ps(vec2, vec2, _MM_SHUFFLE(2, 2, 1, 1)));
+    return _mm_sub_ps(vec3, vec4);
+    }
+
+  JTKQBVHDEF float4x4 invert(const float4x4& m)
+    {
+    float4x4 out;
+    // sub matrices
+    __m128 A = _mm_shuffle_ps(m.col[0].m128, m.col[1].m128, _MM_SHUFFLE(1, 0, 1, 0));
+    __m128 C = _mm_shuffle_ps(m.col[0].m128, m.col[1].m128, _MM_SHUFFLE(3, 2, 3, 2));
+    __m128 B = _mm_shuffle_ps(m.col[2].m128, m.col[3].m128, _MM_SHUFFLE(1, 0, 1, 0));
+    __m128 D = _mm_shuffle_ps(m.col[2].m128, m.col[3].m128, _MM_SHUFFLE(3, 2, 3, 2));
+
+    // determinant as (|A| |B| |C| |D|)
+    __m128 detSub = _mm_sub_ps(_mm_mul_ps(
+      _mm_shuffle_ps(m.col[0].m128, m.col[2].m128, _MM_SHUFFLE(2, 0, 2, 0)),
+      _mm_shuffle_ps(m.col[1].m128, m.col[3].m128, _MM_SHUFFLE(3, 1, 3, 1))),
+      _mm_mul_ps(_mm_shuffle_ps(m.col[0].m128, m.col[2].m128, _MM_SHUFFLE(3, 1, 3, 1)),
+        _mm_shuffle_ps(m.col[1].m128, m.col[3].m128, _MM_SHUFFLE(2, 0, 2, 0))));
+    __m128 detA = _mm_shuffle_ps(detSub, detSub, _MM_SHUFFLE(0, 0, 0, 0));
+    __m128 detC = _mm_shuffle_ps(detSub, detSub, _MM_SHUFFLE(1, 1, 1, 1));
+    __m128 detB = _mm_shuffle_ps(detSub, detSub, _MM_SHUFFLE(2, 2, 2, 2));
+    __m128 detD = _mm_shuffle_ps(detSub, detSub, _MM_SHUFFLE(3, 3, 3, 3));
+
+    // let iM = 1/|M| * | X  Y |
+    //                  | Z  W |
+
+    // D#C
+    __m128 D_C = mat2adjmul(D, C);
+    // A#B
+    __m128 A_B = mat2adjmul(A, B);
+    // X# = |D|A - B(D#C)
+    __m128 X_ = _mm_sub_ps(_mm_mul_ps(detD, A), mat2mul(B, D_C));
+    // W# = |A|D - C(A#B)
+    __m128 W_ = _mm_sub_ps(_mm_mul_ps(detA, D), mat2mul(C, A_B));
+
+    // |M| = |A|*|D| + ... (continue later)
+    __m128 detM = _mm_mul_ps(detA, detD);
+
+    // Y# = |B|C - D(A#B)#
+    __m128 Y_ = _mm_sub_ps(_mm_mul_ps(detB, C), mat2muladj(D, A_B));
+    // Z# = |C|B - A(D#C)#
+    __m128 Z_ = _mm_sub_ps(_mm_mul_ps(detC, B), mat2muladj(A, D_C));
+
+    // |M| = |A|*|D| + |B|*|C| ... (continue later)
+    detM = _mm_add_ps(detM, _mm_mul_ps(detB, detC));
+
+    // tr((A#B)(D#C))
+    __m128 tr = _mm_mul_ps(A_B, _mm_shuffle_ps(D_C, D_C, _MM_SHUFFLE(3, 1, 2, 0)));
+    tr = _mm_hadd_ps(tr, tr);
+    tr = _mm_hadd_ps(tr, tr);
+    // |M| = |A|*|D| + |B|*|C| - tr((A#B)(D#C)
+    detM = _mm_sub_ps(detM, tr);
+
+    const __m128 adjSignMask = _mm_setr_ps(1.f, -1.f, -1.f, 1.f);
+    // (1/|M|, -1/|M|, -1/|M|, 1/|M|)
+    __m128 rDetM = _mm_div_ps(adjSignMask, detM);
+
+    X_ = _mm_mul_ps(X_, rDetM);
+    Y_ = _mm_mul_ps(Y_, rDetM);
+    Z_ = _mm_mul_ps(Z_, rDetM);
+    W_ = _mm_mul_ps(W_, rDetM);
+
+    // apply adjugate and store, here we combine adjugate shuffle and store shuffle
+    out.col[0] = float4(_mm_shuffle_ps(X_, Z_, _MM_SHUFFLE(1, 3, 1, 3)));
+    out.col[1] = float4(_mm_shuffle_ps(X_, Z_, _MM_SHUFFLE(0, 2, 0, 2)));
+    out.col[2] = float4(_mm_shuffle_ps(Y_, W_, _MM_SHUFFLE(1, 3, 1, 3)));
+    out.col[3] = float4(_mm_shuffle_ps(Y_, W_, _MM_SHUFFLE(0, 2, 0, 2)));
+
+    return out;
+    }
+
+  JTKQBVHDEF float4 matrix_vector_multiply(const float4x4& m, const float4& v)
+    {
+    float4 out = m.col[0] * v[0] + m.col[1] * v[1] + m.col[2] * v[2] + m.col[3] * v[3];
+    return out;
+    }
+
+  JTKQBVHDEF float4x4 matrix_matrix_multiply(const float4x4& left, const float4x4& right)
+    {
+    float4x4 out;
+    float4 r[4];
+    transpose(r[0], r[1], r[2], r[3], left.col[0], left.col[1], left.col[2], left.col[3]);
+    out[0] = _mm_cvtss_f32(_mm_dp_ps(r[0].m128, right.col[0].m128, 255));
+    out[1] = _mm_cvtss_f32(_mm_dp_ps(r[1].m128, right.col[0].m128, 255));
+    out[2] = _mm_cvtss_f32(_mm_dp_ps(r[2].m128, right.col[0].m128, 255));
+    out[3] = _mm_cvtss_f32(_mm_dp_ps(r[3].m128, right.col[0].m128, 255));
+    out[4] = _mm_cvtss_f32(_mm_dp_ps(r[0].m128, right.col[1].m128, 255));
+    out[5] = _mm_cvtss_f32(_mm_dp_ps(r[1].m128, right.col[1].m128, 255));
+    out[6] = _mm_cvtss_f32(_mm_dp_ps(r[2].m128, right.col[1].m128, 255));
+    out[7] = _mm_cvtss_f32(_mm_dp_ps(r[3].m128, right.col[1].m128, 255));
+    out[8] = _mm_cvtss_f32(_mm_dp_ps(r[0].m128, right.col[2].m128, 255));
+    out[9] = _mm_cvtss_f32(_mm_dp_ps(r[1].m128, right.col[2].m128, 255));
+    out[10] = _mm_cvtss_f32(_mm_dp_ps(r[2].m128, right.col[2].m128, 255));
+    out[11] = _mm_cvtss_f32(_mm_dp_ps(r[3].m128, right.col[2].m128, 255));
+    out[12] = _mm_cvtss_f32(_mm_dp_ps(r[0].m128, right.col[3].m128, 255));
+    out[13] = _mm_cvtss_f32(_mm_dp_ps(r[1].m128, right.col[3].m128, 255));
+    out[14] = _mm_cvtss_f32(_mm_dp_ps(r[2].m128, right.col[3].m128, 255));
+    out[15] = _mm_cvtss_f32(_mm_dp_ps(r[3].m128, right.col[3].m128, 255));
+    return out;
+    }
+
+  JTKQBVHDEF float4x4 operator + (const float4x4& left, const float4x4& right)
+    {
+    return float4x4(left.col[0] + right.col[0], left.col[1] + right.col[1], left.col[2] + right.col[2], left.col[3] + right.col[3]);
+    }
+
+  JTKQBVHDEF float4x4 operator - (const float4x4& left, const float4x4& right)
+    {
+    return float4x4(left.col[0] - right.col[0], left.col[1] - right.col[1], left.col[2] - right.col[2], left.col[3] - right.col[3]);
+    }
+
+  JTKQBVHDEF float4x4 operator / (const float4x4& left, float value)
+    {
+    return float4x4(left.col[0] / value, left.col[1] / value, left.col[2] / value, left.col[3] / value);
+    }
+
+  JTKQBVHDEF float4x4 operator * (const float4x4& left, float value)
+    {
+    return float4x4(left.col[0] * value, left.col[1] * value, left.col[2] * value, left.col[3] * value);
+    }
+
+  JTKQBVHDEF float4x4 operator * (float value, const float4x4& right)
+    {
+    return float4x4(right.col[0] * value, right.col[1] * value, right.col[2] * value, right.col[3] * value);
+    }
+
+
+  /////////////////////////////////////////////////////////////////////////
+  // intersection
+  /////////////////////////////////////////////////////////////////////////
+
+  JTKQBVHDEF woop_precompute intersect_woop_precompute(const float4& r_dir)
+    {
+    woop_precompute out;
+    const auto abs_dir = abs(r_dir);
+    out.kz = 2;
+    if (abs_dir[0] > abs_dir[1])
+      {
+      if (abs_dir[0] > abs_dir[2])
+        out.kz = 0;
+      }
+    else
+      {
+      if (abs_dir[1] > abs_dir[2])
+        out.kz = 1;
+      }
+    out.kx = modulo[out.kz + 1];
+    out.ky = modulo[out.kx + 1];
+
+    if (r_dir[out.kz] < (typename float4::value_type)0)
+      {
+      const uint32_t tmp = out.kx;
+      out.kx = out.ky;
+      out.ky = tmp;
+      }
+
+    out.Sz = (typename float4::value_type)1 / r_dir[out.kz];
+    out.Sx = r_dir[out.kx] * out.Sz;
+    out.Sy = r_dir[out.ky] * out.Sz;
+
+    return out;
+    }
+
+  JTKQBVHDEF void intersect_woop(const woop_triangle& acc, const woop_precompute& pre, const vec3<float4>& r_orig, const float4& t_near, const float4& t_far, hit4& h)
+    {
+    h.found = bool4(true);
+
+    const auto A = acc.v0 - r_orig;
+    const auto B = acc.v1 - r_orig;
+    const auto C = acc.v2 - r_orig;
+
+    const float4 Ax = A[pre.kx] - pre.Sx*A[pre.kz];
+    const float4 Ay = A[pre.ky] - pre.Sy*A[pre.kz];
+    const float4 Bx = B[pre.kx] - pre.Sx*B[pre.kz];
+    const float4 By = B[pre.ky] - pre.Sy*B[pre.kz];
+    const float4 Cx = C[pre.kx] - pre.Sx*C[pre.kz];
+    const float4 Cy = C[pre.ky] - pre.Sy*C[pre.kz];
+
+    float4 U = Cx * By - Cy * Bx;
+    float4 V = Ax * Cy - Ay * Cx;
+    float4 W = Bx * Ay - By * Ax;
+
+    h.found &= (((U <= float4(0)) & (V <= float4(0)) & (W <= float4(0))) | ((U >= float4(0)) & (V >= float4(0)) & (W >= float4(0))));
+
+    if (none(h.found))
+      return;
+
+    const float4 det = U + V + W;
+
+    h.found &= (det != float4(0));
+
+    if (none(h.found))
+      return;
+
+    const float4 inv_det = reciprocal(det);
+
+    const float4 Az = pre.Sz*A[pre.kz];
+    const float4 Bz = pre.Sz*B[pre.kz];
+    const float4 Cz = pre.Sz*C[pre.kz];
+    const float4 T = U * Az + V * Bz + W * Cz;
+    const float4 t = T * inv_det;
+
+    h.found &= ((t_far > t) & (t > t_near));
+
+    h.u = V * inv_det;
+    h.v = W * inv_det;
+    h.distance = t;
+    }
+
+  JTKQBVHDEF bool4 intersect(const float4* aabb, const vec3<float4>& r_origin, const float4& t_near, const float4& t_far, const int32_t* ray_dir_sign, const vec3<float4>& ray_inverse_dir)
+    {
+    bool4 res(true);
+    const float4 min_x = ray_dir_sign[0] ? aabb[3] : aabb[0];
+    const float4 max_x = ray_dir_sign[0] ? aabb[0] : aabb[3];
+    const float4 min_y = ray_dir_sign[1] ? aabb[4] : aabb[1];
+    const float4 max_y = ray_dir_sign[1] ? aabb[1] : aabb[4];
+    const float4 min_z = ray_dir_sign[2] ? aabb[5] : aabb[2];
+    const float4 max_z = ray_dir_sign[2] ? aabb[2] : aabb[5];
+
+    float4 txmin = (min_x - r_origin[0]) * ray_inverse_dir[0];
+    float4 txmax = (max_x - r_origin[0]) * ray_inverse_dir[0];
+
+    const float4 tymin = (min_y - r_origin[1]) * ray_inverse_dir[1];
+    const float4 tymax = (max_y - r_origin[1]) * ray_inverse_dir[1];
+
+    res &= (txmin <= tymax);
+    res &= (tymin <= txmax);
+
+    if (none(res))
+      return res;
+
+    const float4 tzmin = (min_z - r_origin[2]) * ray_inverse_dir[2];
+    const float4 tzmax = (max_z - r_origin[2]) * ray_inverse_dir[2];
+
+    txmin = max(txmin, tymin);
+    txmax = min(txmax, tymax);
+    res &= (txmin <= tzmax);
+    res &= (tzmin <= txmax);
+
+    if (none(res))
+      return res;
+
+    txmin = max(txmin, tzmin);
+    txmax = min(txmax, tzmax);
+    res &= (txmin <= t_far);
+    res &= (txmax >= t_near);
+    return res;
+    }
+
+  JTKQBVHDEF void intersect_sphere(const vec3<float4>& sphere_origin, const float4& sphere_radius, const vec3<float4>& r_orig, const vec3<float4>& ray_dir, const float4& t_near, const float4& t_far, spherehit4& h)
+    {
+#if 0
+    h.found = bool4(true);
+    const vec3<float4> L = sphere_origin - r_orig;
+    const float4 tca = dot(L, ray_dir);
+    const float4 d2 = dot(L, L) - tca * tca;
+    const float4 sphere_radius_sqr = sphere_radius * sphere_radius;
+    h.found &= (d2 <= sphere_radius_sqr);
+    if (none(h.found))
+      return;
+    const float4 thc = sqrt(sphere_radius_sqr - d2);
+    const float4 t0 = tca - thc;
+    const float4 t1 = tca + thc;
+    const bool4 t0_is_valid = (t_near <= t0) & (t0 <= t_far);
+    const bool4 t1_is_valid = (t_near <= t1) & (t1 <= t_far);
+    h.found &= t0_is_valid | t1_is_valid;
+    if (none(h.found))
+      return;
+    const bool4 t0_is_closest = abs(t0) < abs(t1);
+    const float4 t_closest = masked_update(t0_is_closest, t1, t0);
+    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
+#else
+    /*
+    Precision Improvements for Ray/Sphere Intersection
+    Authors:
+      Eric Haines (NVIDIA)
+      Johannes Gunther (Intel)
+      Tomas Akenine-Möller
+    Publication Date:
+      Friday, March 1, 2019
+    Published in:
+      Ray Tracing Gems
+    */
+
+    /*
+    h.found = bool4(true);
+    const vec3<float4> f = sphere_origin - r_orig;
+    const float4 sphere_radius_sqr = sphere_radius * sphere_radius;
+    const vec3<float4> l = f - dot(f, ray_dir)*ray_dir;
+    const float4 discr = 4.f*(sphere_radius_sqr - dot(l, l));
+    h.found &= discr >= 0.f;
+    if (none(h.found))
+      return;
+    const float4 b = dot(f, ray_dir);
+    const float4 sqrt_discr_div_2 = sqrt(discr) / 2.f;
+    const float4 t0 = b - sqrt_discr_div_2;
+    const float4 t1 = b + sqrt_discr_div_2;
+    const bool4 t0_is_valid = (t_near <= t0) & (t0 <= t_far);
+    const bool4 t1_is_valid = (t_near <= t1) & (t1 <= t_far);
+    h.found &= t0_is_valid | t1_is_valid;
+    if (none(h.found))
+      return;
+    const bool4 t0_is_closest = abs(t0) < abs(t1);
+    const float4 t_closest = masked_update(t0_is_closest, t1, t0);
+    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
+    */
+
+    h.found = bool4(true);
+    const vec3<float4> f = sphere_origin - r_orig;
+    const float4 b = dot(f, ray_dir);
+    const float4 sphere_radius_sqr = sphere_radius * sphere_radius;
+    const vec3<float4> l = b * ray_dir - f;
+    const float4 delta = sphere_radius_sqr - dot(l, l);
+    h.found &= delta >= 0.f;
+    if (none(h.found))
+      return;
+    const float4 c = dot(f, f) - sphere_radius_sqr;
+    const float4 q = b + masked_update(b > float4(0.f), float4(-1.f), float4(1.f))*sqrt(delta);
+    const float4 t0 = c / q;
+    const float4 t1 = q;
+    const bool4 t0_is_valid = (t_near <= t0) & (t0 <= t_far);
+    const bool4 t1_is_valid = (t_near <= t1) & (t1 <= t_far);
+    h.found &= t0_is_valid | t1_is_valid;
+    if (none(h.found))
+      return;
+    const bool4 t0_is_closest = abs(t0) < abs(t1);
+    const float4 t_closest = masked_update(t0_is_closest, t1, t0);
+    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
+#endif
+    }
+
+  /////////////////////////////////////////////////////////////////////////
+  // distance
+  /////////////////////////////////////////////////////////////////////////
+
+  //http://jcgt.org/published/0003/04/05/paper.pdf
+  JTKQBVHDEF void distance_sqr(const woop_triangle& acc, const vec3<float4>& point, distance4& dist)
+    {
+    const vec3<float4> ab = acc.v1 - acc.v0;
+    const vec3<float4> ac = acc.v2 - acc.v0;
+    const vec3<float4> ap = point - acc.v0;
+    const float4 d1 = dot(ab, ap);
+    const float4 d2 = dot(ac, ap);
+    const auto mask1 = (d1 <= float4(0)) & (d2 <= float4(0));
+    // closest point is v0
+    dist.u = float4(0);
+    dist.v = float4(0);
+    auto exit(mask1);
+    if (all(exit))
+      {
+      dist.distance_sqr = length_sqr(acc.v0 - point);
+      return;
+      }
+
+    const vec3<float4> bp = ap - ab;
+    const float4 d3 = dot(ab, bp);
+    const float4 d4 = dot(ac, bp);
+    const auto mask2 = (d3 >= float4(0)) & (d4 <= d3);
+    // closest point is v1  
+    dist.u = masked_update(exit, masked_update(mask2, dist.u, float4(1)), dist.u);
+    dist.v = masked_update(exit, masked_update(mask2, dist.v, float4(0)), dist.v);
+    exit |= mask2;
+    if (all(exit))
+      {
+      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+      dist.distance_sqr = length_sqr(closest_point - point);
+      return;
+      }
+
+    const vec3<float4> cp = ap - ac;
+    const float4 d5 = dot(ab, cp);
+    const float4 d6 = dot(ac, cp);
+    const auto mask3 = (d6 >= float4(0)) & (d5 <= d6);
+    // closest point is v2  
+    dist.u = masked_update(exit, masked_update(mask3, dist.u, float4(0)), dist.u);
+    dist.v = masked_update(exit, masked_update(mask3, dist.v, float4(1)), dist.v);
+    exit |= mask3;
+    if (all(exit))
+      {
+      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+      dist.distance_sqr = length_sqr(closest_point - point);
+      return;
+      }
+
+    const float4 vc = d1 * d4 - d3 * d2;
+    const auto mask4 = (vc <= float4(0)) & (d1 >= float4(0)) & (d3 <= float4(0));
+    const float4 v1 = d1 / (d1 - d3);
+    //const vec3<float4> answer1 = acc.v0 + v1 * ab;
+    // closest point is on the line ab  
+    dist.u = masked_update(exit, masked_update(mask4, dist.u, v1), dist.u);
+    dist.v = masked_update(exit, masked_update(mask4, dist.v, 0.0), dist.v);
+    exit |= mask4;
+    if (all(exit))
+      {
+      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+      dist.distance_sqr = length_sqr(closest_point - point);
+      return;
+      }
+
+    const float4 vb = d5 * d2 - d1 * d6;
+    const auto mask5 = (vb <= float4(0)) & (d2 >= float4(0)) & (d6 <= float4(0));
+    const float4 w1 = d2 / (d2 - d6);
+    //const vec3<float4> answer2 = acc.v0 + w1 * ac;
+    // closest point is on the line ac  
+    dist.u = masked_update(exit, masked_update(mask5, dist.u, float4(0)), dist.u);
+    dist.v = masked_update(exit, masked_update(mask5, dist.v, w1), dist.v);
+    exit |= mask5;
+    if (all(exit))
+      {
+      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+      dist.distance_sqr = length_sqr(closest_point - point);
+      return;
+      }
+
+    const float4 va = d3 * d6 - d5 * d4;
+    const auto mask6 = (va <= float4(0)) & ((d4 - d3) >= float4(0)) & ((d5 - d6) >= float4(0));
+    const float4 w2 = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+    //const vec3<float4> answer3 = (float4(1) - w2)*ab + w2 * ac;
+    // closest point is on the line bc  
+    dist.u = masked_update(exit, masked_update(mask6, dist.u, float4(1) - w2), dist.u);
+    dist.v = masked_update(exit, masked_update(mask6, dist.v, w2), dist.v);
+    exit |= mask6;
+    if (all(exit))
+      {
+      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+      dist.distance_sqr = length_sqr(closest_point - point);
+      return;
+      }
+
+    const float4 denom = float4(1) / (va + vb + vc);
+    const float4 v2 = vb * denom;
+    const float4 w3 = vc * denom;
+    //const vec3<float4> answer4 = acc.v0 + ab * v2 + ac * w3;
+    const auto mask7 = !exit;
+    dist.u = masked_update(exit, masked_update(mask7, dist.u, v2), dist.u);
+    dist.v = masked_update(exit, masked_update(mask7, dist.v, w3), dist.v);
+    const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+    dist.distance_sqr = length_sqr(closest_point - point);
+    }
+
+  JTKQBVHDEF float4 distance_sqr(const float4* aabb, const vec3<float4>& point)
+    {
+    const float4 x = point[0] - min(aabb[3], max(aabb[0], point[0]));
+    const float4 y = point[1] - min(aabb[4], max(aabb[1], point[1]));
+    const float4 z = point[2] - min(aabb[5], max(aabb[2], point[2]));
+
+    return x * x + y * y + z * z;
+    }
+
+  /////////////////////////////////////////////////////////////////////////
+  // transformation
+  /////////////////////////////////////////////////////////////////////////
+
+  JTKQBVHDEF float4x4 make_identity()
+    {
+    return get_identity();
+    }
+
+  JTKQBVHDEF vec3<float> transform(const float4x4& matrix, const vec3<float>& pt)
+    {
+    auto res = matrix_vector_multiply(matrix, float4(pt[0], pt[1], pt[2], 1.f));
+    return vec3<float>(res[0], res[1], res[2]);
+    }
+
+  JTKQBVHDEF vec3<float> transform_vector(const float4x4& matrix, const vec3<float>& vec)
+    {
+    auto res = matrix_vector_multiply(matrix, float4(vec[0], vec[1], vec[2], 0.f));
+    return vec3<float>(res[0], res[1], res[2]);
+    }
+
+  JTKQBVHDEF vec3<float> transform(const float4x4& matrix, const vec3<float>& pt, bool is_vector)
+    {
+    if (is_vector)
+      return transform_vector(matrix, pt);
+    else
+      return transform(matrix, pt);
+    }
+
+  JTKQBVHDEF float4 transform(const float4x4& matrix, const float4& pt)
+    {
+    auto res = matrix_vector_multiply(matrix, pt);
+    if (res[3] != 1.f && res[3])
+      {
+      res[0] /= res[3];
+      res[1] /= res[3];
+      res[2] /= res[3];
+      res[3] = 1.f;
+      }
+    return res;
+    }
+
+  JTKQBVHDEF float4x4 make_transformation(const vec3<float>& i_origin, const vec3<float>& i_x_axis, const vec3<float>& i_y_axis, const vec3<float>& i_z_axis)
+    {
+    float4x4 matrix;
+    matrix[0] = i_x_axis[0];
+    matrix[1] = i_x_axis[1];
+    matrix[2] = i_x_axis[2];
+    matrix[3] = 0;
+    matrix[4] = i_y_axis[0];
+    matrix[5] = i_y_axis[1];
+    matrix[6] = i_y_axis[2];
+    matrix[7] = 0;
+    matrix[8] = i_z_axis[0];
+    matrix[9] = i_z_axis[1];
+    matrix[10] = i_z_axis[2];
+    matrix[11] = 0;
+    matrix[12] = i_origin[0];
+    matrix[13] = i_origin[1];
+    matrix[14] = i_origin[2];
+    matrix[15] = 1;
+    return matrix;
+    }
+
+  JTKQBVHDEF float4x4 make_rotation(const vec3<float>& i_position, const vec3<float>& i_direction, float i_angle_radians)
+    {
+    auto matrix = make_identity();
+    auto direction = normalize(i_direction);
+
+    auto cos_alpha = std::cos(i_angle_radians);
+    auto sin_alpha = std::sin(i_angle_radians);
+
+    matrix[0] = (direction[0] * direction[0]) * (1 - cos_alpha) + cos_alpha;
+    matrix[4] = (direction[0] * direction[1]) * (1 - cos_alpha) - direction[2] * sin_alpha;
+    matrix[8] = (direction[0] * direction[2]) * (1 - cos_alpha) + direction[1] * sin_alpha;
+
+    matrix[1] = (direction[0] * direction[1]) * (1 - cos_alpha) + direction[2] * sin_alpha;
+    matrix[5] = (direction[1] * direction[1]) * (1 - cos_alpha) + cos_alpha;
+    matrix[9] = (direction[1] * direction[2]) * (1 - cos_alpha) - direction[0] * sin_alpha;
+
+    matrix[2] = (direction[0] * direction[2]) * (1 - cos_alpha) - direction[1] * sin_alpha;
+    matrix[6] = (direction[1] * direction[2]) * (1 - cos_alpha) + direction[0] * sin_alpha;
+    matrix[10] = (direction[2] * direction[2]) * (1 - cos_alpha) + cos_alpha;
+
+    auto rotated_position = transform_vector(matrix, i_position);
+
+    matrix[12] = i_position[0] - rotated_position[0];
+    matrix[13] = i_position[1] - rotated_position[1];
+    matrix[14] = i_position[2] - rotated_position[2];
+
+    return matrix;
+    }
+
+  JTKQBVHDEF float4x4 make_scale3d(float scale_x, float scale_y, float scale_z)
+    {
+    return float4x4(float4(scale_x, 0.f, 0.f, 0.f), float4(0.f, scale_y, 0.f, 0.f), float4(0.f, 0.f, scale_z, 0.f), float4(0.f, 0.f, 0.f, 1.f));
+    }
+
+  JTKQBVHDEF float4x4 make_translation(const vec3<float>& i_translation)
+    {
+    return make_translation(i_translation[0], i_translation[1], i_translation[2]);
+    }
+
+  JTKQBVHDEF vec3<float> get_translation(const float4x4& matrix)
+    {
+    return vec3<float>(matrix[12], matrix[13], matrix[14]);
+    }
+
+  JTKQBVHDEF void set_x_axis(float4x4& matrix, const vec3<float>& x)
+    {
+    matrix[0] = x[0];
+    matrix[1] = x[1];
+    matrix[2] = x[2];
+    }
+
+  JTKQBVHDEF void set_y_axis(float4x4& matrix, const vec3<float>& y)
+    {
+    matrix[4] = y[0];
+    matrix[5] = y[1];
+    matrix[6] = y[2];
+    }
+
+  JTKQBVHDEF void set_z_axis(float4x4& matrix, const vec3<float>& z)
+    {
+    matrix[8] = z[0];
+    matrix[9] = z[1];
+    matrix[10] = z[2];
+    }
+
+  JTKQBVHDEF void set_translation(float4x4& matrix, const vec3<float>& t)
+    {
+    matrix[12] = t[0];
+    matrix[13] = t[1];
+    matrix[14] = t[2];
+    }
+
+  JTKQBVHDEF vec3<float> get_x_axis(const float4x4& matrix)
+    {
+    return vec3<float>(matrix[0], matrix[1], matrix[2]);
+    }
+
+  JTKQBVHDEF vec3<float> get_y_axis(const float4x4& matrix)
+    {
+    return vec3<float>(matrix[4], matrix[5], matrix[6]);
+    }
+
+  JTKQBVHDEF vec3<float> get_z_axis(const float4x4& matrix)
+    {
+    return vec3<float>(matrix[8], matrix[9], matrix[10]);
+    }
+
+  JTKQBVHDEF float determinant(const float4x4& m)
+    {
+    auto inv0 = m[5] * m[10] * m[15] -
+      m[5] * m[11] * m[14] -
+      m[9] * m[6] * m[15] +
+      m[9] * m[7] * m[14] +
+      m[13] * m[6] * m[11] -
+      m[13] * m[7] * m[10];
+
+    auto inv4 = -m[4] * m[10] * m[15] +
+      m[4] * m[11] * m[14] +
+      m[8] * m[6] * m[15] -
+      m[8] * m[7] * m[14] -
+      m[12] * m[6] * m[11] +
+      m[12] * m[7] * m[10];
+
+    auto inv8 = m[4] * m[9] * m[15] -
+      m[4] * m[11] * m[13] -
+      m[8] * m[5] * m[15] +
+      m[8] * m[7] * m[13] +
+      m[12] * m[5] * m[11] -
+      m[12] * m[7] * m[9];
+
+    auto inv12 = -m[4] * m[9] * m[14] +
+      m[4] * m[10] * m[13] +
+      m[8] * m[5] * m[14] -
+      m[8] * m[6] * m[13] -
+      m[12] * m[5] * m[10] +
+      m[12] * m[6] * m[9];
+
+    return m[0] * inv0 + m[1] * inv4 + m[2] * inv8 + m[3] * inv12;
+    }
+
+  /////////////////////////////////////////////////////////////////////////
+  // qbvh
+  /////////////////////////////////////////////////////////////////////////
+
+  JTKQBVHDEF qbvh_voxel* build_triangle_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* vertices, const vec3<uint32_t>* triangles, uint32_t nr_of_triangles)
+    {
+    qbvh_voxel* lst = new qbvh_voxel[nr_of_triangles];
+    total_bb.bbox_min = std::numeric_limits<float>::max();
+    total_bb.bbox_max = -std::numeric_limits<float>::max();
+    centroid_bb.bbox_min = total_bb.bbox_min;
+    centroid_bb.bbox_max = total_bb.bbox_max;
+    const unsigned int number_of_threads = hardware_concurrency();
+
+    aligned_vector<qbvh_voxel> total_bbs(number_of_threads, total_bb);
+    aligned_vector<qbvh_voxel> total_centroids(number_of_threads, centroid_bb);
+    parallel_for((unsigned int)0, number_of_threads, [&](unsigned int i)
+      {
+      uint32_t s = (uint32_t)((uint64_t)i * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_threads);
+      const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_threads);
+      for (uint32_t t = s; t < e; ++t)
+        {
+        const float4 v0(vertices[triangles[t][0]][0], vertices[triangles[t][0]][1], vertices[triangles[t][0]][2], 1);
+        const float4 v1(vertices[triangles[t][1]][0], vertices[triangles[t][1]][1], vertices[triangles[t][1]][2], 1);
+        const float4 v2(vertices[triangles[t][2]][0], vertices[triangles[t][2]][1], vertices[triangles[t][2]][2], 1);
+        lst[t].bbox_min = min(min(v0, v1), v2);
+        lst[t].bbox_max = max(max(v0, v1), v2);
+        lst[t].centroid = (lst[t].bbox_min + lst[t].bbox_max)*0.5;
+        total_bbs[i].bbox_min = min(total_bbs[i].bbox_min, lst[t].bbox_min);
+        total_bbs[i].bbox_max = max(total_bbs[i].bbox_max, lst[t].bbox_max);
+        total_centroids[i].bbox_min = min(total_centroids[i].bbox_min, lst[t].centroid);
+        total_centroids[i].bbox_max = max(total_centroids[i].bbox_max, lst[t].centroid);
+        }
+      });
+
+    for (uint32_t i = 0; i < number_of_threads; ++i)
+      {
+      total_bb.bbox_min = min(total_bb.bbox_min, total_bbs[i].bbox_min);
+      total_bb.bbox_max = max(total_bb.bbox_max, total_bbs[i].bbox_max);
+      centroid_bb.bbox_min = min(centroid_bb.bbox_min, total_centroids[i].bbox_min);
+      centroid_bb.bbox_max = max(centroid_bb.bbox_max, total_centroids[i].bbox_max);
+      }
+    total_bb.centroid = (total_bb.bbox_min + total_bb.bbox_max)*0.5;
+    centroid_bb.centroid = (centroid_bb.bbox_min + centroid_bb.bbox_max)*0.5;
+    return lst;
+    }
+
+  JTKQBVHDEF qbvh_voxel* build_sphere_qbvh_voxels(qbvh_voxel& total_bb, qbvh_voxel& centroid_bb, const vec3<float>* origins, const float* radii, uint32_t nr_of_spheres)
+    {
+    qbvh_voxel* lst = new qbvh_voxel[nr_of_spheres];
+    total_bb.bbox_min = std::numeric_limits<float>::max();
+    total_bb.bbox_max = -std::numeric_limits<float>::max();
+    centroid_bb.bbox_min = total_bb.bbox_min;
+    centroid_bb.bbox_max = total_bb.bbox_max;
+    const unsigned int number_of_threads = hardware_concurrency();
+
+    aligned_vector<qbvh_voxel> total_bbs(number_of_threads, total_bb);
+    aligned_vector<qbvh_voxel> total_centroids(number_of_threads, centroid_bb);
+    parallel_for((unsigned int)0, number_of_threads, [&](unsigned int i)
+      {
+      uint32_t s = (uint32_t)((uint64_t)i * (uint64_t)(nr_of_spheres) / (uint64_t)number_of_threads);
+      const uint32_t e = (uint32_t)((uint64_t)(i + 1) * (uint64_t)(nr_of_spheres) / (uint64_t)number_of_threads);
+      for (uint32_t t = s; t < e; ++t)
+        {
+        const float4 v(origins[t][0], origins[t][1], origins[t][2], 1);
+        lst[t].bbox_min = v - float4(radii[t], radii[t], radii[t], 0.f);
+        lst[t].bbox_max = v + float4(radii[t], radii[t], radii[t], 0.f);
+        lst[t].centroid = v;
+        total_bbs[i].bbox_min = min(total_bbs[i].bbox_min, lst[t].bbox_min);
+        total_bbs[i].bbox_max = max(total_bbs[i].bbox_max, lst[t].bbox_max);
+        total_centroids[i].bbox_min = min(total_centroids[i].bbox_min, lst[t].centroid);
+        total_centroids[i].bbox_max = max(total_centroids[i].bbox_max, lst[t].centroid);
+        }
+      });
+
+    for (uint32_t i = 0; i < number_of_threads; ++i)
+      {
+      total_bb.bbox_min = min(total_bb.bbox_min, total_bbs[i].bbox_min);
+      total_bb.bbox_max = max(total_bb.bbox_max, total_bbs[i].bbox_max);
+      centroid_bb.bbox_min = min(centroid_bb.bbox_min, total_centroids[i].bbox_min);
+      centroid_bb.bbox_max = max(centroid_bb.bbox_max, total_centroids[i].bbox_max);
+      }
+    total_bb.centroid = (total_bb.bbox_min + total_bb.bbox_max)*0.5;
+    centroid_bb.centroid = (centroid_bb.bbox_min + centroid_bb.bbox_max)*0.5;
+    return lst;
+    }
+
+  JTKQBVHDEF void unite_four_aabbs(float4* out, float4* in, int k)
+    {
+    out[0][k] = min_horizontal(in[0]);
+    out[1][k] = min_horizontal(in[1]);
+    out[2][k] = min_horizontal(in[2]);
+    out[3][k] = max_horizontal(in[3]);
+    out[4][k] = max_horizontal(in[4]);
+    out[5][k] = max_horizontal(in[5]);
+    }
+
+
+  JTKQBVHDEF void get_bbox(float4* bbox, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last, int k)
+    {
+    assert(first != last);
+    bbox[0][k] = voxels[*first].bbox_min[0];
+    bbox[1][k] = voxels[*first].bbox_min[1];
+    bbox[2][k] = voxels[*first].bbox_min[2];
+    bbox[3][k] = voxels[*first].bbox_max[0];
+    bbox[4][k] = voxels[*first].bbox_max[1];
+    bbox[5][k] = voxels[*first].bbox_max[2];
+    for (auto it = first + 1; it != last; ++it)
+      {
+      bbox[0][k] = std::min<float>(bbox[0][k], voxels[*it].bbox_min[0]);
+      bbox[1][k] = std::min<float>(bbox[1][k], voxels[*it].bbox_min[1]);
+      bbox[2][k] = std::min<float>(bbox[2][k], voxels[*it].bbox_min[2]);
+      bbox[3][k] = std::max<float>(bbox[3][k], voxels[*it].bbox_max[0]);
+      bbox[4][k] = std::max<float>(bbox[4][k], voxels[*it].bbox_max[1]);
+      bbox[5][k] = std::max<float>(bbox[5][k], voxels[*it].bbox_max[2]);
+      }
+    }
+
+
+  JTKQBVHDEF float calculate_half_surface_area(const float4& left, const float4& right)
+    {
+    const float4 diff = right - left;
+    const float4 diff2(diff[1], diff[2], diff[0], 0);
+    float4 tmp = diff * diff2;
+    return tmp[0] + tmp[1] + tmp[2];
+    }
+
+
+  JTKQBVHDEF uint8_t find_largest_dimension(const qbvh_voxel& bb)
+    {
+    const float4 diff = bb.bbox_max - bb.bbox_min;
+    const uint8_t dim = diff[1] > diff[0] ? (diff[2] > diff[1] ? 2 : 1) : (diff[2] > diff[0] ? 2 : 0);
+    return dim;
+    }
+
+
+  JTKQBVHDEF std::vector<uint32_t>::iterator partition(qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, const uint32_t dim, const float split_pos, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+    {
+    auto last_save = last;
+    while (first != last)
+      {
+      while (voxels[*first].centroid[dim] < split_pos)
+        {
+        bbox_left.bbox_min = min(bbox_left.bbox_min, voxels[*first].bbox_min);
+        bbox_left.bbox_max = max(bbox_left.bbox_max, voxels[*first].bbox_max);
+        centroid_left.bbox_min = min(centroid_left.bbox_min, voxels[*first].centroid);
+        centroid_left.bbox_max = max(centroid_left.bbox_max, voxels[*first].centroid);
+        ++first;
+        if (first == last)
+          return first;
+        }
+      do
+        {
+        if (last != last_save)
+          {
+          bbox_right.bbox_min = min(bbox_right.bbox_min, voxels[*last].bbox_min);
+          bbox_right.bbox_max = max(bbox_right.bbox_max, voxels[*last].bbox_max);
+          centroid_right.bbox_min = min(centroid_right.bbox_min, voxels[*last].centroid);
+          centroid_right.bbox_max = max(centroid_right.bbox_max, voxels[*last].centroid);
+          }
+        --last;
+        if (first == last)
+          {
+          bbox_right.bbox_min = min(bbox_right.bbox_min, voxels[*last].bbox_min);
+          bbox_right.bbox_max = max(bbox_right.bbox_max, voxels[*last].bbox_max);
+          centroid_right.bbox_min = min(centroid_right.bbox_min, voxels[*last].centroid);
+          centroid_right.bbox_max = max(centroid_right.bbox_max, voxels[*last].centroid);
+          return first;
+          }
+        } while (voxels[*last].centroid[dim] >= split_pos);
+        std::swap(*first, *last);
+        bbox_left.bbox_min = min(bbox_left.bbox_min, voxels[*first].bbox_min);
+        bbox_left.bbox_max = max(bbox_left.bbox_max, voxels[*first].bbox_max);
+        centroid_left.bbox_min = min(centroid_left.bbox_min, voxels[*first].centroid);
+        centroid_left.bbox_max = max(centroid_left.bbox_max, voxels[*first].centroid);
+        bbox_right.bbox_min = min(bbox_right.bbox_min, voxels[*last].bbox_min);
+        bbox_right.bbox_max = max(bbox_right.bbox_max, voxels[*last].bbox_max);
+        centroid_right.bbox_min = min(centroid_right.bbox_min, voxels[*last].centroid);
+        centroid_right.bbox_max = max(centroid_right.bbox_max, voxels[*last].centroid);
+        ++first;
+      }
+    return first;
+    }
+
+
+  template <int K>
+  void sah_optimized(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+    {
+    const uint32_t nr_of_triangles = (uint32_t)std::distance(first, last);
+    const float eps = std::numeric_limits<float>::epsilon() * 1024;
+    const float one_minus_eps = (float)1 - eps;
+    const float one_over_K = (float)1 / (float)K;
+    std::array<uint32_t, 2 * K> bin;
+    memset(&bin[0], 0, sizeof(uint32_t) * 2 * K);
+
+    dim = find_largest_dimension(centroid_bb);
+
+    const float s = bbox.bbox_max[dim] - bbox.bbox_min[dim];
+    const float k1 = (float)K * one_minus_eps / s;
+    const float k0 = bbox.bbox_min[dim];
+
+
+    for (auto it = first; it != last; ++it)
+      {
+      const uint32_t bmin = (uint32_t)std::floor(k1*(voxels[*it].bbox_min[dim] - k0));
+      const uint32_t bmax = (uint32_t)std::floor(k1*(voxels[*it].bbox_max[dim] - k0));
+      ++bin[bmin];
+      ++bin[K + bmax];
+      }
+
+    const float total_surface_area = calculate_half_surface_area(bbox.bbox_min, bbox.bbox_max);
+
+    float inv_total_surface_area = 0;
+
+    if (total_surface_area > eps)
+      inv_total_surface_area = (float)1 / total_surface_area;
+
+    float split_pos;
+    float minimal_cost;
+
+
+    const float bsize = s;
+    const float bstep = bsize * one_over_K;
+
+    split_pos = k0 + (float)0.5*bstep;
+    minimal_cost = std::numeric_limits<float>::max();
+
+    uint32_t left = 0;
+    uint32_t right = nr_of_triangles;
+    float4 bminleft = bbox.bbox_min;
+    float4 bminright = bbox.bbox_min;
+    float4 bmaxleft = bbox.bbox_max;
+    float4 bmaxright = bbox.bbox_max;
+
+    for (int i = 0; i < K - 1; ++i)
+      {
+      left += bin[i];
+      right -= bin[K + i];
+
+      assert(left <= nr_of_triangles);
+      assert(right <= nr_of_triangles);
+
+      const float pos = k0 + (i + 0.5f)*bstep;
+      bmaxleft[dim] = pos;
+      bminright[dim] = pos;
+
+      const float saleft = calculate_half_surface_area(bminleft, bmaxleft);
+      const float saright = calculate_half_surface_area(bminright, bmaxright);
+
+      const float twice_Taabb = (float)0.4;
+      const float Ttri = (float)0.8;
+      //float cost = 2.0*Taabb + (saleft * inv_total_surface_area) * left * Ttri + (saright * inv_total_surface_area) * right * Ttri;
+      const float cost = twice_Taabb + (saleft * left + saright * right) * inv_total_surface_area * Ttri;
+
+      if (cost < minimal_cost)
+        {
+        minimal_cost = cost;
+        split_pos = pos;
+        }
+      }
+
+    bbox_left.bbox_min = std::numeric_limits<float>::max();
+    bbox_left.bbox_max = -std::numeric_limits<float>::max();
+
+    bbox_right.bbox_min = bbox_left.bbox_min;
+    bbox_right.bbox_max = bbox_left.bbox_max;
+
+    centroid_left.bbox_min = bbox_left.bbox_min;
+    centroid_left.bbox_max = bbox_left.bbox_max;
+
+    centroid_right.bbox_min = bbox_left.bbox_min;
+    centroid_right.bbox_max = bbox_left.bbox_max;
+
+    mid = partition(bbox_left, bbox_right, centroid_left, centroid_right, dim, split_pos, voxels, first, last);
+    if ((mid == first) || (mid == last))
+      {
+      bbox_left.bbox_min = std::numeric_limits<float>::max();
+      bbox_left.bbox_max = -std::numeric_limits<float>::max();
+
+      bbox_right.bbox_min = bbox_left.bbox_min;
+      bbox_right.bbox_max = bbox_left.bbox_max;
+
+      centroid_left.bbox_min = bbox_left.bbox_min;
+      centroid_left.bbox_max = bbox_left.bbox_max;
+
+      centroid_right.bbox_min = bbox_left.bbox_min;
+      centroid_right.bbox_max = bbox_left.bbox_max;
+
+      mid = first + (last - first) / 2;
+
+      std::nth_element(first, mid, last, [&](uint32_t id1, uint32_t id2)
+        {
+        return voxels[id1].centroid[dim] < voxels[id2].centroid[dim];
+        });
+
+      for (auto it = first; it != mid; ++it)
+        {
+        bbox_left.bbox_min = min(bbox_left.bbox_min, voxels[*it].bbox_min);
+        bbox_left.bbox_max = max(bbox_left.bbox_max, voxels[*it].bbox_max);
+        centroid_left.bbox_min = min(centroid_left.bbox_min, voxels[*it].centroid);
+        centroid_left.bbox_max = max(centroid_left.bbox_max, voxels[*it].centroid);
+        }
+      for (auto it = mid; it != last; ++it)
+        {
+        bbox_right.bbox_min = min(bbox_right.bbox_min, voxels[*it].bbox_min);
+        bbox_right.bbox_max = max(bbox_right.bbox_max, voxels[*it].bbox_max);
+        centroid_right.bbox_min = min(centroid_right.bbox_min, voxels[*it].centroid);
+        centroid_right.bbox_max = max(centroid_right.bbox_max, voxels[*it].centroid);
+        }
+      }
+    }
+
+
+  template <int K>
+  void sah_parallel(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+    {
+    const uint32_t nr_of_triangles = (uint32_t)std::distance(first, last);
+    const float eps = std::numeric_limits<float>::epsilon() * 1024;
+    const float one_minus_eps = (float)1 - eps;
+    const float one_over_K = (float)1 / (float)K;
+    std::array<uint32_t, 2 * K> bin;
+    memset(&bin[0], 0, sizeof(uint32_t) * 2 * K);
+
+    dim = find_largest_dimension(centroid_bb);
+
+    const float sw = bbox.bbox_max[dim] - bbox.bbox_min[dim];
+    const float k1 = (float)K * one_minus_eps / sw;
+    const float k0 = bbox.bbox_min[dim];
+
+    static const unsigned int number_of_threads = hardware_concurrency();
+    static const unsigned int number_of_blocks = number_of_threads * 4;
+
+    std::vector<std::array<uint32_t, 2 * K>> local_bins(number_of_blocks, bin);
+
+    parallel_for((unsigned int)0, number_of_blocks, [&](unsigned int t)
+      {
+      const uint32_t s = (uint32_t)((uint64_t)t * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_blocks);
+      const uint32_t e = (uint32_t)((uint64_t)(t + 1) * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_blocks);
+      auto it = first + s;
+      const auto it_end = first + e;
+      for (; it != it_end; ++it)
+        {
+        const uint32_t bmin = (uint32_t)std::floor(k1*(voxels[*it].bbox_min[dim] - k0));
+        const uint32_t bmax = (uint32_t)std::floor(k1*(voxels[*it].bbox_max[dim] - k0));
+        ++local_bins[t][bmin];
+        ++local_bins[t][K + bmax];
+        }
+      });
+
+    parallel_for(uint32_t(0), uint32_t(2 * K), [&](uint32_t i)
+      {
+      for (unsigned int t = 0; t < number_of_blocks; ++t)
+        bin[i] += local_bins[t][i];
+      });
+
+    const float total_surface_area = calculate_half_surface_area(bbox.bbox_min, bbox.bbox_max);
+
+    float inv_total_surface_area = 0;
+
+    if (total_surface_area > eps)
+      inv_total_surface_area = (float)1 / total_surface_area;
+
+    float split_pos;
+    float minimal_cost;
+
+
+    const float bsize = sw;
+    const float bstep = bsize * one_over_K;
+
+    split_pos = k0 + (float)0.5*bstep;
+    minimal_cost = std::numeric_limits<float>::max();
+
+    uint32_t left = 0;
+    uint32_t right = nr_of_triangles;
+    float4 bminleft = bbox.bbox_min;
+    float4 bminright = bbox.bbox_min;
+    float4 bmaxleft = bbox.bbox_max;
+    float4 bmaxright = bbox.bbox_max;
+
+    for (int i = 0; i < K - 1; ++i)
+      {
+      left += bin[i];
+      right -= bin[K + i];
+
+      assert(left <= nr_of_triangles);
+      assert(right <= nr_of_triangles);
+
+      const float pos = k0 + (i + (float)0.5)*bstep;
+      bmaxleft[dim] = pos;
+      bminright[dim] = pos;
+
+      const float saleft = calculate_half_surface_area(bminleft, bmaxleft);
+      const float saright = calculate_half_surface_area(bminright, bmaxright);
+
+      const float twice_Taabb = (float)0.4;
+      const float Ttri = (float)0.8;
+      const float cost = twice_Taabb + (saleft * left + saright * right) * inv_total_surface_area * Ttri;
+
+      if (cost < minimal_cost)
+        {
+        minimal_cost = cost;
+        split_pos = pos;
+        }
+      }
+
+    mid = parallel_partition(first, last, [&](uint32_t id)
+      {
+      return voxels[id].centroid[dim] < split_pos;
+      });
+    if ((mid == first) || (mid == last))
+      {
+      mid = first + (last - first) / 2;
+      std::nth_element(first, mid, last, [&](uint32_t id1, uint32_t id2)
+        {
+        return voxels[id1].centroid[dim] < voxels[id2].centroid[dim];
+        });
+      }
+
+    bbox_left.bbox_min = std::numeric_limits<float>::max();
+    bbox_left.bbox_max = -std::numeric_limits<float>::max();
+
+    bbox_right.bbox_min = bbox_left.bbox_min;
+    bbox_right.bbox_max = bbox_left.bbox_max;
+
+    centroid_left.bbox_min = bbox_left.bbox_min;
+    centroid_left.bbox_max = bbox_left.bbox_max;
+
+    centroid_right.bbox_min = bbox_left.bbox_min;
+    centroid_right.bbox_max = bbox_left.bbox_max;
+
+    aligned_vector<qbvh_voxel> bbox_left_blocks(number_of_blocks, bbox_left);
+    aligned_vector<qbvh_voxel> bbox_right_blocks(number_of_blocks, bbox_left);
+    aligned_vector<qbvh_voxel> centroid_left_blocks(number_of_blocks, bbox_left);
+    aligned_vector<qbvh_voxel> centroid_right_blocks(number_of_blocks, bbox_left);
+
+    const uint32_t nr_of_left_items = (uint32_t)std::distance(first, mid);
+    const uint32_t nr_of_right_items = (uint32_t)std::distance(mid, last);
+
+    parallel_for((unsigned int)0, number_of_blocks, [&](unsigned int t)
+      {
+      const uint64_t s1 = (uint64_t)t * (uint64_t)(nr_of_left_items) / (uint64_t)number_of_blocks;
+      const uint64_t e1 = (uint64_t)(t + 1) *(uint64_t)(nr_of_left_items) / (uint64_t)number_of_blocks;
+      auto it1 = first + s1;
+      const auto it1_end = first + e1;
+      for (; it1 != it1_end; ++it1)
+        {
+        bbox_left_blocks[t].bbox_min = min(bbox_left_blocks[t].bbox_min, voxels[*it1].bbox_min);
+        bbox_left_blocks[t].bbox_max = max(bbox_left_blocks[t].bbox_max, voxels[*it1].bbox_max);
+        centroid_left_blocks[t].bbox_min = min(centroid_left_blocks[t].bbox_min, voxels[*it1].centroid);
+        centroid_left_blocks[t].bbox_max = max(centroid_left_blocks[t].bbox_max, voxels[*it1].centroid);
+        }
+
+      const uint32_t s2 = (uint64_t)t * (uint64_t)(nr_of_right_items) / (uint64_t)number_of_blocks;
+      const uint32_t e2 = (uint64_t)(t + 1) * (uint64_t)(nr_of_right_items) / (uint64_t)number_of_blocks;
+      auto it2 = mid + s2;
+      const auto it2_end = mid + e2;
+      for (; it2 != it2_end; ++it2)
+        {
+        bbox_right_blocks[t].bbox_min = min(bbox_right_blocks[t].bbox_min, voxels[*it2].bbox_min);
+        bbox_right_blocks[t].bbox_max = max(bbox_right_blocks[t].bbox_max, voxels[*it2].bbox_max);
+        centroid_right_blocks[t].bbox_min = min(centroid_right_blocks[t].bbox_min, voxels[*it2].centroid);
+        centroid_right_blocks[t].bbox_max = max(centroid_right_blocks[t].bbox_max, voxels[*it2].centroid);
+        }
+      });
+
+    for (unsigned int t = 0; t < number_of_blocks; ++t)
+      {
+      bbox_left.bbox_min = min(bbox_left.bbox_min, bbox_left_blocks[t].bbox_min);
+      bbox_left.bbox_max = max(bbox_left.bbox_max, bbox_left_blocks[t].bbox_max);
+      centroid_left.bbox_min = min(centroid_left.bbox_min, centroid_left_blocks[t].bbox_min);
+      centroid_left.bbox_max = max(centroid_left.bbox_max, centroid_left_blocks[t].bbox_max);
+      bbox_right.bbox_min = min(bbox_right.bbox_min, bbox_right_blocks[t].bbox_min);
+      bbox_right.bbox_max = max(bbox_right.bbox_max, bbox_right_blocks[t].bbox_max);
+      centroid_right.bbox_min = min(centroid_right.bbox_min, centroid_right_blocks[t].bbox_min);
+      centroid_right.bbox_max = max(centroid_right.bbox_max, centroid_right_blocks[t].bbox_max);
+      }
+    }
+
+  /////////////////////////////////////////////////////////////////////////
+  // qbvh_two_level
+  /////////////////////////////////////////////////////////////////////////
+
+  JTKQBVHDEF void unite_four_aabbs(qbvh_voxel& out, const float4* in)
+    {
+    out.bbox_min[0] = min_horizontal(in[0]);
+    out.bbox_min[1] = min_horizontal(in[1]);
+    out.bbox_min[2] = min_horizontal(in[2]);
+    out.bbox_min[3] = 1.f;
+    out.bbox_max[0] = max_horizontal(in[3]);
+    out.bbox_max[1] = max_horizontal(in[4]);
+    out.bbox_max[2] = max_horizontal(in[5]);
+    out.bbox_max[3] = 1.f;
+    }
+
+  /////////////////////////////////////////////////////////////////////////
+  // qbvh_two_level_with_transformations
+  /////////////////////////////////////////////////////////////////////////
+
+  JTKQBVHDEF void transform(qbvh_voxel& voxel, const float4x4& matrix)
+    {
+    auto xa = matrix.col[0] * voxel.bbox_min[0];
+    auto xb = matrix.col[0] * voxel.bbox_max[0];
+
+    auto ya = matrix.col[1] * voxel.bbox_min[1];
+    auto yb = matrix.col[1] * voxel.bbox_max[1];
+
+    auto za = matrix.col[2] * voxel.bbox_min[2];
+    auto zb = matrix.col[2] * voxel.bbox_max[2];
+
+    voxel.bbox_min = min(xa, xb) + min(ya, yb) + min(za, zb) + matrix.col[3];
+    voxel.bbox_max = max(xa, xb) + max(ya, yb) + max(za, zb) + matrix.col[3];
+    }
+
 
   } // namespace jtk
 
