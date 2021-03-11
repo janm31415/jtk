@@ -39,11 +39,7 @@
 #endif
 
 #ifndef JTKQBVHINLINE
-#ifdef JTK_QBVH_STATIC
 #define JTKQBVHINLINE inline
-#else
-#define JTKQBVHINLINE
-#endif
 #endif
 
 namespace jtk

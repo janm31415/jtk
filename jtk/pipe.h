@@ -23,11 +23,7 @@
 #endif
 
 #ifndef JTKPIPEINLINE
-#ifdef JTK_PIPE_STATIC
 #define JTKPIPEINLINE inline
-#else
-#define JTKPIPEINLINE
-#endif
 #endif
 
 #ifdef JTK_FILE_UTILS_IMPLEMENTATION

@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(jtk)
 add_subdirectory(jtk.tests)
+add_subdirectory(jtk.static.tests)
 
 
 
