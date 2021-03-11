@@ -1292,6 +1292,299 @@ I'm following the same algorithm steps, but do everything in place.
   JTKQBVHINLINE void qbvh_voxel::operator delete[](void* ptr) { aligned_free(ptr); }
 
 
+  template <int K>
+  void sah_optimized(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+    {
+    const uint32_t nr_of_triangles = (uint32_t)std::distance(first, last);
+    const float eps = std::numeric_limits<float>::epsilon() * 1024;
+    const float one_minus_eps = (float)1 - eps;
+    const float one_over_K = (float)1 / (float)K;
+    std::array<uint32_t, 2 * K> bin;
+    memset(&bin[0], 0, sizeof(uint32_t) * 2 * K);
+
+    dim = find_largest_dimension(centroid_bb);
+
+    const float s = bbox.bbox_max[dim] - bbox.bbox_min[dim];
+    const float k1 = (float)K * one_minus_eps / s;
+    const float k0 = bbox.bbox_min[dim];
+
+
+    for (auto it = first; it != last; ++it)
+      {
+      const uint32_t bmin = (uint32_t)std::floor(k1*(voxels[*it].bbox_min[dim] - k0));
+      const uint32_t bmax = (uint32_t)std::floor(k1*(voxels[*it].bbox_max[dim] - k0));
+      ++bin[bmin];
+      ++bin[K + bmax];
+      }
+
+    const float total_surface_area = calculate_half_surface_area(bbox.bbox_min, bbox.bbox_max);
+
+    float inv_total_surface_area = 0;
+
+    if (total_surface_area > eps)
+      inv_total_surface_area = (float)1 / total_surface_area;
+
+    float split_pos;
+    float minimal_cost;
+
+
+    const float bsize = s;
+    const float bstep = bsize * one_over_K;
+
+    split_pos = k0 + (float)0.5*bstep;
+    minimal_cost = std::numeric_limits<float>::max();
+
+    uint32_t left = 0;
+    uint32_t right = nr_of_triangles;
+    float4 bminleft = bbox.bbox_min;
+    float4 bminright = bbox.bbox_min;
+    float4 bmaxleft = bbox.bbox_max;
+    float4 bmaxright = bbox.bbox_max;
+
+    for (int i = 0; i < K - 1; ++i)
+      {
+      left += bin[i];
+      right -= bin[K + i];
+
+      assert(left <= nr_of_triangles);
+      assert(right <= nr_of_triangles);
+
+      const float pos = k0 + (i + 0.5f)*bstep;
+      bmaxleft[dim] = pos;
+      bminright[dim] = pos;
+
+      const float saleft = calculate_half_surface_area(bminleft, bmaxleft);
+      const float saright = calculate_half_surface_area(bminright, bmaxright);
+
+      const float twice_Taabb = (float)0.4;
+      const float Ttri = (float)0.8;
+      //float cost = 2.0*Taabb + (saleft * inv_total_surface_area) * left * Ttri + (saright * inv_total_surface_area) * right * Ttri;
+      const float cost = twice_Taabb + (saleft * left + saright * right) * inv_total_surface_area * Ttri;
+
+      if (cost < minimal_cost)
+        {
+        minimal_cost = cost;
+        split_pos = pos;
+        }
+      }
+
+    bbox_left.bbox_min = std::numeric_limits<float>::max();
+    bbox_left.bbox_max = -std::numeric_limits<float>::max();
+
+    bbox_right.bbox_min = bbox_left.bbox_min;
+    bbox_right.bbox_max = bbox_left.bbox_max;
+
+    centroid_left.bbox_min = bbox_left.bbox_min;
+    centroid_left.bbox_max = bbox_left.bbox_max;
+
+    centroid_right.bbox_min = bbox_left.bbox_min;
+    centroid_right.bbox_max = bbox_left.bbox_max;
+
+    mid = partition(bbox_left, bbox_right, centroid_left, centroid_right, dim, split_pos, voxels, first, last);
+    if ((mid == first) || (mid == last))
+      {
+      bbox_left.bbox_min = std::numeric_limits<float>::max();
+      bbox_left.bbox_max = -std::numeric_limits<float>::max();
+
+      bbox_right.bbox_min = bbox_left.bbox_min;
+      bbox_right.bbox_max = bbox_left.bbox_max;
+
+      centroid_left.bbox_min = bbox_left.bbox_min;
+      centroid_left.bbox_max = bbox_left.bbox_max;
+
+      centroid_right.bbox_min = bbox_left.bbox_min;
+      centroid_right.bbox_max = bbox_left.bbox_max;
+
+      mid = first + (last - first) / 2;
+
+      std::nth_element(first, mid, last, [&](uint32_t id1, uint32_t id2)
+        {
+        return voxels[id1].centroid[dim] < voxels[id2].centroid[dim];
+        });
+
+      for (auto it = first; it != mid; ++it)
+        {
+        bbox_left.bbox_min = min(bbox_left.bbox_min, voxels[*it].bbox_min);
+        bbox_left.bbox_max = max(bbox_left.bbox_max, voxels[*it].bbox_max);
+        centroid_left.bbox_min = min(centroid_left.bbox_min, voxels[*it].centroid);
+        centroid_left.bbox_max = max(centroid_left.bbox_max, voxels[*it].centroid);
+        }
+      for (auto it = mid; it != last; ++it)
+        {
+        bbox_right.bbox_min = min(bbox_right.bbox_min, voxels[*it].bbox_min);
+        bbox_right.bbox_max = max(bbox_right.bbox_max, voxels[*it].bbox_max);
+        centroid_right.bbox_min = min(centroid_right.bbox_min, voxels[*it].centroid);
+        centroid_right.bbox_max = max(centroid_right.bbox_max, voxels[*it].centroid);
+        }
+      }
+    }
+
+
+  template <int K>
+  void sah_parallel(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
+    {
+    const uint32_t nr_of_triangles = (uint32_t)std::distance(first, last);
+    const float eps = std::numeric_limits<float>::epsilon() * 1024;
+    const float one_minus_eps = (float)1 - eps;
+    const float one_over_K = (float)1 / (float)K;
+    std::array<uint32_t, 2 * K> bin;
+    memset(&bin[0], 0, sizeof(uint32_t) * 2 * K);
+
+    dim = find_largest_dimension(centroid_bb);
+
+    const float sw = bbox.bbox_max[dim] - bbox.bbox_min[dim];
+    const float k1 = (float)K * one_minus_eps / sw;
+    const float k0 = bbox.bbox_min[dim];
+
+    static const unsigned int number_of_threads = hardware_concurrency();
+    static const unsigned int number_of_blocks = number_of_threads * 4;
+
+    std::vector<std::array<uint32_t, 2 * K>> local_bins(number_of_blocks, bin);
+
+    parallel_for((unsigned int)0, number_of_blocks, [&](unsigned int t)
+      {
+      const uint32_t s = (uint32_t)((uint64_t)t * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_blocks);
+      const uint32_t e = (uint32_t)((uint64_t)(t + 1) * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_blocks);
+      auto it = first + s;
+      const auto it_end = first + e;
+      for (; it != it_end; ++it)
+        {
+        const uint32_t bmin = (uint32_t)std::floor(k1*(voxels[*it].bbox_min[dim] - k0));
+        const uint32_t bmax = (uint32_t)std::floor(k1*(voxels[*it].bbox_max[dim] - k0));
+        ++local_bins[t][bmin];
+        ++local_bins[t][K + bmax];
+        }
+      });
+
+    parallel_for(uint32_t(0), uint32_t(2 * K), [&](uint32_t i)
+      {
+      for (unsigned int t = 0; t < number_of_blocks; ++t)
+        bin[i] += local_bins[t][i];
+      });
+
+    const float total_surface_area = calculate_half_surface_area(bbox.bbox_min, bbox.bbox_max);
+
+    float inv_total_surface_area = 0;
+
+    if (total_surface_area > eps)
+      inv_total_surface_area = (float)1 / total_surface_area;
+
+    float split_pos;
+    float minimal_cost;
+
+
+    const float bsize = sw;
+    const float bstep = bsize * one_over_K;
+
+    split_pos = k0 + (float)0.5*bstep;
+    minimal_cost = std::numeric_limits<float>::max();
+
+    uint32_t left = 0;
+    uint32_t right = nr_of_triangles;
+    float4 bminleft = bbox.bbox_min;
+    float4 bminright = bbox.bbox_min;
+    float4 bmaxleft = bbox.bbox_max;
+    float4 bmaxright = bbox.bbox_max;
+
+    for (int i = 0; i < K - 1; ++i)
+      {
+      left += bin[i];
+      right -= bin[K + i];
+
+      assert(left <= nr_of_triangles);
+      assert(right <= nr_of_triangles);
+
+      const float pos = k0 + (i + (float)0.5)*bstep;
+      bmaxleft[dim] = pos;
+      bminright[dim] = pos;
+
+      const float saleft = calculate_half_surface_area(bminleft, bmaxleft);
+      const float saright = calculate_half_surface_area(bminright, bmaxright);
+
+      const float twice_Taabb = (float)0.4;
+      const float Ttri = (float)0.8;
+      const float cost = twice_Taabb + (saleft * left + saright * right) * inv_total_surface_area * Ttri;
+
+      if (cost < minimal_cost)
+        {
+        minimal_cost = cost;
+        split_pos = pos;
+        }
+      }
+
+    mid = parallel_partition(first, last, [&](uint32_t id)
+      {
+      return voxels[id].centroid[dim] < split_pos;
+      });
+    if ((mid == first) || (mid == last))
+      {
+      mid = first + (last - first) / 2;
+      std::nth_element(first, mid, last, [&](uint32_t id1, uint32_t id2)
+        {
+        return voxels[id1].centroid[dim] < voxels[id2].centroid[dim];
+        });
+      }
+
+    bbox_left.bbox_min = std::numeric_limits<float>::max();
+    bbox_left.bbox_max = -std::numeric_limits<float>::max();
+
+    bbox_right.bbox_min = bbox_left.bbox_min;
+    bbox_right.bbox_max = bbox_left.bbox_max;
+
+    centroid_left.bbox_min = bbox_left.bbox_min;
+    centroid_left.bbox_max = bbox_left.bbox_max;
+
+    centroid_right.bbox_min = bbox_left.bbox_min;
+    centroid_right.bbox_max = bbox_left.bbox_max;
+
+    aligned_vector<qbvh_voxel> bbox_left_blocks(number_of_blocks, bbox_left);
+    aligned_vector<qbvh_voxel> bbox_right_blocks(number_of_blocks, bbox_left);
+    aligned_vector<qbvh_voxel> centroid_left_blocks(number_of_blocks, bbox_left);
+    aligned_vector<qbvh_voxel> centroid_right_blocks(number_of_blocks, bbox_left);
+
+    const uint32_t nr_of_left_items = (uint32_t)std::distance(first, mid);
+    const uint32_t nr_of_right_items = (uint32_t)std::distance(mid, last);
+
+    parallel_for((unsigned int)0, number_of_blocks, [&](unsigned int t)
+      {
+      const uint64_t s1 = (uint64_t)t * (uint64_t)(nr_of_left_items) / (uint64_t)number_of_blocks;
+      const uint64_t e1 = (uint64_t)(t + 1) *(uint64_t)(nr_of_left_items) / (uint64_t)number_of_blocks;
+      auto it1 = first + s1;
+      const auto it1_end = first + e1;
+      for (; it1 != it1_end; ++it1)
+        {
+        bbox_left_blocks[t].bbox_min = min(bbox_left_blocks[t].bbox_min, voxels[*it1].bbox_min);
+        bbox_left_blocks[t].bbox_max = max(bbox_left_blocks[t].bbox_max, voxels[*it1].bbox_max);
+        centroid_left_blocks[t].bbox_min = min(centroid_left_blocks[t].bbox_min, voxels[*it1].centroid);
+        centroid_left_blocks[t].bbox_max = max(centroid_left_blocks[t].bbox_max, voxels[*it1].centroid);
+        }
+
+      const uint32_t s2 = (uint64_t)t * (uint64_t)(nr_of_right_items) / (uint64_t)number_of_blocks;
+      const uint32_t e2 = (uint64_t)(t + 1) * (uint64_t)(nr_of_right_items) / (uint64_t)number_of_blocks;
+      auto it2 = mid + s2;
+      const auto it2_end = mid + e2;
+      for (; it2 != it2_end; ++it2)
+        {
+        bbox_right_blocks[t].bbox_min = min(bbox_right_blocks[t].bbox_min, voxels[*it2].bbox_min);
+        bbox_right_blocks[t].bbox_max = max(bbox_right_blocks[t].bbox_max, voxels[*it2].bbox_max);
+        centroid_right_blocks[t].bbox_min = min(centroid_right_blocks[t].bbox_min, voxels[*it2].centroid);
+        centroid_right_blocks[t].bbox_max = max(centroid_right_blocks[t].bbox_max, voxels[*it2].centroid);
+        }
+      });
+
+    for (unsigned int t = 0; t < number_of_blocks; ++t)
+      {
+      bbox_left.bbox_min = min(bbox_left.bbox_min, bbox_left_blocks[t].bbox_min);
+      bbox_left.bbox_max = max(bbox_left.bbox_max, bbox_left_blocks[t].bbox_max);
+      centroid_left.bbox_min = min(centroid_left.bbox_min, centroid_left_blocks[t].bbox_min);
+      centroid_left.bbox_max = max(centroid_left.bbox_max, centroid_left_blocks[t].bbox_max);
+      bbox_right.bbox_min = min(bbox_right.bbox_min, bbox_right_blocks[t].bbox_min);
+      bbox_right.bbox_max = max(bbox_right.bbox_max, bbox_right_blocks[t].bbox_max);
+      centroid_right.bbox_min = min(centroid_right.bbox_min, centroid_right_blocks[t].bbox_min);
+      centroid_right.bbox_max = max(centroid_right.bbox_max, centroid_right_blocks[t].bbox_max);
+      }
+    }
+
   JTKQBVHINLINE qbvh::qbvh(const std::vector<vec3<uint32_t>>& triangles, const vec3<float>* vertices)
     {
     qbvh_voxel total_bb, centroid_bb;
@@ -4367,300 +4660,6 @@ namespace jtk
         ++first;
       }
     return first;
-    }
-
-
-  template <int K>
-  void sah_optimized(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
-    {
-    const uint32_t nr_of_triangles = (uint32_t)std::distance(first, last);
-    const float eps = std::numeric_limits<float>::epsilon() * 1024;
-    const float one_minus_eps = (float)1 - eps;
-    const float one_over_K = (float)1 / (float)K;
-    std::array<uint32_t, 2 * K> bin;
-    memset(&bin[0], 0, sizeof(uint32_t) * 2 * K);
-
-    dim = find_largest_dimension(centroid_bb);
-
-    const float s = bbox.bbox_max[dim] - bbox.bbox_min[dim];
-    const float k1 = (float)K * one_minus_eps / s;
-    const float k0 = bbox.bbox_min[dim];
-
-
-    for (auto it = first; it != last; ++it)
-      {
-      const uint32_t bmin = (uint32_t)std::floor(k1*(voxels[*it].bbox_min[dim] - k0));
-      const uint32_t bmax = (uint32_t)std::floor(k1*(voxels[*it].bbox_max[dim] - k0));
-      ++bin[bmin];
-      ++bin[K + bmax];
-      }
-
-    const float total_surface_area = calculate_half_surface_area(bbox.bbox_min, bbox.bbox_max);
-
-    float inv_total_surface_area = 0;
-
-    if (total_surface_area > eps)
-      inv_total_surface_area = (float)1 / total_surface_area;
-
-    float split_pos;
-    float minimal_cost;
-
-
-    const float bsize = s;
-    const float bstep = bsize * one_over_K;
-
-    split_pos = k0 + (float)0.5*bstep;
-    minimal_cost = std::numeric_limits<float>::max();
-
-    uint32_t left = 0;
-    uint32_t right = nr_of_triangles;
-    float4 bminleft = bbox.bbox_min;
-    float4 bminright = bbox.bbox_min;
-    float4 bmaxleft = bbox.bbox_max;
-    float4 bmaxright = bbox.bbox_max;
-
-    for (int i = 0; i < K - 1; ++i)
-      {
-      left += bin[i];
-      right -= bin[K + i];
-
-      assert(left <= nr_of_triangles);
-      assert(right <= nr_of_triangles);
-
-      const float pos = k0 + (i + 0.5f)*bstep;
-      bmaxleft[dim] = pos;
-      bminright[dim] = pos;
-
-      const float saleft = calculate_half_surface_area(bminleft, bmaxleft);
-      const float saright = calculate_half_surface_area(bminright, bmaxright);
-
-      const float twice_Taabb = (float)0.4;
-      const float Ttri = (float)0.8;
-      //float cost = 2.0*Taabb + (saleft * inv_total_surface_area) * left * Ttri + (saright * inv_total_surface_area) * right * Ttri;
-      const float cost = twice_Taabb + (saleft * left + saright * right) * inv_total_surface_area * Ttri;
-
-      if (cost < minimal_cost)
-        {
-        minimal_cost = cost;
-        split_pos = pos;
-        }
-      }
-
-    bbox_left.bbox_min = std::numeric_limits<float>::max();
-    bbox_left.bbox_max = -std::numeric_limits<float>::max();
-
-    bbox_right.bbox_min = bbox_left.bbox_min;
-    bbox_right.bbox_max = bbox_left.bbox_max;
-
-    centroid_left.bbox_min = bbox_left.bbox_min;
-    centroid_left.bbox_max = bbox_left.bbox_max;
-
-    centroid_right.bbox_min = bbox_left.bbox_min;
-    centroid_right.bbox_max = bbox_left.bbox_max;
-
-    mid = partition(bbox_left, bbox_right, centroid_left, centroid_right, dim, split_pos, voxels, first, last);
-    if ((mid == first) || (mid == last))
-      {
-      bbox_left.bbox_min = std::numeric_limits<float>::max();
-      bbox_left.bbox_max = -std::numeric_limits<float>::max();
-
-      bbox_right.bbox_min = bbox_left.bbox_min;
-      bbox_right.bbox_max = bbox_left.bbox_max;
-
-      centroid_left.bbox_min = bbox_left.bbox_min;
-      centroid_left.bbox_max = bbox_left.bbox_max;
-
-      centroid_right.bbox_min = bbox_left.bbox_min;
-      centroid_right.bbox_max = bbox_left.bbox_max;
-
-      mid = first + (last - first) / 2;
-
-      std::nth_element(first, mid, last, [&](uint32_t id1, uint32_t id2)
-        {
-        return voxels[id1].centroid[dim] < voxels[id2].centroid[dim];
-        });
-
-      for (auto it = first; it != mid; ++it)
-        {
-        bbox_left.bbox_min = min(bbox_left.bbox_min, voxels[*it].bbox_min);
-        bbox_left.bbox_max = max(bbox_left.bbox_max, voxels[*it].bbox_max);
-        centroid_left.bbox_min = min(centroid_left.bbox_min, voxels[*it].centroid);
-        centroid_left.bbox_max = max(centroid_left.bbox_max, voxels[*it].centroid);
-        }
-      for (auto it = mid; it != last; ++it)
-        {
-        bbox_right.bbox_min = min(bbox_right.bbox_min, voxels[*it].bbox_min);
-        bbox_right.bbox_max = max(bbox_right.bbox_max, voxels[*it].bbox_max);
-        centroid_right.bbox_min = min(centroid_right.bbox_min, voxels[*it].centroid);
-        centroid_right.bbox_max = max(centroid_right.bbox_max, voxels[*it].centroid);
-        }
-      }
-    }
-
-
-  template <int K>
-  void sah_parallel(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
-    {
-    const uint32_t nr_of_triangles = (uint32_t)std::distance(first, last);
-    const float eps = std::numeric_limits<float>::epsilon() * 1024;
-    const float one_minus_eps = (float)1 - eps;
-    const float one_over_K = (float)1 / (float)K;
-    std::array<uint32_t, 2 * K> bin;
-    memset(&bin[0], 0, sizeof(uint32_t) * 2 * K);
-
-    dim = find_largest_dimension(centroid_bb);
-
-    const float sw = bbox.bbox_max[dim] - bbox.bbox_min[dim];
-    const float k1 = (float)K * one_minus_eps / sw;
-    const float k0 = bbox.bbox_min[dim];
-
-    static const unsigned int number_of_threads = hardware_concurrency();
-    static const unsigned int number_of_blocks = number_of_threads * 4;
-
-    std::vector<std::array<uint32_t, 2 * K>> local_bins(number_of_blocks, bin);
-
-    parallel_for((unsigned int)0, number_of_blocks, [&](unsigned int t)
-      {
-      const uint32_t s = (uint32_t)((uint64_t)t * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_blocks);
-      const uint32_t e = (uint32_t)((uint64_t)(t + 1) * (uint64_t)(nr_of_triangles) / (uint64_t)number_of_blocks);
-      auto it = first + s;
-      const auto it_end = first + e;
-      for (; it != it_end; ++it)
-        {
-        const uint32_t bmin = (uint32_t)std::floor(k1*(voxels[*it].bbox_min[dim] - k0));
-        const uint32_t bmax = (uint32_t)std::floor(k1*(voxels[*it].bbox_max[dim] - k0));
-        ++local_bins[t][bmin];
-        ++local_bins[t][K + bmax];
-        }
-      });
-
-    parallel_for(uint32_t(0), uint32_t(2 * K), [&](uint32_t i)
-      {
-      for (unsigned int t = 0; t < number_of_blocks; ++t)
-        bin[i] += local_bins[t][i];
-      });
-
-    const float total_surface_area = calculate_half_surface_area(bbox.bbox_min, bbox.bbox_max);
-
-    float inv_total_surface_area = 0;
-
-    if (total_surface_area > eps)
-      inv_total_surface_area = (float)1 / total_surface_area;
-
-    float split_pos;
-    float minimal_cost;
-
-
-    const float bsize = sw;
-    const float bstep = bsize * one_over_K;
-
-    split_pos = k0 + (float)0.5*bstep;
-    minimal_cost = std::numeric_limits<float>::max();
-
-    uint32_t left = 0;
-    uint32_t right = nr_of_triangles;
-    float4 bminleft = bbox.bbox_min;
-    float4 bminright = bbox.bbox_min;
-    float4 bmaxleft = bbox.bbox_max;
-    float4 bmaxright = bbox.bbox_max;
-
-    for (int i = 0; i < K - 1; ++i)
-      {
-      left += bin[i];
-      right -= bin[K + i];
-
-      assert(left <= nr_of_triangles);
-      assert(right <= nr_of_triangles);
-
-      const float pos = k0 + (i + (float)0.5)*bstep;
-      bmaxleft[dim] = pos;
-      bminright[dim] = pos;
-
-      const float saleft = calculate_half_surface_area(bminleft, bmaxleft);
-      const float saright = calculate_half_surface_area(bminright, bmaxright);
-
-      const float twice_Taabb = (float)0.4;
-      const float Ttri = (float)0.8;
-      const float cost = twice_Taabb + (saleft * left + saright * right) * inv_total_surface_area * Ttri;
-
-      if (cost < minimal_cost)
-        {
-        minimal_cost = cost;
-        split_pos = pos;
-        }
-      }
-
-    mid = parallel_partition(first, last, [&](uint32_t id)
-      {
-      return voxels[id].centroid[dim] < split_pos;
-      });
-    if ((mid == first) || (mid == last))
-      {
-      mid = first + (last - first) / 2;
-      std::nth_element(first, mid, last, [&](uint32_t id1, uint32_t id2)
-        {
-        return voxels[id1].centroid[dim] < voxels[id2].centroid[dim];
-        });
-      }
-
-    bbox_left.bbox_min = std::numeric_limits<float>::max();
-    bbox_left.bbox_max = -std::numeric_limits<float>::max();
-
-    bbox_right.bbox_min = bbox_left.bbox_min;
-    bbox_right.bbox_max = bbox_left.bbox_max;
-
-    centroid_left.bbox_min = bbox_left.bbox_min;
-    centroid_left.bbox_max = bbox_left.bbox_max;
-
-    centroid_right.bbox_min = bbox_left.bbox_min;
-    centroid_right.bbox_max = bbox_left.bbox_max;
-
-    aligned_vector<qbvh_voxel> bbox_left_blocks(number_of_blocks, bbox_left);
-    aligned_vector<qbvh_voxel> bbox_right_blocks(number_of_blocks, bbox_left);
-    aligned_vector<qbvh_voxel> centroid_left_blocks(number_of_blocks, bbox_left);
-    aligned_vector<qbvh_voxel> centroid_right_blocks(number_of_blocks, bbox_left);
-
-    const uint32_t nr_of_left_items = (uint32_t)std::distance(first, mid);
-    const uint32_t nr_of_right_items = (uint32_t)std::distance(mid, last);
-
-    parallel_for((unsigned int)0, number_of_blocks, [&](unsigned int t)
-      {
-      const uint64_t s1 = (uint64_t)t * (uint64_t)(nr_of_left_items) / (uint64_t)number_of_blocks;
-      const uint64_t e1 = (uint64_t)(t + 1) *(uint64_t)(nr_of_left_items) / (uint64_t)number_of_blocks;
-      auto it1 = first + s1;
-      const auto it1_end = first + e1;
-      for (; it1 != it1_end; ++it1)
-        {
-        bbox_left_blocks[t].bbox_min = min(bbox_left_blocks[t].bbox_min, voxels[*it1].bbox_min);
-        bbox_left_blocks[t].bbox_max = max(bbox_left_blocks[t].bbox_max, voxels[*it1].bbox_max);
-        centroid_left_blocks[t].bbox_min = min(centroid_left_blocks[t].bbox_min, voxels[*it1].centroid);
-        centroid_left_blocks[t].bbox_max = max(centroid_left_blocks[t].bbox_max, voxels[*it1].centroid);
-        }
-
-      const uint32_t s2 = (uint64_t)t * (uint64_t)(nr_of_right_items) / (uint64_t)number_of_blocks;
-      const uint32_t e2 = (uint64_t)(t + 1) * (uint64_t)(nr_of_right_items) / (uint64_t)number_of_blocks;
-      auto it2 = mid + s2;
-      const auto it2_end = mid + e2;
-      for (; it2 != it2_end; ++it2)
-        {
-        bbox_right_blocks[t].bbox_min = min(bbox_right_blocks[t].bbox_min, voxels[*it2].bbox_min);
-        bbox_right_blocks[t].bbox_max = max(bbox_right_blocks[t].bbox_max, voxels[*it2].bbox_max);
-        centroid_right_blocks[t].bbox_min = min(centroid_right_blocks[t].bbox_min, voxels[*it2].centroid);
-        centroid_right_blocks[t].bbox_max = max(centroid_right_blocks[t].bbox_max, voxels[*it2].centroid);
-        }
-      });
-
-    for (unsigned int t = 0; t < number_of_blocks; ++t)
-      {
-      bbox_left.bbox_min = min(bbox_left.bbox_min, bbox_left_blocks[t].bbox_min);
-      bbox_left.bbox_max = max(bbox_left.bbox_max, bbox_left_blocks[t].bbox_max);
-      centroid_left.bbox_min = min(centroid_left.bbox_min, centroid_left_blocks[t].bbox_min);
-      centroid_left.bbox_max = max(centroid_left.bbox_max, centroid_left_blocks[t].bbox_max);
-      bbox_right.bbox_min = min(bbox_right.bbox_min, bbox_right_blocks[t].bbox_min);
-      bbox_right.bbox_max = max(bbox_right.bbox_max, bbox_right_blocks[t].bbox_max);
-      centroid_right.bbox_min = min(centroid_right.bbox_min, centroid_right_blocks[t].bbox_min);
-      centroid_right.bbox_max = max(centroid_right.bbox_max, centroid_right_blocks[t].bbox_max);
-      }
     }
 
   /////////////////////////////////////////////////////////////////////////
