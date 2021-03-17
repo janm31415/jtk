@@ -101,19 +101,19 @@ namespace jtk
 
       void add_point(const _Point_type& _Pt)
         {
-        for (size_t i = 0; i < _Dim; ++i)
+        for (int i = 0; i < _Dim; ++i)
           {
           _Min[i] = std::min<_Ty>(_Min[i], _Pt[i]);
           _Max[i] = std::max<_Ty>(_Max[i], _Pt[i]);
           }
         }
 
-      _Point_type& Border(size_t i)
+      _Point_type& Border(int i)
         {
         return (&_Min)[i];
         }
 
-      const _Point_type& Border(size_t i) const
+      const _Point_type& Border(int i) const
         {
         return (&_Min)[i];
         }
@@ -126,7 +126,7 @@ namespace jtk
         return dist;
         }
 
-      inline _Ty center(size_t dim) const
+      inline _Ty center(int dim) const
         {
         return (_Min[dim] + _Max[dim]) / 2.0;
         }
@@ -144,7 +144,7 @@ namespace jtk
     struct point_compare
       {
       public:
-        point_compare(size_t dim)
+        point_compare(int dim)
           : _Dim(dim) {}
 
         inline bool operator()(const _Point_type& _Left, const _Point_type& _Right) const
@@ -153,7 +153,7 @@ namespace jtk
           }
 
       private:
-        size_t _Dim;
+        int _Dim;
       };
 
     template<class _Ty, class _Result_type>

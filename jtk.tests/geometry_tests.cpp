@@ -10,12 +10,12 @@ namespace jtk
   void test_stitch()
     {
     std::vector<jtk::vec3<float>> vertices;
-    vertices.emplace_back(0, 0, 0);
-    vertices.emplace_back(1, 0, 0);
-    vertices.emplace_back(1, 1, 0);
-    vertices.emplace_back(0, 1, 0);
-    vertices.emplace_back(0.5, 0.5, 0);
-    vertices.emplace_back(0.51, 0.5, 0);
+    vertices.emplace_back(0.f, 0.f, 0.f);
+    vertices.emplace_back(1.f, 0.f, 0.f);
+    vertices.emplace_back(1.f, 1.f, 0.f);
+    vertices.emplace_back(0.f, 1.f, 0.f);
+    vertices.emplace_back(0.5f, 0.5f, 0.f);
+    vertices.emplace_back(0.51f, 0.5f, 0.f);
     
     std::vector<jtk::vec3<uint32_t>> triangles;
     triangles.emplace_back(0, 1, 4);
@@ -31,11 +31,11 @@ namespace jtk
   void test_undo_dyadic_subdivide()
     {
     std::vector<jtk::vec3<float>> vertices;
-    vertices.emplace_back(0, 0, 0);
-    vertices.emplace_back(1, 0, 0);
-    vertices.emplace_back(1, 1, 0);
-    vertices.emplace_back(0, 1, 0);
-    vertices.emplace_back(0.5, 0.5, 0);
+    vertices.emplace_back(0.f, 0.f, 0.f);
+    vertices.emplace_back(1.f, 0.f, 0.f);
+    vertices.emplace_back(1.f, 1.f, 0.f);
+    vertices.emplace_back(0.f, 1.f, 0.f);
+    vertices.emplace_back(0.5f, 0.5f, 0.f);
     std::vector<jtk::vec3<uint32_t>> triangles;
     triangles.emplace_back(0, 1, 4);
     triangles.emplace_back(1, 2, 4);

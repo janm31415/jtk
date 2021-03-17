@@ -2948,13 +2948,13 @@ namespace jtk
           uint32_t c0_up = n0[(e1_position+2)%n0.size()];
           uint32_t c0_down = n0[(e1_position+n0.size()-2)%n0.size()];
           
-          uint32_t b1_down = n1[(e0_position+1)%n1.size()];
-          uint32_t b1_up = n1[(e0_position+n1.size()-1)%n1.size()];
+          //uint32_t b1_down = n1[(e0_position+1)%n1.size()];
+          //uint32_t b1_up = n1[(e0_position+n1.size()-1)%n1.size()];
           uint32_t c1_down = n1[(e0_position+2)%n1.size()];
           uint32_t c1_up = n1[(e0_position+n0.size()-2)%n1.size()];
           
-          assert(b0_up == b1_up);
-          assert(b0_down == b1_down);
+          assert(b0_up == n1[(e0_position + n1.size() - 1) % n1.size()]);
+          assert(b0_down == n1[(e0_position + 1) % n1.size()]);
           
           auto new_vertex_position = (vertices[e[0]] + vertices[e[1]])*0.5f + (vertices[b0_up] + vertices[b0_down])/8.f - (vertices[c0_up] + vertices[c0_down] + vertices[c1_up] + vertices[c1_down])/16.f;
           vertices[v] = new_vertex_position;
@@ -2985,7 +2985,7 @@ namespace jtk
             {
             for (int j = 0; j < (int)n0.size(); ++j)
               {
-              weights.push_back((0.25+std::cos(6.28318530718f*(float)j/(float)n0.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n0.size()) )/(float)n0.size());
+              weights.push_back((float)((0.25+std::cos(6.28318530718f*(float)j/(float)n0.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n0.size()) )/(float)n0.size()));
               }
             }
             
@@ -3018,7 +3018,7 @@ namespace jtk
             {
             for (int j = 0; j < (int)n0.size(); ++j)
               {
-              weights0.push_back((0.25+std::cos(6.28318530718f*(float)j/(float)n0.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n0.size()) )/(float)n0.size());
+              weights0.push_back((float)((0.25+std::cos(6.28318530718f*(float)j/(float)n0.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n0.size()) )/(float)n0.size()));
               }
             }
             
@@ -3048,7 +3048,7 @@ namespace jtk
             {
             for (int j = 0; j < (int)n1.size(); ++j)
               {
-              weights1.push_back((0.25+std::cos(6.28318530718f*(float)j/(float)n1.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n1.size()) )/(float)n1.size());
+              weights1.push_back((float)((0.25+std::cos(6.28318530718f*(float)j/(float)n1.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n1.size()) )/(float)n1.size()));
               }
             }
             
