@@ -16,6 +16,7 @@ file_utils.h
 fitting.h
 geometry.h
 image.h
+log.h
 mat.h
 pipe.h
 point_tree.h
