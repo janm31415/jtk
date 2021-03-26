@@ -5,6 +5,7 @@
 #include "../jtk/log.h"
 
 #include <iostream>
+#include <sstream>
 
 namespace jtk
   {
@@ -16,9 +17,12 @@ namespace jtk
     }
 
   void test_log()
-    {
-    init_log_stream(&std::cout);
+    {    
+    std::stringstream ss;
+    init_log_stream(&ss, false);
     log().get(log_level::info) << "Test";
+    TEST_EQ(std::string(" INFO: Test\n"), ss.str());
+    release_log_stream();
     }
 
   }

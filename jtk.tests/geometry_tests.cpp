@@ -51,6 +51,31 @@ namespace jtk
     TEST_EQ(4, triangles.size());
     TEST_EQ(5, vertices.size());
     }
+
+  void test_delete_items()
+    {
+    std::vector<double> v;
+    for (int i = 1; i <= 100; ++i)
+      v.push_back((double)i);
+    std::vector<int> indices_to_delete;
+    indices_to_delete.push_back(9);
+    indices_to_delete.push_back(19);
+    indices_to_delete.push_back(29);
+    indices_to_delete.push_back(39);
+    indices_to_delete.push_back(49);
+    indices_to_delete.push_back(59);
+    indices_to_delete.push_back(69);
+    indices_to_delete.push_back(79);
+    indices_to_delete.push_back(89);
+    indices_to_delete.push_back(99);
+    delete_items(v, indices_to_delete);
+    TEST_EQ(90, v.size());
+    for (int i = 0; i < 90; ++i)
+      {
+      int value = (i / 9) * 10 + (i % 9) + 1;
+      TEST_EQ((double)value, v[i]);
+      }
+    }
   }
 
 void run_all_geometry_tests()
@@ -58,4 +83,5 @@ void run_all_geometry_tests()
   using namespace jtk;
   test_stitch();
   test_undo_dyadic_subdivide();
+  test_delete_items();
   }

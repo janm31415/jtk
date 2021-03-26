@@ -8,13 +8,6 @@
    #include ...
    #define JTK_LOG_IMPLEMENTATION
    #include "jtk/log.h"
-
-   If you want to log functionality in a shared library/dll, and you want to set the 
-   logging pointer from your main executable, then do the following:
-    - make sure JTK_DLL_EXPORT is defined in your shared library so that the function 
-      init_log_stream is exported.
-    - define JTK_DLL_IMPORT in your main executable where you want to call init_log_stream.
-    - call init_log_stream from your main executable with the requested ostream pointer.
  */
 
 #ifndef JTK_LOG_H
@@ -49,10 +42,6 @@
 
 namespace jtk
   {
-  JTK_LOG_API JTKLDEF void init_log_stream(std::ostream* p_stream);
-  JTK_LOG_API JTKLDEF void release_log_stream();
-
-  JTKLDEF std::string now_time();
 
   enum struct log_level
     {
@@ -66,6 +55,11 @@ namespace jtk
     debug4
     };
 
+  JTK_LOG_API JTKLDEF void init_log_stream(std::ostream* p_stream, bool print_time = true, enum struct log_level verbose_level = log_level::info);
+  JTK_LOG_API JTKLDEF void release_log_stream();
+
+  JTKLDEF std::string now_time();
+
 
   class log
     {
@@ -75,9 +69,11 @@ namespace jtk
       std::ostringstream& get(enum struct log_level level = log_level::info);
 
       static std::string to_string(enum struct log_level level);
+      static int to_int(enum struct log_level level);
 
     protected:
       std::ostringstream os;
+      std::ostringstream dummy_os;
 
     private:
       log(const log&);
@@ -93,10 +89,14 @@ namespace jtk
 namespace jtk
   {
   std::ostream* log_stream_ptr = nullptr;
+  enum struct log_level verbose_level = log_level::debug4;
+  bool log_with_time_stamp = true;
 
-  JTKLDEF void init_log_stream(std::ostream* p_stream)
+  JTKLDEF void init_log_stream(std::ostream* p_stream, bool with_time_stamp, enum struct log_level vlevel)
     {
     log_stream_ptr = p_stream;
+    verbose_level = vlevel;
+    log_with_time_stamp = with_time_stamp;
     }
 
   JTKLDEF void release_log_stream()
@@ -140,34 +140,47 @@ namespace jtk
 
   log::~log()
     {
-    os << std::endl;     
-    if (log_stream_ptr)
+    if (!os.str().empty())
       {
-      *log_stream_ptr << os.str();
-      log_stream_ptr->flush();
+      os << std::endl;
+      if (log_stream_ptr)
+        {
+        *log_stream_ptr << os.str();
+        log_stream_ptr->flush();
+        }
       }
+    }
+
+  int log::to_int(enum struct log_level level)
+    {
+    switch (level)
+      {
+      case log_level::error: return 0;
+      case log_level::warning: return 1;
+      case log_level::info: return 2;
+      case log_level::debug: return 3;
+      case log_level::debug1: return 4;
+      case log_level::debug2: return 5;
+      case log_level::debug3: return 6;
+      case log_level::debug4: return 7;
+      }
+    return -1;
     }
 
   std::string log::to_string(enum struct log_level level)
     {
     static const char* const buffer[] = { "ERROR", "WARNING", "INFO", "DEBUG", "DEBUG1", "DEBUG2", "DEBUG3", "DEBUG4" };
-    switch (level)
-      {
-      case log_level::error: return buffer[0];
-      case log_level::warning: return buffer[1];
-      case log_level::info: return buffer[2];
-      case log_level::debug: return buffer[3];
-      case log_level::debug1: return buffer[4];
-      case log_level::debug2: return buffer[5];
-      case log_level::debug3: return buffer[6];
-      case log_level::debug4: return buffer[7];
-      }
-    return std::string();
+    return buffer[to_int(level)];
     }
 
   std::ostringstream& log::get(enum struct log_level level)
     {
-    os << "- " << now_time();
+    if (to_int(level) > to_int(verbose_level))
+      return dummy_os;
+    if (log_with_time_stamp)
+      {
+      os << "- " << now_time();
+      }
     os << " " << to_string(level) << ": ";
     switch (level)
       {
@@ -185,3 +198,4 @@ namespace jtk
 #endif
 
 #endif
+

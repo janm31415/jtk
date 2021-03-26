@@ -239,6 +239,20 @@ namespace jtk
       return;
       }
 
+    auto rm_iter = indices_to_delete.begin();
+    auto end = indices_to_delete.end();
+    std::size_t current_index = 0;
+
+    const auto pred = [&](const TType&) {
+      // any more to remove?
+      if (rm_iter == end) { return false; }
+      // is this one specified?
+      if (*rm_iter == current_index++) { return ++rm_iter, true; }
+      return false;
+      };
+
+    vec.erase(std::remove_if(vec.begin(), vec.end(), pred), vec.end());
+    /*
     auto last = --vec.end();
 
     for (auto rit = indices_to_delete.rbegin(); rit != indices_to_delete.rend(); ++rit)
@@ -252,6 +266,7 @@ namespace jtk
       --last;
       }
     vec.erase(++last, vec.end());
+    */
     }
   
   namespace marching_cubes_details
