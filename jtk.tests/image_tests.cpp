@@ -33,8 +33,6 @@ namespace jtk
       }
     }
 
-#ifdef _WIN32 || WIN32
-
   namespace
     {
 
@@ -160,7 +158,7 @@ namespace jtk
     for (int y = 0; y < h; ++y)
       for (int x = 0; x < w; ++x)
         {
-        uint32_t clr = ((x * y) & 255) | ((x * y * 2) & 255) << 8 | ((x * y * 3) & 255) << 16 | 0xff000000;
+        uint32_t clr = ((x*y) & 255) | ((x*y*2) & 255) << 8 | ((x*y * 3) & 255) << 16 | 0xff000000;
         im(x, y) = clr;
         }
     image<vec3<uint32_t>> imc1 = census_transform_avx(im);
@@ -175,8 +173,6 @@ namespace jtk
         }
     }
 
-#endif
-
   }
 
 
@@ -184,8 +180,6 @@ void run_all_image_tests()
   {
   using namespace jtk;
   test_fill_image();
-#ifdef WIN32 || _WIN32
   test_census();
   test_census_32();
-#endif
   }
