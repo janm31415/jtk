@@ -676,7 +676,7 @@ JTKALSCDEF bool terminate(const double* x, double rg, double tolerance[6])
 JTKALSCDEF int inverse_from_cholesky(double* U)
   {
   double A[64];
-  std::memcpy((void*)A, (void*)U, sizeof(double) * 64);
+  memcpy((void*)A, (void*)U, sizeof(double) * 64);
   int n = 8;
   for (int j = 0; j < n; ++j)
     {

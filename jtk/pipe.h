@@ -37,7 +37,7 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-#elif defined(unix)
+#elif defined(unix) || defined(__unix) || defined(__unix__) || defined(UNIX)
 #include <linux/limits.h>
 #elif defined(__APPLE__)
 #include <limits.h>
@@ -139,7 +139,7 @@ namespace jtk
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
-#if defined(unix)
+#if defined(unix) || defined(__unix) || defined(__unix__) || defined(UNIX)
 #include <sys/prctl.h>
 //#include <linux/limits.h>
 #endif
@@ -303,7 +303,6 @@ namespace jtk
   JTKPIPEDEF void close_pipe(void* pr)
     {
     pipe_process *cp;
-    int result;
 
     cp = (pipe_process *)pr;
     if (cp == nullptr)
@@ -573,7 +572,7 @@ namespace jtk
       close(inpipefd[1]);
       close(outpipefd[0]);
       close(outpipefd[1]);
-#if defined(unix)
+#if defined(unix) || defined(__unix) || defined(__unix__) || defined(UNIX)
       prctl(PR_SET_PDEATHSIG, SIGTERM);
 #endif
 
