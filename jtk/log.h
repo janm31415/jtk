@@ -55,7 +55,7 @@ namespace jtk
     debug4
     };
 
-  JTK_LOG_API JTKLDEF void init_log_stream(std::ostream* p_stream, bool print_time = true, enum struct log_level verbose_level = log_level::info);
+  JTK_LOG_API JTKLDEF void init_log_stream(std::ostream* p_stream, bool print_time = true, log_level verbose_level = log_level::info);
   JTK_LOG_API JTKLDEF void release_log_stream();
 
   JTKLDEF std::string now_time();
@@ -66,10 +66,10 @@ namespace jtk
     public:
       log();
       ~log();
-      std::ostringstream& get(enum struct log_level level = log_level::info);
+      std::ostringstream& get(log_level level = log_level::info);
 
-      static std::string to_string(enum struct log_level level);
-      static int to_int(enum struct log_level level);
+      static std::string to_string(log_level level);
+      static int to_int(log_level level);
 
     protected:
       std::ostringstream os;
@@ -89,10 +89,10 @@ namespace jtk
 namespace jtk
   {
   std::ostream* log_stream_ptr = nullptr;
-  enum struct log_level verbose_level = log_level::debug4;
+  log_level verbose_level = log_level::debug4;
   bool log_with_time_stamp = true;
 
-  JTKLDEF void init_log_stream(std::ostream* p_stream, bool with_time_stamp, enum struct log_level vlevel)
+  JTKLDEF void init_log_stream(std::ostream* p_stream, bool with_time_stamp, log_level vlevel)
     {
     log_stream_ptr = p_stream;
     verbose_level = vlevel;
@@ -151,7 +151,7 @@ namespace jtk
       }
     }
 
-  int log::to_int(enum struct log_level level)
+  int log::to_int(log_level level)
     {
     switch (level)
       {
@@ -167,13 +167,13 @@ namespace jtk
     return -1;
     }
 
-  std::string log::to_string(enum struct log_level level)
+  std::string log::to_string(log_level level)
     {
     static const char* const buffer[] = { "ERROR", "WARNING", "INFO", "DEBUG", "DEBUG1", "DEBUG2", "DEBUG3", "DEBUG4" };
     return buffer[to_int(level)];
     }
 
-  std::ostringstream& log::get(enum struct log_level level)
+  std::ostringstream& log::get(log_level level)
     {
     if (to_int(level) > to_int(verbose_level))
       return dummy_os;

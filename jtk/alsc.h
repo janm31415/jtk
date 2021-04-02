@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <cmath>
 #include <stdio.h>
+#include <cstring>
 
 #ifndef JTKALSCDEF
 #ifdef JTK_ALSC_STATIC
