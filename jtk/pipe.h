@@ -41,6 +41,7 @@
 #include <linux/limits.h>
 #elif defined(__APPLE__)
 #include <limits.h>
+#include <unistd.h>
 #endif
 
 namespace jtk
