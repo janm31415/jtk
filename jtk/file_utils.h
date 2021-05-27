@@ -1028,7 +1028,7 @@ extern "C" {
   }
 #endif
 
-#elif defined(unix) //#ifdef _WIN32
+#elif defined(unix) || defined(__unix) || defined(__unix__) || defined(UNIX) //#ifdef _WIN32
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
@@ -1085,7 +1085,7 @@ namespace jtk
       std::wstring wret = &buf[0];
       std::replace(wret.begin(), wret.end(), '\\', '/'); // replace all '\\' by '/'
       return convert_wstring_to_string(wret);
-#elif defined(unix)
+#elif defined(unix) || defined(__unix) || defined(__unix__) || defined(UNIX)
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
     return std::string(result, (count > 0) ? count : 0);

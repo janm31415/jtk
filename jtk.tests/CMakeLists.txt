@@ -19,6 +19,7 @@ container_tests.h
 file_utils_tests.h
 geometry_tests.h
 image_tests.h
+log_tests.h
 mat_tests.h
 qbvh_tests.h
 test_assert.h
@@ -31,6 +32,7 @@ container_tests.cpp
 file_utils_tests.cpp
 geometry_tests.cpp
 image_tests.cpp
+log_tests.cpp
 mat_tests.cpp
 qbvh_tests.cpp
 test_assert.cpp

@@ -2034,6 +2034,7 @@ I'm following the same algorithm steps, but do everything in place.
           }
         }
       }
+    h.distance = std::sqrt(h.distance);
     return h;
     }
 

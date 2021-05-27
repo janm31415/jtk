@@ -44,7 +44,7 @@
 #include <windows.h>
 #undef min
 #undef max
-#elif defined(unix)
+#elif defined(unix) || defined(__unix) || defined(__unix__) || defined(UNIX)
 #include <pthread.h>
 #elif defined(__APPLE__)
 #include <pthread.h>
@@ -77,7 +77,7 @@ namespace jtk
     {
 #ifdef _WIN32
     return (uint64_t)GetCurrentThreadId();
-#elif defined(unix)
+#elif defined(unix) || defined(__unix) || defined(__unix__) || defined(UNIX)
     return (uint64_t)pthread_self();
 #elif defined(__APPLE__)
     uint64_t tid;

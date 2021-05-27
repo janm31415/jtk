@@ -111,6 +111,8 @@ namespace jtk
 
   JTKGDEF void remove_free_vertices(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles);
 
+  JTKGDEF void remove_free_vertices(std::vector<vec3<float>>& vertices, std::vector<uint32_t>& vertex_colors, std::vector<vec3<uint32_t>>& triangles);
+
   JTKGDEF bool edge_swap(uint32_t v, uint32_t v2, std::vector<jtk::vec3<uint32_t>>& triangles, jtk::mutable_adjacency_list& adj_list);
 
   JTKGDEF std::vector<uint32_t> one_ring_vertices_from_vertex(uint32_t vertex_index, const adjacency_list& adj_list, const vec3<uint32_t>* triangles);
@@ -239,6 +241,20 @@ namespace jtk
       return;
       }
 
+    auto rm_iter = indices_to_delete.begin();
+    auto end = indices_to_delete.end();
+    std::size_t current_index = 0;
+
+    const auto pred = [&](const TType&) {
+      // any more to remove?
+      if (rm_iter == end) { return false; }
+      // is this one specified?
+      if (*rm_iter == current_index++) { return ++rm_iter, true; }
+      return false;
+      };
+
+    vec.erase(std::remove_if(vec.begin(), vec.end(), pred), vec.end());
+    /*
     auto last = --vec.end();
 
     for (auto rit = indices_to_delete.rbegin(); rit != indices_to_delete.rend(); ++rit)
@@ -252,6 +268,7 @@ namespace jtk
       --last;
       }
     vec.erase(++last, vec.end());
+    */
     }
   
   namespace marching_cubes_details
@@ -1065,7 +1082,7 @@ JTKGINLINE trivial_ear::trivial_ear() : vertices(nullptr), adj_list(nullptr), v0
       }
     float dihedral_a = dihedral_angle(vertices[v0], vertices[v1], vertices[v2], vertices[a]);
     float dihedral_b = dihedral_angle(vertices[v1], vertices[v2], vertices[v0], vertices[b]);
-    dihedral_rad = std::max(dihedral_a, dihedral_b);
+    dihedral_rad = dihedral_a > dihedral_b ? dihedral_a : dihedral_b;
     }
 
   JTKGINLINE bool minimum_weight_ear::operator < (const minimum_weight_ear& other) const
@@ -1921,24 +1938,24 @@ namespace jtk
 
   JTKGDEF void remove_free_vertices(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles)
     {
-    std::vector<uint32_t> count_occurence(vertices.size(), 0);
+    std::vector<uint32_t> count_occurrence(vertices.size(), 0);
     for (const auto& tria : triangles)
       {
-      ++count_occurence[tria[0]];
-      ++count_occurence[tria[1]];
-      ++count_occurence[tria[2]];
+      ++count_occurrence[tria[0]];
+      ++count_occurrence[tria[1]];
+      ++count_occurrence[tria[2]];
       }
     std::vector<uint32_t> diff(vertices.size(), 0);
     uint32_t current_off = 0;
     std::vector<vec3<float>> new_vertices;
-    auto cnt = (size_t)std::count(count_occurence.begin(), count_occurence.end(), (uint32_t)0);
+    auto cnt = (size_t)std::count(count_occurrence.begin(), count_occurrence.end(), (uint32_t)0);
     if (cnt <= vertices.size())
       {
       new_vertices.reserve((size_t)(vertices.size() - cnt));
       }
     for (size_t v = 0; v < vertices.size(); ++v)
       {
-      if (count_occurence[v] == 0)
+      if (count_occurrence[v] == 0)
         {
         ++current_off;
         }
@@ -1954,6 +1971,49 @@ namespace jtk
       tria[2] -= diff[tria[2]];
       }
     vertices.swap(new_vertices);
+    }
+
+  JTKGDEF void remove_free_vertices(std::vector<vec3<float>>& vertices, std::vector<uint32_t>& colors, std::vector<vec3<uint32_t>>& triangles)
+    {
+    std::vector<uint32_t> count_occurrence(vertices.size(), 0);
+    for (const auto& tria : triangles)
+      {
+      ++count_occurrence[tria[0]];
+      ++count_occurrence[tria[1]];
+      ++count_occurrence[tria[2]];
+      }
+    std::vector<uint32_t> diff(vertices.size(), 0);
+    uint32_t current_off = 0;
+    std::vector<vec3<float>> new_vertices;
+    std::vector<uint32_t> new_colors;
+    auto cnt = (size_t)std::count(count_occurrence.begin(), count_occurrence.end(), (uint32_t)0);
+    if (cnt <= vertices.size())
+      {
+      new_vertices.reserve((size_t)(vertices.size() - cnt));
+      new_colors.reserve((size_t)(vertices.size() - cnt));
+      }
+    for (size_t v = 0; v < vertices.size(); ++v)
+      {
+      if (count_occurrence[v] == 0)
+        {
+        ++current_off;
+        }
+      else
+        {
+        new_vertices.push_back(vertices[v]);
+        new_colors.push_back(colors[v]);
+        }
+      diff[v] = current_off;
+      }
+
+    for (auto& tria : triangles)
+      {
+      tria[0] -= diff[tria[0]];
+      tria[1] -= diff[tria[1]];
+      tria[2] -= diff[tria[2]];
+      }
+    vertices.swap(new_vertices);
+    colors.swap(new_colors);
     }
 
   JTKGDEF bool edge_swap(uint32_t v, uint32_t v2, std::vector<jtk::vec3<uint32_t>>& triangles, jtk::mutable_adjacency_list& adj_list)
@@ -2207,31 +2267,31 @@ namespace jtk
     {
     vertex_normals.resize(nr_of_vertices, vec3<float>(0.f, 0.f, 0.f));
 
-    std::vector<uint32_t> vertex_occurence(nr_of_vertices + 1, 0);
+    std::vector<uint32_t> vertex_occurrence(nr_of_vertices + 1, 0);
     for (uint32_t t = 0; t < nr_of_triangles; ++t)
       {
-      ++vertex_occurence[triangles[t][0]];
-      ++vertex_occurence[triangles[t][1]];
-      ++vertex_occurence[triangles[t][2]];
+      ++vertex_occurrence[triangles[t][0]];
+      ++vertex_occurrence[triangles[t][1]];
+      ++vertex_occurrence[triangles[t][2]];
       }
 
-    uint32_t prev_value = vertex_occurence[0];
-    vertex_occurence[0] = 0;
+    uint32_t prev_value = vertex_occurrence[0];
+    vertex_occurrence[0] = 0;
     for (uint32_t v = 0; v < nr_of_vertices; ++v)
       {
-      uint32_t current = vertex_occurence[v + 1];
-      vertex_occurence[v + 1] = vertex_occurence[v] + prev_value;
+      uint32_t current = vertex_occurrence[v + 1];
+      vertex_occurrence[v + 1] = vertex_occurrence[v] + prev_value;
       prev_value = current;
       }
 
     std::vector<uint32_t> vertex_count(nr_of_vertices, 0);
-    std::vector<uint32_t> triangle_list(vertex_occurence.back());
+    std::vector<uint32_t> triangle_list(vertex_occurrence.back());
     for (uint32_t t = 0; t < nr_of_triangles; ++t)
       {
       for (int j = 0; j < 3; ++j)
         {
         const uint32_t v = triangles[t][j];
-        const uint32_t pos = vertex_occurence[v];
+        const uint32_t pos = vertex_occurrence[v];
         const uint32_t off = vertex_count[v]++;
         triangle_list[pos + off] = t;
         }
@@ -2239,8 +2299,8 @@ namespace jtk
 
     for (uint32_t v = 0; v < nr_of_vertices; ++v)
       {
-      uint32_t *it = triangle_list.data() + vertex_occurence[v];
-      const uint32_t *it_end = triangle_list.data() + vertex_occurence[v + 1];
+      uint32_t *it = triangle_list.data() + vertex_occurrence[v];
+      const uint32_t *it_end = triangle_list.data() + vertex_occurrence[v + 1];
       auto vn = vec3<float>(0.f);
       for (; it != it_end; ++it)
         {
@@ -2948,13 +3008,13 @@ namespace jtk
           uint32_t c0_up = n0[(e1_position+2)%n0.size()];
           uint32_t c0_down = n0[(e1_position+n0.size()-2)%n0.size()];
           
-          uint32_t b1_down = n1[(e0_position+1)%n1.size()];
-          uint32_t b1_up = n1[(e0_position+n1.size()-1)%n1.size()];
+          //uint32_t b1_down = n1[(e0_position+1)%n1.size()];
+          //uint32_t b1_up = n1[(e0_position+n1.size()-1)%n1.size()];
           uint32_t c1_down = n1[(e0_position+2)%n1.size()];
           uint32_t c1_up = n1[(e0_position+n0.size()-2)%n1.size()];
           
-          assert(b0_up == b1_up);
-          assert(b0_down == b1_down);
+          assert(b0_up == n1[(e0_position + n1.size() - 1) % n1.size()]);
+          assert(b0_down == n1[(e0_position + 1) % n1.size()]);
           
           auto new_vertex_position = (vertices[e[0]] + vertices[e[1]])*0.5f + (vertices[b0_up] + vertices[b0_down])/8.f - (vertices[c0_up] + vertices[c0_down] + vertices[c1_up] + vertices[c1_down])/16.f;
           vertices[v] = new_vertex_position;
@@ -2985,7 +3045,7 @@ namespace jtk
             {
             for (int j = 0; j < (int)n0.size(); ++j)
               {
-              weights.push_back((0.25+std::cos(6.28318530718f*(float)j/(float)n0.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n0.size()) )/(float)n0.size());
+              weights.push_back((float)((0.25+std::cos(6.28318530718f*(float)j/(float)n0.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n0.size()) )/(float)n0.size()));
               }
             }
             
@@ -3018,7 +3078,7 @@ namespace jtk
             {
             for (int j = 0; j < (int)n0.size(); ++j)
               {
-              weights0.push_back((0.25+std::cos(6.28318530718f*(float)j/(float)n0.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n0.size()) )/(float)n0.size());
+              weights0.push_back((float)((0.25+std::cos(6.28318530718f*(float)j/(float)n0.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n0.size()) )/(float)n0.size()));
               }
             }
             
@@ -3048,7 +3108,7 @@ namespace jtk
             {
             for (int j = 0; j < (int)n1.size(); ++j)
               {
-              weights1.push_back((0.25+std::cos(6.28318530718f*(float)j/(float)n1.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n1.size()) )/(float)n1.size());
+              weights1.push_back((float)((0.25+std::cos(6.28318530718f*(float)j/(float)n1.size()) + 0.5*std::cos(12.5663706144f*(float)j/(float)n1.size()) )/(float)n1.size()));
               }
             }
             
