@@ -453,7 +453,8 @@ namespace jtk
           if (_Candidates.size() >= k)
             _Candidates.erase(--_Candidates.end());
           _Candidates.insert(std::pair<typename _Traits::value_type, typename _Traits::point_type>(_Dist, _Kd_node._Node._Min));
-          _K_best_d = _Candidates.rbegin()->first;
+          if (_Candidates.size() >= k)
+            _K_best_d = _Candidates.rbegin()->first;
           }
         }
       else
@@ -495,7 +496,8 @@ namespace jtk
             if (_Candidates.size() >= k)
               _Candidates.erase(--_Candidates.end());
             _Candidates.insert(std::pair<typename _Traits::value_type, typename _Traits::point_type>(_Dist, _Kd_node._Node._Min));
-            _K_best_d = _Candidates.rbegin()->first;
+            if (_Candidates.size() >= k)
+              _K_best_d = _Candidates.rbegin()->first;
             }
           }
         }
