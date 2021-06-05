@@ -621,11 +621,16 @@ namespace jtk
       close(pipefd[1]);
       }
     }
+    
+  JTKPIPEDEF void handler(int s) {
+    std::cerr << "Caught SIGPIPE with signal " << s << std::endl;
+    }
 
   JTKPIPEDEF int send_to_pipe(int* pipefd, const char* message)
     {
-    write(pipefd[0], message, strlen(message));
-    return 0;
+    signal(SIGPIPE, handler);
+    auto v = write(pipefd[0], message, strlen(message));
+    return v == strlen(message) ? 0 : 1;
     }
 
   JTKPIPEDEF std::string read_from_pipe(int* pipefd, int time_out)
