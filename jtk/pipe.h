@@ -39,6 +39,7 @@
 #include <windows.h>
 #elif defined(unix) || defined(__unix) || defined(__unix__) || defined(UNIX)
 #include <linux/limits.h>
+#include <unistd.h>
 #elif defined(__APPLE__)
 #include <limits.h>
 #include <unistd.h>
