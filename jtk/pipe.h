@@ -578,7 +578,7 @@ namespace jtk
       prctl(PR_SET_PDEATHSIG, SIGTERM);
 #endif
 
-
+      execv(path, argv);
       //if (execv(path, argv) == -1)
       //  throw std::runtime_error("failed to pipe (execl failed)"); // remove throwing because it causes error messages on the os when a pipe fails
       exit(1);
