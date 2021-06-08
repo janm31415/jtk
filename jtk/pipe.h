@@ -579,8 +579,8 @@ namespace jtk
 #endif
 
 
-      if (execv(path, argv) == -1)
-        throw std::runtime_error("failed to pipe (execl failed)");
+      //if (execv(path, argv) == -1)
+      //  throw std::runtime_error("failed to pipe (execl failed)"); // remove throwing because it causes error messages on the os when a pipe fails
       exit(1);
       }
 
