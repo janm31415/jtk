@@ -46,6 +46,8 @@ namespace jtk
 
   JTKIDEF bool load_pgm(image<uint16_t>& im, const std::string& filename);
   JTKIDEF bool write_pgm(const image<uint16_t>& im, const std::string& filename);
+  JTKIDEF bool load_pgm(image<uint8_t>& im, const std::string& filename);
+  JTKIDEF bool write_pgm(const image<uint8_t>& im, const std::string& filename);
 
   template <class T>
   image<T> span_to_image(uint32_t w, uint32_t h, uint32_t stride, const T* p_image);
@@ -762,6 +764,66 @@ namespace jtk
       for (uint32_t y = 0; y < im.height(); ++y)
         {
         file.write((const char*)im.data() + im.stride()*y * sizeof(uint16_t), im.width() * sizeof(uint16_t));
+        }
+      file.close();
+      }
+    else
+      return false;
+    return true;
+    }
+
+  JTKIDEF bool load_pgm(image<uint8_t>& im, const std::string& filename)
+    {
+    using namespace image_details;
+    std::ifstream file(filename, std::ios::in | std::ios::binary);
+    if (!file.is_open())
+      return false;
+    std::stringstream str;
+    str << pnm_read_line(file);
+    int width, height, max_val;
+    width = height = max_val = -1;
+    std::string P5;
+    str >> P5;
+    if (P5 != "P5")
+      return false;
+    str >> width;
+    if (width == -1)
+      {
+      str.clear(); str.str("");
+      str << pnm_read_line(file);
+      str >> width;
+      }
+    str >> height;
+    if (height == -1)
+      {
+      str.clear(); str.str("");
+      str << pnm_read_line(file);
+      str >> height;
+      }
+    str >> max_val;
+    if (max_val == -1)
+      {
+      str.clear(); str.str("");
+      str << pnm_read_line(file);
+      str >> max_val;
+      }
+    if (max_val > 255)
+      return false;
+    im = image<uint8_t>(width, height, false);
+    file.read((char*)im.data(), width * height * sizeof(uint8_t));
+    file.close();
+    return true;
+    }
+
+  JTKIDEF bool write_pgm(const image<uint8_t>& im, const std::string& filename)
+    {
+    std::ofstream file(filename, std::ios::out | std::ios::binary);
+    if (file.is_open())
+      {
+      file << "P5\n" << im.width() << " " << im.height() << "\n" << "255\n";
+      for (uint32_t y = 0; y < im.height(); ++y)
+        {
+        file.write((const char*)im.data() + im.stride() * y * sizeof(uint8_t), im.width() * sizeof(uint8_t));
         }
       file.close();
       }
