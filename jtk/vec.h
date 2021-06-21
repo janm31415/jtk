@@ -695,6 +695,12 @@ namespace jtk
     }
 
   template <typename T>
+  inline T dot(const vec4<T>& left, const vec4<T>& right)
+    {
+    return left.x * right.x + left.y * right.y + left.z * right.z + left.w * right.w;
+    }
+
+  template <typename T>
   inline vec4<T> sqrt(const vec4<T>& a)
     {
     return vec4<T>(sqrt(a.x), sqrt(a.y), sqrt(a.z), sqrt(a.w));

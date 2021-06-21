@@ -43,11 +43,12 @@ V1.5: 08 September 2020
 #include <limits>
 #include <cmath>
 
-
-#ifdef _JTK_FOR_ARM
-#include "sse2neon.h"
-#else
-#include <immintrin.h>
+#ifndef _MAT_NO_SIMD
+#  ifdef _JTK_FOR_ARM
+#    include "sse2neon.h"
+#  else
+#    include <immintrin.h>
+#  endif
 #endif
 
 #ifdef _MAT_PARALLEL
@@ -5309,8 +5310,11 @@ namespace jtk
     const float* ita = a.data();
     const float* itb = b.data();
     double sum = 0.0;
-    uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
-    uint64_t len4 = len / 4;
+    const uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
+#ifdef _MAT_NO_SIMD
+    const uint64_t len4 = 0;
+#else
+    const uint64_t len4 = len / 4;
     for (uint64_t i = 0; i < len4; ++i)
       {
       __m128 v1 = _mm_loadu_ps(ita + (i << 2));
@@ -5318,6 +5322,7 @@ namespace jtk
       __m128 d = _mm_dp_ps(v1, v2, 0xf1);
       sum += (double)_mm_cvtss_f32(d);
       }
+#endif
     for (uint64_t i = len4 * 4; i < len; ++i)
       {
       float v1 = *(ita + i);
@@ -5569,15 +5574,19 @@ namespace jtk
   float norm_sqr(const matrix<float, Container>& a)
     {
     const float* ita = a.data();
-    uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
-    uint64_t len4 = len / 4;
+    const uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();    
     double sum = 0.0;
+#ifdef _MAT_NO_SIMD
+    const uint64_t len4 = 0;
+#else
+    const uint64_t len4 = len / 4;
     for (uint64_t i = 0; i < len4; ++i)
       {
       __m128 v1 = _mm_loadu_ps(ita + (i << 2));
       __m128 d = _mm_dp_ps(v1, v1, 0xf1);
       sum += (double)_mm_cvtss_f32(d);
       }
+#endif
     for (uint64_t i = len4 * 4; i < len; ++i)
       {
       float v1 = *(ita + i);
@@ -5592,8 +5601,8 @@ namespace jtk
     {
     const double* ita = a.data();
     uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
-#ifdef _JTK_FOR_ARM
-    uint64_t len2 = 0;
+#if defined(_JTK_FOR_ARM) || defined(_MAT_NO_SIMD)
+    const uint64_t len2 = 0;
     double totalsum = 0.0;
 #else
     uint64_t len2 = len / 2;
