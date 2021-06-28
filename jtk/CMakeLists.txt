@@ -19,6 +19,7 @@ image.h
 log.h
 mat.h
 pipe.h
+ply.h
 point_tree.h
 qbvh.h
 render.h

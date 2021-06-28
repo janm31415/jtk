@@ -21,6 +21,7 @@ geometry_tests.h
 image_tests.h
 log_tests.h
 mat_tests.h
+ply_tests.h
 qbvh_tests.h
 test_assert.h
 vec_tests.h
@@ -34,6 +35,7 @@ geometry_tests.cpp
 image_tests.cpp
 log_tests.cpp
 mat_tests.cpp
+ply_tests.cpp
 qbvh_tests.cpp
 test_assert.cpp
 test.cpp
@@ -117,3 +119,14 @@ if (${JTK_THREADING} STREQUAL "tbb")
       ${TBB_LIBRARIES}
       )
 endif (${JTK_THREADING} STREQUAL "tbb")
+
+
+if (WIN32)
+add_custom_command(TARGET jtk.tests POST_BUILD 
+   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/data" ${CMAKE_CURRENT_BINARY_DIR}/data)
+endif (WIN32)    
+
+if (UNIX)
+add_custom_command(TARGET jtk.tests POST_BUILD 
+   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:jtk.tests>/data")
+endif (UNIX)

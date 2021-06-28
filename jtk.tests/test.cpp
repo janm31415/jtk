@@ -6,6 +6,7 @@
 #include "image_tests.h"
 #include "log_tests.h"
 #include "mat_tests.h"
+#include "ply_tests.h"
 #include "qbvh_tests.h"
 #include "vec_tests.h"
 
@@ -16,15 +17,16 @@ int main(int /*argc*/, const char* /*argv*/[])
   InitTestEngine();
 
   auto tic = std::clock();
-  run_all_geometry_tests();
-  run_all_concurrency_tests();
-  run_all_container_tests();
-  run_all_file_utils_tests();
-  run_all_image_tests();
-  run_all_mat_tests();
-  run_all_qbvh_tests();
-  run_all_vec_tests();  
-  run_all_log_tests();
+  //run_all_geometry_tests();
+  //run_all_concurrency_tests();
+  //run_all_container_tests();
+  //run_all_file_utils_tests();
+  //run_all_image_tests();
+  //run_all_mat_tests();
+  //run_all_qbvh_tests();
+  //run_all_vec_tests();  
+  //run_all_log_tests();
+  run_all_ply_tests();
   auto toc = std::clock();
 
   if (!testing_fails) 

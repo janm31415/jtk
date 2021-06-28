@@ -13,7 +13,7 @@ add_definitions(-D_ENABLE_THREADS)
 endif (${JTK_THREADING} STREQUAL "std")
 
 if (JTK_MAT_PARALLEL)
-add_definitions(-D_MAT_PARALLEL)
+add_definitions(-D_JTK_MAT_PARALLEL)
 endif (JTK_MAT_PARALLEL)
 
 if (${JTK_TARGET} STREQUAL "arm")

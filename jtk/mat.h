@@ -43,7 +43,7 @@ V1.5: 08 September 2020
 #include <limits>
 #include <cmath>
 
-#ifndef _MAT_NO_SIMD
+#ifndef _JTK_MAT_NO_SIMD
 #  ifdef _JTK_FOR_ARM
 #    include "sse2neon.h"
 #  else
@@ -51,7 +51,7 @@ V1.5: 08 September 2020
 #  endif
 #endif
 
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
 #include "concurrency.h"
 #endif
 
@@ -1866,7 +1866,7 @@ namespace jtk
 
       bool process_parallel() const
         {
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
         if (rows() < 100 && cols() < 100)
           return false;
         return _expr_op.process_parallel();
@@ -1915,7 +1915,7 @@ namespace jtk
 
       bool process_parallel() const
         {
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
         if (rows() < 100 && cols() < 100)
           return false;
         return _expr_op.process_parallel();
@@ -2141,7 +2141,7 @@ namespace jtk
         matrix temp(result.rows(), result.cols());
         auto it = temp._entries.begin();
         uint64_t sz = (uint64_t)result.rows()*(uint64_t)result.cols();
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
           *(it + (std::ptrdiff_t)i) = (T)*(result + (std::ptrdiff_t)i);
@@ -2164,7 +2164,7 @@ namespace jtk
         resize(result.rows(), result.cols());
         auto it = _entries.begin();
         uint64_t sz = (uint64_t)result.rows()*(uint64_t)result.cols();
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
           *(it + (std::ptrdiff_t)i) = (T)*(result + (std::ptrdiff_t)i);
@@ -2336,7 +2336,7 @@ namespace jtk
         matrix temp(*this);
         auto it = temp._entries.begin();
         const uint64_t sz = (uint64_t)_rows * (uint64_t)_cols;
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
           *(it + (std::ptrdiff_t)i) += (T)*(result + (std::ptrdiff_t)i);
@@ -2360,7 +2360,7 @@ namespace jtk
         assert(result.cols() == _cols);
         auto it = _entries.begin();
         const uint64_t sz = (uint64_t)_rows * (uint64_t)_cols;
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
           *(it + (std::ptrdiff_t)i) += (T)*(result + (std::ptrdiff_t)i);
@@ -2452,7 +2452,7 @@ namespace jtk
         matrix temp(*this);
         auto it = temp._entries.begin();
         const uint64_t sz = (uint64_t)_rows * (uint64_t)_cols;
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
           *(it + (std::ptrdiff_t)i) -= (T)*(result + (std::ptrdiff_t)i);
@@ -2476,7 +2476,7 @@ namespace jtk
         assert(result.cols() == _cols);
         auto it = _entries.begin();
         const uint64_t sz = (uint64_t)_rows * (uint64_t)_cols;
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
           *(it + (std::ptrdiff_t)i) -= (T)*(result + (std::ptrdiff_t)i);
@@ -5311,7 +5311,7 @@ namespace jtk
     const float* itb = b.data();
     double sum = 0.0;
     const uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
-#ifdef _MAT_NO_SIMD
+#ifdef _JTK_MAT_NO_SIMD
     const uint64_t len4 = 0;
 #else
     const uint64_t len4 = len / 4;
@@ -5576,7 +5576,7 @@ namespace jtk
     const float* ita = a.data();
     const uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();    
     double sum = 0.0;
-#ifdef _MAT_NO_SIMD
+#ifdef _JTK_MAT_NO_SIMD
     const uint64_t len4 = 0;
 #else
     const uint64_t len4 = len / 4;
@@ -5601,7 +5601,7 @@ namespace jtk
     {
     const double* ita = a.data();
     uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
-#if defined(_JTK_FOR_ARM) || defined(_MAT_NO_SIMD)
+#if defined(_JTK_FOR_ARM) || defined(_JTK_MAT_NO_SIMD)
     const uint64_t len2 = 0;
     double totalsum = 0.0;
 #else
@@ -7558,7 +7558,7 @@ namespace jtk
     assert(b.cols() == 1);
     const uint32_t rows = a.rows();
     out.resize(rows, 1);
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
     parallel_for((uint32_t)0, rows, [&](uint32_t i)
       {
       T val = (T)0;
@@ -7620,7 +7620,7 @@ namespace jtk
         {
         assert(is_symmetric(A));
         uint32_t max_nonzero = 0;
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
         for (uint32_t i = 0; i < A.rows(); ++i)
           {
           const uint32_t nz = A.row(i).entries_stored();
@@ -7679,7 +7679,7 @@ namespace jtk
       template <class Container, class Container2>
       void fill_lower(sparse_matrix<T, Container>& out, const sparse_matrix<T, Container2>& in)
         {
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
         out = in;
 #else
         out.resize(in.rows(), in.cols());
@@ -7698,7 +7698,7 @@ namespace jtk
       template <class Container>
       void solve(matrix<T, Container>& out, const matrix<T, Container>& b) const
         {
-#ifdef _MAT_PARALLEL
+#ifdef _JTK_MAT_PARALLEL
         switch (id)
           {
           case 0: sparse_matrix_vector_multiply(out, m, b); break;
