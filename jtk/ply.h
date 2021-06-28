@@ -17,7 +17,7 @@
   * Single header file for reading and writing PLY files.
   *
   * Based on:
-  * 
+  *
   * RPly library, read/write PLY files
   * Diego Nehab, IMPA
   * http://www.impa.br/~diego/software/rply
@@ -26,10 +26,11 @@
   * Patryk Kiepas, Institute for Not-so-Advanced Study
   * https://github.com/quepas/O-RPLY
   *
-  * This library is distributed under the MIT License. 
+  * This library is distributed under the MIT License.
   * ---------------------------------------------------------------------- */
 
-
+#include "vec.h"
+#include <vector>
 
 #ifndef JTKPLYDEF
 #ifdef JTK_PLY_STATIC
@@ -41,6 +42,13 @@
 
 namespace jtk
   {
+
+  JTKPLYDEF bool read_ply(const char* filename, std::vector<vec3<float>>& vertices, std::vector<vec3<float>>& normals, std::vector<uint32_t>& clrs, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv);
+
+  JTKPLYDEF bool read_ply_from_memory(const char* buffer, uint64_t buffer_size, std::vector<vec3<float>>& vertices, std::vector<vec3<float>>& normals, std::vector<uint32_t>& clrs, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv);
+
+  JTKPLYDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& vertices, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs, const std::vector<vec3<uint32_t>>& triangles, const std::vector<vec3<vec2<float>>>& uv);
+
 
   /* ----------------------------------------------------------------------
    * Types
@@ -493,6 +501,370 @@ typedef uint32_t t_ply_uint32;
 
 namespace jtk
   {
+
+  namespace ply_details
+    {
+
+    static int read_vec3_coord(p_ply_argument argument)
+      {
+      float** p_vertices;
+      ply_get_argument_user_data(argument, (void**)&p_vertices, NULL);
+      double val = ply_get_argument_value(argument);
+      *(*p_vertices) = (float)val;
+      (*p_vertices) += 3;
+      return 1;
+      }
+
+    static int read_color(p_ply_argument argument)
+      {
+      uint8_t** p_color;
+      ply_get_argument_user_data(argument, (void**)&p_color, NULL);
+      double val = ply_get_argument_value(argument);
+      *(*p_color) = (uint8_t)val;
+      (*p_color) += 4;
+      return 1;
+      }
+
+    static int read_face(p_ply_argument argument)
+      {
+      uint32_t** p_triangle;
+      ply_get_argument_user_data(argument, (void**)&p_triangle, NULL);
+      long length, value_index;
+      ply_get_argument_property(argument, NULL, &length, &value_index);
+      if (value_index >= 0 && value_index < 3)
+        {
+        double val = ply_get_argument_value(argument);
+        *(*p_triangle) = (uint32_t)val;
+        ++(*p_triangle);
+        }
+      return 1;
+      }
+
+    static int read_texcoord(p_ply_argument argument)
+      {
+      float** p_uv;
+      ply_get_argument_user_data(argument, (void**)&p_uv, NULL);
+      long length, value_index;
+      ply_get_argument_property(argument, NULL, &length, &value_index);
+      if (value_index >= 0 && value_index < 6)
+        {
+        double val = ply_get_argument_value(argument);
+        *(*p_uv) = (float)val;
+        ++(*p_uv);
+        }
+      if (value_index == (length - 1) && (length != 6))
+        {
+        for (long j = length; j < 6; ++j)
+          {
+          *(*p_uv) = (float)0.f;
+          ++(*p_uv);
+          }
+        }
+      return 1;
+      }
+
+    }
+
+  JTKPLYDEF bool read_ply(const char* filename, std::vector<vec3<float>>& vertices, std::vector<vec3<float>>& normals, std::vector<uint32_t>& clrs, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv)
+    {
+    vertices.clear();
+    normals.clear();
+    clrs.clear();
+    triangles.clear();
+    uv.clear();
+
+    p_ply ply = ply_open(filename, NULL, 0, NULL);
+    if (!ply)
+      return false;
+    if (!ply_read_header(ply))
+      return false;
+
+    float* p_vertex_pointer_x = NULL;
+    float* p_vertex_pointer_y = NULL;
+    float* p_vertex_pointer_z = NULL;
+
+    long nvertices_x = ply_set_read_cb(ply, "vertex", "x", ply_details::read_vec3_coord, (void*)(&p_vertex_pointer_x), 0);
+    long nvertices_y = ply_set_read_cb(ply, "vertex", "y", ply_details::read_vec3_coord, (void*)(&p_vertex_pointer_y), 0);
+    long nvertices_z = ply_set_read_cb(ply, "vertex", "z", ply_details::read_vec3_coord, (void*)(&p_vertex_pointer_z), 0);
+
+    if (nvertices_x != nvertices_y)
+      return false;
+    if (nvertices_x != nvertices_z)
+      return false;
+
+    if (nvertices_x > 0)
+      vertices.resize(nvertices_x);
+    p_vertex_pointer_x = (float*)vertices.data();
+    p_vertex_pointer_y = p_vertex_pointer_x + 1;
+    p_vertex_pointer_z = p_vertex_pointer_x + 2;
+
+    float* p_normal_pointer_x = NULL;
+    float* p_normal_pointer_y = NULL;
+    float* p_normal_pointer_z = NULL;
+
+    long nnormals_x = ply_set_read_cb(ply, "vertex", "nx", ply_details::read_vec3_coord, (void*)(&p_normal_pointer_x), 0);
+    long nnormals_y = ply_set_read_cb(ply, "vertex", "ny", ply_details::read_vec3_coord, (void*)(&p_normal_pointer_y), 0);
+    long nnormals_z = ply_set_read_cb(ply, "vertex", "nz", ply_details::read_vec3_coord, (void*)(&p_normal_pointer_z), 0);
+
+    if (nnormals_x != nnormals_y)
+      return false;
+    if (nnormals_x != nnormals_z)
+      return false;
+
+    if (nnormals_x > 0)
+      normals.resize(nnormals_x);
+    p_normal_pointer_x = (float*)normals.data();
+    p_normal_pointer_y = p_normal_pointer_x + 1;
+    p_normal_pointer_z = p_normal_pointer_x + 2;
+
+    uint8_t* p_red = NULL;
+    uint8_t* p_green = NULL;
+    uint8_t* p_blue = NULL;
+    uint8_t* p_alpha = NULL;
+
+    long nred = ply_set_read_cb(ply, "vertex", "red", ply_details::read_color, (void*)(&p_red), 0);
+    long ngreen = ply_set_read_cb(ply, "vertex", "green", ply_details::read_color, (void*)(&p_green), 0);
+    long nblue = ply_set_read_cb(ply, "vertex", "blue", ply_details::read_color, (void*)(&p_blue), 0);
+    long nalpha = ply_set_read_cb(ply, "vertex", "alpha", ply_details::read_color, (void*)(&p_alpha), 0);
+
+    if (nred == 0)
+      nred = ply_set_read_cb(ply, "vertex", "r", ply_details::read_color, (void*)(&p_red), 0);
+    if (ngreen == 0)
+      ngreen = ply_set_read_cb(ply, "vertex", "g", ply_details::read_color, (void*)(&p_green), 0);
+    if (nblue == 0)
+      nblue = ply_set_read_cb(ply, "vertex", "b", ply_details::read_color, (void*)(&p_blue), 0);
+    if (nalpha == 0)
+      nalpha = ply_set_read_cb(ply, "vertex", "a", ply_details::read_color, (void*)(&p_alpha), 0);
+
+    if (nred == 0)
+      nred = ply_set_read_cb(ply, "vertex", "diffuse_red", ply_details::read_color, (void*)(&p_red), 0);
+    if (ngreen == 0)
+      ngreen = ply_set_read_cb(ply, "vertex", "diffuse_green", ply_details::read_color, (void*)(&p_green), 0);
+    if (nblue == 0)
+      nblue = ply_set_read_cb(ply, "vertex", "diffuse_blue", ply_details::read_color, (void*)(&p_blue), 0);
+    if (nalpha == 0)
+      nalpha = ply_set_read_cb(ply, "vertex", "diffuse_alpha", ply_details::read_color, (void*)(&p_alpha), 0);
+
+    if (nred > 0 || ngreen > 0 || nblue > 0 || nalpha > 0)
+      clrs.resize(nred, 0xffffffff);
+
+    p_red = (uint8_t*)clrs.data();
+    p_green = p_red + 1;
+    p_blue = p_red + 2;
+    p_alpha = p_red + 3;
+
+    uint32_t* p_tria_index = NULL;
+
+    long ntriangles = ply_set_read_cb(ply, "face", "vertex_indices", ply_details::read_face, (void*)(&p_tria_index), 0);
+    if (ntriangles == 0)
+      ntriangles = ply_set_read_cb(ply, "face", "vertex_index", ply_details::read_face, (void*)(&p_tria_index), 0);
+
+    if (ntriangles > 0)
+      triangles.resize(ntriangles);
+
+    p_tria_index = (uint32_t*)triangles.data();
+
+    float* p_uv = NULL;
+
+    long ntexcoords = ply_set_read_cb(ply, "face", "texcoord", ply_details::read_texcoord, (void*)(&p_uv), 0);
+
+    if (ntexcoords > 0)
+      uv.resize(ntexcoords);
+
+    p_uv = (float*)uv.data();
+
+    if (!ply_read(ply))
+      return false;
+
+    ply_close(ply);
+
+    return true;
+    }
+
+  JTKPLYDEF bool read_ply_from_memory(const char* buffer, uint64_t buffer_size, std::vector<vec3<float>>& vertices, std::vector<vec3<float>>& normals, std::vector<uint32_t>& clrs, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv)
+    {
+    vertices.clear();
+    normals.clear();
+    clrs.clear();
+    triangles.clear();
+    uv.clear();
+
+    p_ply ply = ply_open_from_memory(buffer, buffer_size, nullptr, 0, nullptr);
+    if (!ply)
+      return false;
+    if (!ply_read_header(ply))
+      return false;
+
+    float* p_vertex_pointer_x = NULL;
+    float* p_vertex_pointer_y = NULL;
+    float* p_vertex_pointer_z = NULL;
+
+    long nvertices_x = ply_set_read_cb(ply, "vertex", "x", ply_details::read_vec3_coord, (void*)(&p_vertex_pointer_x), 0);
+    long nvertices_y = ply_set_read_cb(ply, "vertex", "y", ply_details::read_vec3_coord, (void*)(&p_vertex_pointer_y), 0);
+    long nvertices_z = ply_set_read_cb(ply, "vertex", "z", ply_details::read_vec3_coord, (void*)(&p_vertex_pointer_z), 0);
+
+    if (nvertices_x != nvertices_y)
+      return false;
+    if (nvertices_x != nvertices_z)
+      return false;
+
+    if (nvertices_x > 0)
+      vertices.resize(nvertices_x);
+    p_vertex_pointer_x = (float*)vertices.data();
+    p_vertex_pointer_y = p_vertex_pointer_x + 1;
+    p_vertex_pointer_z = p_vertex_pointer_x + 2;
+
+    float* p_normal_pointer_x = NULL;
+    float* p_normal_pointer_y = NULL;
+    float* p_normal_pointer_z = NULL;
+
+    long nnormals_x = ply_set_read_cb(ply, "vertex", "nx", ply_details::read_vec3_coord, (void*)(&p_normal_pointer_x), 0);
+    long nnormals_y = ply_set_read_cb(ply, "vertex", "ny", ply_details::read_vec3_coord, (void*)(&p_normal_pointer_y), 0);
+    long nnormals_z = ply_set_read_cb(ply, "vertex", "nz", ply_details::read_vec3_coord, (void*)(&p_normal_pointer_z), 0);
+
+    if (nnormals_x != nnormals_y)
+      return false;
+    if (nnormals_x != nnormals_z)
+      return false;
+
+    if (nnormals_x > 0)
+      normals.resize(nnormals_x);
+    p_normal_pointer_x = (float*)normals.data();
+    p_normal_pointer_y = p_normal_pointer_x + 1;
+    p_normal_pointer_z = p_normal_pointer_x + 2;
+
+    uint8_t* p_red = NULL;
+    uint8_t* p_green = NULL;
+    uint8_t* p_blue = NULL;
+    uint8_t* p_alpha = NULL;
+
+    long nred = ply_set_read_cb(ply, "vertex", "red", ply_details::read_color, (void*)(&p_red), 0);
+    long ngreen = ply_set_read_cb(ply, "vertex", "green", ply_details::read_color, (void*)(&p_green), 0);
+    long nblue = ply_set_read_cb(ply, "vertex", "blue", ply_details::read_color, (void*)(&p_blue), 0);
+    long nalpha = ply_set_read_cb(ply, "vertex", "alpha", ply_details::read_color, (void*)(&p_alpha), 0);
+
+    if (nred == 0)
+      nred = ply_set_read_cb(ply, "vertex", "r", ply_details::read_color, (void*)(&p_red), 0);
+    if (ngreen == 0)
+      ngreen = ply_set_read_cb(ply, "vertex", "g", ply_details::read_color, (void*)(&p_green), 0);
+    if (nblue == 0)
+      nblue = ply_set_read_cb(ply, "vertex", "b", ply_details::read_color, (void*)(&p_blue), 0);
+    if (nalpha == 0)
+      nalpha = ply_set_read_cb(ply, "vertex", "a", ply_details::read_color, (void*)(&p_alpha), 0);
+
+    if (nred == 0)
+      nred = ply_set_read_cb(ply, "vertex", "diffuse_red", ply_details::read_color, (void*)(&p_red), 0);
+    if (ngreen == 0)
+      ngreen = ply_set_read_cb(ply, "vertex", "diffuse_green", ply_details::read_color, (void*)(&p_green), 0);
+    if (nblue == 0)
+      nblue = ply_set_read_cb(ply, "vertex", "diffuse_blue", ply_details::read_color, (void*)(&p_blue), 0);
+    if (nalpha == 0)
+      nalpha = ply_set_read_cb(ply, "vertex", "diffuse_alpha", ply_details::read_color, (void*)(&p_alpha), 0);
+
+    if (nred > 0 || ngreen > 0 || nblue > 0 || nalpha > 0)
+      clrs.resize(nred, 0xffffffff);
+
+    p_red = (uint8_t*)clrs.data();
+    p_green = p_red + 1;
+    p_blue = p_red + 2;
+    p_alpha = p_red + 3;
+
+    uint32_t* p_tria_index = NULL;
+
+    long ntriangles = ply_set_read_cb(ply, "face", "vertex_indices", ply_details::read_face, (void*)(&p_tria_index), 0);
+    if (ntriangles == 0)
+      ntriangles = ply_set_read_cb(ply, "face", "vertex_index", ply_details::read_face, (void*)(&p_tria_index), 0);
+
+    if (ntriangles > 0)
+      triangles.resize(ntriangles);
+
+    p_tria_index = (uint32_t*)triangles.data();
+
+    float* p_uv = NULL;
+
+    long ntexcoords = ply_set_read_cb(ply, "face", "texcoord", ply_details::read_texcoord, (void*)(&p_uv), 0);
+
+    if (ntexcoords > 0)
+      uv.resize(ntexcoords);
+
+    p_uv = (float*)uv.data();
+
+    if (!ply_read(ply))
+      return false;
+
+    ply_close(ply);
+
+    return true;
+    }
+
+  JTKPLYDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& vertices, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs, const std::vector<vec3<uint32_t>>& triangles, const std::vector<vec3<vec2<float>>>& uv)
+    {
+    if (vertices.empty())
+      return false;
+    FILE* fp = fopen(filename, "wb");
+
+    if (!fp)
+      return false;
+
+    fprintf(fp, "ply\n");
+    int n = 1;
+    if (*(char*)&n == 1)
+      fprintf(fp, "format binary_little_endian 1.0\n");
+    else
+      fprintf(fp, "format binary_big_endian 1.0\n");
+
+    fprintf(fp, "element vertex %d\n", (uint32_t)vertices.size());
+    fprintf(fp, "property float x\n");
+    fprintf(fp, "property float y\n");
+    fprintf(fp, "property float z\n");
+
+    if (!normals.empty())
+      {
+      fprintf(fp, "property float nx\n");
+      fprintf(fp, "property float ny\n");
+      fprintf(fp, "property float nz\n");
+      }
+
+    if (!clrs.empty())
+      {
+      fprintf(fp, "property uchar red\n");
+      fprintf(fp, "property uchar green\n");
+      fprintf(fp, "property uchar blue\n");
+      fprintf(fp, "property uchar alpha\n");
+      }
+
+    if (!triangles.empty())
+      {
+      fprintf(fp, "element face %d\n", (uint32_t)triangles.size());
+      fprintf(fp, "property list uchar int vertex_indices\n");
+      if (!uv.empty())
+        fprintf(fp, "property list uchar float texcoord\n");
+      }
+    fprintf(fp, "end_header\n");
+
+    for (uint32_t i = 0; i < (uint32_t)vertices.size(); ++i)
+      {
+      fwrite((float*)vertices.data() + 3 * i, sizeof(float), 3, fp);
+      if (!normals.empty())
+        fwrite((float*)normals.data() + 3 * i, sizeof(float), 3, fp);
+      if (!clrs.empty())
+        fwrite((uint32_t*)clrs.data() + i, sizeof(uint32_t), 1, fp);
+      }
+    const unsigned char tria_size = 3;
+    const unsigned char texcoord_size = 6;
+    for (uint32_t i = 0; i < (uint32_t)triangles.size(); ++i)
+      {
+      fwrite(&tria_size, 1, 1, fp);
+      fwrite((uint32_t*)triangles.data() + 3 * i, sizeof(uint32_t), 3, fp);
+      if (!uv.empty())
+        {
+        fwrite(&texcoord_size, 1, 1, fp);
+        fwrite((float*)uv.data() + 6 * i, sizeof(float), 6, fp);
+        }
+      }
+    fclose(fp);
+    return true;
+    }
 
 
   /* ----------------------------------------------------------------------
@@ -996,7 +1368,7 @@ namespace jtk
     }
 
   JTKPLYDEF p_ply ply_create_to_memory(char* buffer, size_t buffer_size, size_t* ply_size, e_ply_storage_mode storage_mode,
-      p_ply_error_cb error_cb, long idata, void* pdata) {
+    p_ply_error_cb error_cb, long idata, void* pdata) {
     p_ply ply = nullptr;
     if (error_cb == NULL) error_cb = ply_error_cb;
     assert(storage_mode <= PLY_DEFAULT);

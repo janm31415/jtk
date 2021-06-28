@@ -4,6 +4,7 @@
 #define JTK_PLY_IMPLEMENTATION
 #include "../jtk/ply.h"
 #include "../jtk/vec.h"
+#include "../jtk/file_utils.h"
 
 #include <string>
 #include <vector>
@@ -291,6 +292,34 @@ namespace jtk
       return false;
       }
 
+    std::vector<char> read_asset(const char* filename)
+      {
+      std::string fn(filename);
+      auto file_size = jtk::file_size(fn);
+      std::vector<char> buffer;
+      buffer.reserve(file_size);
+#define CHUNK_SIZE 4096
+      char chunk[CHUNK_SIZE];
+
+      FILE* f = fopen(filename, "rb");
+      if (!f)
+        {
+        printf("Error: could not open file %s\n", filename);
+        return buffer;
+        }
+
+      size_t bytes_read;
+      while ((bytes_read = fread(chunk, sizeof(char), CHUNK_SIZE, f)) > 0)
+        {
+        buffer.reserve(buffer.size() + bytes_read);
+        for (const char* it = chunk; it < chunk + bytes_read; ++it)
+          buffer.push_back(*it);
+        }
+
+      fclose(f);
+      return buffer;
+      }
+
 
     } // anonymous namespace
 
@@ -319,6 +348,81 @@ namespace jtk
     TEST_EQ((int)0, (int)uv.size());
     }
 
+  void test_read_ply_file_from_memory()
+    {
+    std::string filename = "data/face.ply";
+    auto buffer = read_asset(filename.c_str());
+    std::vector<jtk::vec3<float>> vertices;
+    std::vector<jtk::vec3<uint32_t>> triangles;
+    std::vector<jtk::vec3<jtk::vec2<float>>> uv;
+    TEST_ASSERT(read_ply_from_memory(vertices, triangles, uv, buffer.data(), buffer.size()));
+    TEST_EQ((int)1220, (int)vertices.size());
+    TEST_EQ((int)2304, (int)triangles.size());
+    TEST_EQ((int)0, (int)uv.size());
+    }
+
+  void test_read_ply_file_binary_from_memory()
+    {
+    std::string filename = "data/face_binary.ply";
+    auto buffer = read_asset(filename.c_str());
+    std::vector<jtk::vec3<float>> vertices;
+    std::vector<jtk::vec3<uint32_t>> triangles;
+    std::vector<jtk::vec3<jtk::vec2<float>>> uv;
+    TEST_ASSERT(read_ply_from_memory(vertices, triangles, uv, buffer.data(), buffer.size()));
+    TEST_EQ((int)1220, (int)vertices.size());
+    TEST_EQ((int)2304, (int)triangles.size());
+    TEST_EQ((int)0, (int)uv.size());
+    }
+
+  void test_read_ply_file_2()
+    {
+    std::string filename = "data/face.ply";
+    std::vector<jtk::vec3<float>> vertices;
+    std::vector<jtk::vec3<float>> normals;
+    std::vector<uint32_t> clrs;
+    std::vector<jtk::vec3<uint32_t>> triangles;
+    std::vector<jtk::vec3<jtk::vec2<float>>> uv;
+    TEST_ASSERT(read_ply(filename.c_str(), vertices, normals, clrs, triangles, uv));
+    TEST_EQ((int)1220, (int)vertices.size());
+    TEST_EQ((int)2304, (int)triangles.size());
+    TEST_EQ((int)0, (int)uv.size());
+    TEST_EQ((int)0, (int)clrs.size());
+    TEST_EQ((int)0, (int)normals.size());
+    }
+
+  void test_read_ply_file_binary_2()
+    {
+    std::string filename = "data/face_binary.ply";
+    std::vector<jtk::vec3<float>> vertices;
+    std::vector<jtk::vec3<float>> normals;
+    std::vector<uint32_t> clrs;
+    std::vector<jtk::vec3<uint32_t>> triangles;
+    std::vector<jtk::vec3<jtk::vec2<float>>> uv;
+    TEST_ASSERT(read_ply(filename.c_str(), vertices, normals, clrs, triangles, uv));
+    TEST_EQ((int)1220, (int)vertices.size());
+    TEST_EQ((int)2304, (int)triangles.size());
+    TEST_EQ((int)0, (int)uv.size());
+    TEST_EQ((int)0, (int)clrs.size());
+    TEST_EQ((int)0, (int)normals.size());
+    }
+
+  void test_read_ply_file_from_memory_2()
+    {
+    std::string filename = "data/face.ply";
+    auto buffer = read_asset(filename.c_str());
+    std::vector<jtk::vec3<float>> vertices;
+    std::vector<jtk::vec3<float>> normals;
+    std::vector<uint32_t> clrs;
+    std::vector<jtk::vec3<uint32_t>> triangles;
+    std::vector<jtk::vec3<jtk::vec2<float>>> uv;
+    TEST_ASSERT(read_ply_from_memory(buffer.data(), buffer.size(), vertices, normals, clrs, triangles, uv));
+    TEST_EQ((int)1220, (int)vertices.size());
+    TEST_EQ((int)2304, (int)triangles.size());
+    TEST_EQ((int)0, (int)uv.size());
+    TEST_EQ((int)0, (int)clrs.size());
+    TEST_EQ((int)0, (int)normals.size());
+    }
+
   }
 
 void run_all_ply_tests()
@@ -326,4 +430,9 @@ void run_all_ply_tests()
   using namespace jtk;
   test_read_ply_file();
   test_read_ply_file_binary();
+  test_read_ply_file_from_memory();
+  test_read_ply_file_binary_from_memory();
+  test_read_ply_file_2();
+  test_read_ply_file_binary_2();
+  test_read_ply_file_from_memory_2();
   }
