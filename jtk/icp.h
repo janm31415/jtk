@@ -37,7 +37,8 @@ namespace jtk
     uint32_t max_iterations=200,
     float tolerance=1e-4f,
     float inlier_shrink_factor=0.9f,
-    float minimum_inlier_distance=0.05f
+    float minimum_inlier_distance=0.05f,
+    bool reflected = false
     );
 
   JTKICPDEF mat16 icp(double& residual,
@@ -48,7 +49,8 @@ namespace jtk
     uint32_t max_iterations = 200,
     double tolerance = 1e-4,
     double inlier_shrink_factor = 0.9,
-    double minimum_inlier_distance = 0.05
+    double minimum_inlier_distance = 0.05,
+    bool reflected = false
   );
 
   } // namespace jtk
@@ -97,7 +99,8 @@ namespace jtk
       uint32_t max_iterations,
       T tolerance,
       T inlier_shrink_factor,
-      T minimum_inlier_distance)
+      T minimum_inlier_distance,
+      bool reflected)
       {
       point_tree<point_tree_traits<T>> tree;
       std::vector<point<T>> pts;
@@ -156,7 +159,7 @@ namespace jtk
           destination(i, 1) = v_transf(1);
           destination(i, 2) = v_transf(2);
           }
-        matrix<T, std::array<T, 16>> delta_transformation = npoint(destination, source);
+        matrix<T, std::array<T, 16>> delta_transformation = reflected ? npoint_reflected(destination, source, false, true) : npoint(destination, source, false, true);
         current = delta_transformation * current;
         T l2_norm_rotation = (T)norm(block(delta_transformation, 0, 0, 3, 3) - identity(3, 3));
         T l2_norm_translation = (T)norm(block(delta_transformation, 0, 3, 3, 1));
@@ -187,9 +190,10 @@ namespace jtk
     uint32_t max_iterations,
     float tolerance,
     float inlier_shrink_factor,
-    float minimum_inlier_distance)
+    float minimum_inlier_distance,
+    bool reflected)
     {
-    return _icp<float>(residual, model_points, template_points, initial_transformation, inlier_distance, max_iterations, tolerance, inlier_shrink_factor, minimum_inlier_distance);    
+    return _icp<float>(residual, model_points, template_points, initial_transformation, inlier_distance, max_iterations, tolerance, inlier_shrink_factor, minimum_inlier_distance, reflected);    
     }
 
   JTKICPDEF mat16 icp(double& residual,
@@ -200,9 +204,10 @@ namespace jtk
     uint32_t max_iterations,
     double tolerance,
     double inlier_shrink_factor,
-    double minimum_inlier_distance)
+    double minimum_inlier_distance,
+    bool reflected)
     {
-    return _icp<double>(residual, model_points, template_points, initial_transformation, inlier_distance, max_iterations, tolerance, inlier_shrink_factor, minimum_inlier_distance);
+    return _icp<double>(residual, model_points, template_points, initial_transformation, inlier_distance, max_iterations, tolerance, inlier_shrink_factor, minimum_inlier_distance, reflected);
     }
   } // namespace jtk
 

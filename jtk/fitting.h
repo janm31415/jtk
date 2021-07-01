@@ -17,7 +17,7 @@ namespace jtk
   matrix<T, std::array<T, 16>> npoint(const matrix<T>& source, const matrix<T>& destination, bool isotropic_scaling = false, bool correct_reflections = false);
 
   template <class T>
-  matrix<T, std::array<T, 16>> npoint_negative(const matrix<T>& source, const matrix<T>& destination, bool isotropic_scaling = false, bool correct_reflections = false);
+  matrix<T, std::array<T, 16>> npoint_reflected(const matrix<T>& source, const matrix<T>& destination, bool isotropic_scaling = false, bool correct_reflections = false);
 
   template <class iterator>
   typename iterator::value_type centroid(iterator first, iterator last);
@@ -111,7 +111,7 @@ namespace jtk
     }
 
   template <class T>
-  matrix<T, std::array<T, 16>> npoint_negative(const matrix<T>& source, const matrix<T>& destination, bool isotropic_scaling, bool correct_reflections)
+  matrix<T, std::array<T, 16>> npoint_reflected(const matrix<T>& source, const matrix<T>& destination, bool isotropic_scaling, bool correct_reflections)
     {
     using namespace fitting_details;
 
