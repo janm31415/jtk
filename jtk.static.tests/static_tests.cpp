@@ -17,9 +17,17 @@
 #define JTK_FILE_UTILS_STATIC
 #include "../jtk/file_utils.h"
 
+#define JTK_ICP_IMPLEMENTATION
+#define JTK_ICP_STATIC
+#include "../jtk/icp.h"
+
 #define JTK_PIPE_IMPLEMENTATION
 #define JTK_PIPE_STATIC
 #include "../jtk/pipe.h"
+
+#define JTK_PLY_IMPLEMENTATION
+#define JTK_PLY_STATIC
+#include "../jtk/ply.h"
 
 #define JTK_QBVH_IMPLEMENTATION
 #define JTK_QBVH_STATIC

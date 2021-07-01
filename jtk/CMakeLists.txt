@@ -15,6 +15,7 @@ containers.h
 file_utils.h
 fitting.h
 geometry.h
+icp.h
 image.h
 log.h
 mat.h

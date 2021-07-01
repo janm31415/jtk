@@ -35,7 +35,7 @@ namespace jtk
     matrix<T, std::array<T, 3>> mean(const matrix<T>& m)
       {
       matrix<T, std::array<T, 3>> out = zeros<T>(1, 3);
-      for (uint64_t i = 0; i < m.rows(); ++i)
+      for (uint32_t i = 0; i < m.rows(); ++i)
         {
         out(0, 0) += m(i, 0);
         out(0, 1) += m(i, 1);
@@ -65,7 +65,7 @@ namespace jtk
     auto Xmean = mean(destination);
     auto Ymean = mean(source);
 
-    for (uint64_t i = 0; i < source.rows(); ++i)
+    for (uint32_t i = 0; i < source.rows(); ++i)
       {
       X(i, 0) -= Xmean(0, 0);
       X(i, 1) -= Xmean(0, 1);
@@ -96,9 +96,9 @@ namespace jtk
 
     matrix<T, std::array<T, 16>> out(4, 4);
 
-    for (size_t i = 0; i < 3; ++i)
+    for (uint32_t i = 0; i < 3; ++i)
       {
-      for (size_t j = 0; j < 3; ++j)
+      for (uint32_t j = 0; j < 3; ++j)
         out(i, j) = A(j, i);
       out(i, 3) = trans(0, i);
       }
@@ -127,7 +127,7 @@ namespace jtk
     auto Xmean = mean(destination);
     auto Ymean = mean(source);
 
-    for (uint64_t i = 0; i < source.rows(); ++i)
+    for (uint32_t i = 0; i < source.rows(); ++i)
       {
       X(i, 0) -= Xmean(0, 0);
       X(i, 1) -= Xmean(0, 1);
