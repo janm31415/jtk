@@ -36,8 +36,10 @@
 #include <thread>
 #include <vector>
 
-#ifndef _JTK_FOR_ARM
+#if defined(_ENABLE_THREADS)
+#if !defined(_JTK_FOR_ARM) && !defined(_JTK_NO_SIMD)
 #include <immintrin.h>
+#endif
 #endif
 
 #ifdef _WIN32
@@ -658,6 +660,7 @@ namespace jtk
           // hyper-threads
 #ifdef _JTK_FOR_ARM
           sched_yield();
+#elif defined(_JTK_NO_SIMD)
 #else
           _mm_pause();
 #endif
@@ -697,6 +700,7 @@ namespace jtk
         // hyper-threads
 #ifdef _JTK_FOR_ARM
         sched_yield();
+#elif defined(_JTK_NO_SIMD)
 #else
         _mm_pause();
 #endif        
@@ -722,6 +726,7 @@ namespace jtk
         // hyper-threads
 #ifdef _JTK_FOR_ARM
         sched_yield();
+#elif defined(_JTK_NO_SIMD)
 #else
         _mm_pause();
 #endif        
@@ -751,6 +756,7 @@ namespace jtk
         // hyper-threads
 #ifdef _JTK_FOR_ARM
         sched_yield();
+#elif defined(_JTK_NO_SIMD)
 #else
         _mm_pause();
 #endif        

@@ -44,6 +44,12 @@ V1.5: 08 September 2020
 #include <cmath>
 
 #ifndef _JTK_MAT_NO_SIMD
+#ifdef  _JTK_NO_SIMD
+#define _JTK_MAT_NO_SIMD
+#endif
+#endif
+
+#ifndef _JTK_MAT_NO_SIMD
 #  ifdef _JTK_FOR_ARM
 #    include "sse2neon.h"
 #  else
