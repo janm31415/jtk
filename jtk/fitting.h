@@ -161,9 +161,9 @@ namespace jtk
 
     matrix<T, std::array<T, 16>> out(4, 4);
 
-    for (size_t i = 0; i < 3; ++i)
+    for (uint32_t i = 0; i < 3; ++i)
       {
-      for (size_t j = 0; j < 3; ++j)
+      for (uint32_t j = 0; j < 3; ++j)
         out(i, j) = A(j, i);
       out(i, 3) = trans(0, i);
       }
