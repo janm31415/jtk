@@ -18,6 +18,7 @@ geometry.h
 icp.h
 image.h
 log.h
+opengl.h
 mat.h
 pipe.h
 ply.h
