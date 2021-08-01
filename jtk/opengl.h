@@ -8,6 +8,11 @@
    #include ...
    #define JTK_OPENGL_IMPLEMENTATION
    #include "jtk/opengl.h"
+
+   Before you include "jtk/opengl.h", make sure to include your actual OpenGL header files.
+   e.g.
+   #include "GL/glew.h"
+   #include "jtk/opengl.h"
  */
 
 #ifndef JTK_OPENGL_H
