@@ -13,6 +13,7 @@ Header only C++ tookit for proof of concept development of mainly 3d geometry re
 - image.h: image-related functionality. Each row of the image is aligned in memory so that SSE2 can be used. Reading/writing of image file formats is not included. Here I typically use https://github.com/nothings/stb/blob/master/stb_image.h or https://github.com/lvandeve/lodepng.
 - log.h: Auxiliaury class for easy logging and debugging.
 - mat.h: matrix library using expression templates, with support for sparse matrices also. Many common matrix algorithms are available: matrix and vector arithmetic, matrix transpose, svd (singular value decomposition), pseudo inverse, lsd (solves overdetermined systems in a least squares sense using svd), lu decomposition, solve a system using lu decomposition, invert a matrix using lu decomposition, cholesky factorization, solve a system using cholesky factorization, qr decomposition, solve a system using qr decomposition, frobenius norm, compute a jacobian matrix using forward differences, levenberg-marquardt optimization, eigenvalue computation of square matrices, (preconditioned) conjugate gradient, (preconditioned) bicgstab.
+- opengl.h: utility classes for working with opengl shaders.
 - pipe.h: cross platform tools for creating pipes, sending and receiving messages via the pipes, and running processes.
 - ply.h: reading and writing of ply files. Based on the RPly library (http://www.impa.br/~diego/software/rply).
 - point_tree.h: kd tree for points.
