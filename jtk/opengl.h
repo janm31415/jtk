@@ -518,10 +518,10 @@ namespace jtk
       {
       switch (channels)
         {
-        case 1: _format = GL_R8UI; break;
-        case 2: _format = GL_RG8UI; break;
-        case 3: _format = GL_RGB8UI; break;
-        case 4: _format = GL_RGBA8UI; break;
+        case 1: _format = GL_R8; break;
+        case 2: _format = GL_RG8; break;
+        case 3: _format = GL_RGB8; break;
+        case 4: _format = GL_RGBA8; break;
         }
       break;
       }
