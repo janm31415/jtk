@@ -557,57 +557,44 @@ namespace jtk
     }
 
   void texture::_load_pixels(GLubyte* pixels, int w, int h, int channels, pixel_type pt)
-    {
-    _pt = pt;
-    _format = GL_RGBA8;
+    {    
     GLenum sourceFormat = GL_RGBA;
     GLenum pixtype = GL_UNSIGNED_BYTE;
+    _pt = pt;
 
     switch (_pt)
       {
       case uint8:
-      {
+      {     
+      pixtype = GL_UNSIGNED_BYTE;
       switch (channels)
         {
-        case 1: _format = GL_R8; sourceFormat = GL_RED;  break;
-        case 2: _format = GL_RG8; sourceFormat = GL_RG; break;
-        case 3: _format = GL_RGB8; sourceFormat = GL_RGB; break;
-        case 4: _format = GL_RGBA8UI; sourceFormat = GL_RGBA_INTEGER; break;
+        case 1: sourceFormat = GL_RED; break;
+        case 2: sourceFormat = GL_RG; break;
+        case 3: sourceFormat = GL_RGB; break;
+        case 4: sourceFormat = GL_RGBA; break;
         }
-      pixtype = GL_UNSIGNED_BYTE;
       break;
       }
       case uint32:
       {
       assert(0); // todo
-      switch (channels)
-        {
-        case 1: _format = GL_R32UI; break;
-        }
       break;
       }
       case real:
       {
-      switch (channels)
-        {
-        case 1: _format = GL_R32F; sourceFormat = GL_RED; break;
-        case 2: _format = GL_RG32F; sourceFormat = GL_RG; break;
-        case 3: _format = GL_RGB32F; sourceFormat = GL_RGB; break;
-        case 4: _format = GL_RGBA32F; sourceFormat = GL_RGBA; break;
-        }
       pixtype = GL_FLOAT;
+      assert(0); // todo
       break;
       }
       }
 
 
-
-
     glBindTexture(GL_TEXTURE_2D, _texture_id);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // opengl by default aligns rows on 4 bytes I think
-    glTexImage2D(GL_TEXTURE_2D, 0, _format, w, h, 0, sourceFormat, pixtype, pixels);
-    gl_check_error("texture.cpp: glTexImage2d");
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // opengl by default aligns rows on 4 bytes I think    
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, sourceFormat, pixtype, pixels);
+    gl_check_error("texture.cpp: glTexSubImage2D");
 
     _width = w;
     _height = h;
