@@ -724,8 +724,8 @@ namespace jtk
           {
           for (int y = 0; y < height; ++y)
             {
-            uint8_t* p_dst = dst + y * stride;
-            const uint8_t* p_src = src + y * width;
+            uint8_t* p_dst = dst + y * DstWidthInBytes;
+            const uint8_t* p_src = src + y * SrcWidthInbytes;
             for (int x = 0; x < width; ++x)
               {
               for (int j = channels - 1; j >= 0; --j)
