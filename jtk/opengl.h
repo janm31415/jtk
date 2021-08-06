@@ -73,6 +73,7 @@ namespace jtk
 
       enum pixel_type
         {
+        byte,
         int8,
         uint8,
         uint32,
@@ -127,6 +128,7 @@ namespace jtk
 
       enum pixel_type
         {
+        byte,
         int8,
         uint8,
         uint32,
@@ -503,6 +505,17 @@ namespace jtk
 
     switch (_pt)
       {
+      case byte:
+      {
+      switch (channels)
+        {
+        case 1: _format = GL_R8; break;
+        case 2: _format = GL_RG8; break;
+        case 3: _format = GL_RGB8; break;
+        case 4: _format = GL_RGBA8; break;
+        }
+      break;
+      }
       case int8:
       {
       switch (channels)
@@ -518,10 +531,10 @@ namespace jtk
       {
       switch (channels)
         {
-        case 1: _format = GL_R8; break;
-        case 2: _format = GL_RG8; break;
-        case 3: _format = GL_RGB8; break;
-        case 4: _format = GL_RGBA8; break;
+        case 1: _format = GL_R8UI; break;
+        case 2: _format = GL_RG8UI; break;
+        case 3: _format = GL_RGB8UI; break;
+        case 4: _format = GL_RGBA8UI; break;
         }
       break;
       }
@@ -564,6 +577,18 @@ namespace jtk
 
     switch (_pt)
       {
+      case byte:
+      {
+      pixtype = GL_UNSIGNED_BYTE;
+      switch (channels)
+        {
+        case 1: sourceFormat = GL_RED; break;
+        case 2: sourceFormat = GL_RG; break;
+        case 3: sourceFormat = GL_RGB; break;
+        case 4: sourceFormat = GL_RGBA; break;
+        }
+      break;
+      }
       case uint8:
       {     
       pixtype = GL_UNSIGNED_BYTE;
@@ -609,6 +634,18 @@ namespace jtk
 
     switch (_pt)
       {
+      case byte:
+      {
+      switch (channels)
+        {
+        case 1:  targetFormat = GL_RED_INTEGER;  break;
+        case 2:  targetFormat = GL_RG; break;
+        case 3:  targetFormat = GL_RGB; break;
+        case 4:  targetFormat = GL_RGBA_INTEGER; break;
+        }
+      pixtype = GL_UNSIGNED_BYTE;
+      break;
+      }
       case uint8:
       {
       switch (channels)
@@ -738,6 +775,17 @@ namespace jtk
 
     switch (_pt)
       {
+      case byte:
+      {
+      switch (channels)
+        {
+        case 1: _format = GL_R8; break;
+        case 2: _format = GL_RG8; break;
+        case 3: _format = GL_RGB8; break;
+        case 4: _format = GL_RGBA8; break;
+        }
+      break;
+      }
       case int8:
       {
       switch (channels)
@@ -799,13 +847,25 @@ namespace jtk
 
     switch (_pt)
       {
-      case uint8:
+      case byte:
       {
       switch (channels)
         {
         case 1: _format = GL_R8; sourceFormat = GL_RED;  break;
         case 2: _format = GL_RG8; sourceFormat = GL_RG; break;
         case 3: _format = GL_RGB8; sourceFormat = GL_RGB; break;
+        case 4: _format = GL_RGBA8; sourceFormat = GL_RGBA_INTEGER; break;
+        }
+      pixtype = GL_UNSIGNED_BYTE;
+      break;
+      }
+      case uint8:
+      {
+      switch (channels)
+        {
+        case 1: _format = GL_R8UI; sourceFormat = GL_RED;  break;
+        case 2: _format = GL_RG8UI; sourceFormat = GL_RG; break;
+        case 3: _format = GL_RGB8UI; sourceFormat = GL_RGB; break;
         case 4: _format = GL_RGBA8UI; sourceFormat = GL_RGBA_INTEGER; break;
         }
       pixtype = GL_UNSIGNED_BYTE;
@@ -862,6 +922,18 @@ namespace jtk
 
     switch (_pt)
       {
+      case byte:
+      {
+      switch (channels)
+        {
+        case 1:  targetFormat = GL_RED_INTEGER;  break;
+        case 2:  targetFormat = GL_RG; break;
+        case 3:  targetFormat = GL_RGB; break;
+        case 4:  targetFormat = GL_RGBA_INTEGER; break;
+        }
+      pixtype = GL_UNSIGNED_BYTE;
+      break;
+      }
       case uint8:
       {
       switch (channels)
@@ -1002,7 +1074,7 @@ namespace jtk
     _w = w;
     _h = h;
     _texture = new texture();
-    _texture->create_empty(w, h, 4, texture::uint8);
+    _texture->create_empty(w, h, 4, texture::byte);
     gl_check_error("_texture->create_empty()");
 
     _render_buffer = new render_buffer();
