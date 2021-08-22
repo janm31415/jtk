@@ -410,8 +410,10 @@ namespace jtk
   JTKQBVHDEF vec3<float> get_y_axis(const float4x4& matrix);
   JTKQBVHDEF vec3<float> get_z_axis(const float4x4& matrix);
   JTKQBVHDEF float determinant(const float4x4& m);
-  JTKQBVHDEF void solve_roll_pitch_yawn_transformation(float& rx, float& ry, float& rz, float& tx, float& ty, float& tz, const float4x4& m);
-  JTKQBVHDEF float4x4 compute_from_roll_pitch_yawn_transformation(float rx, float ry, float rz, float tx, float ty, float tz);
+  JTKQBVHDEF void solve_roll_pitch_yaw_transformation(float& rx, float& ry, float& rz, float& tx, float& ty, float& tz, const float4x4& m);
+  JTKQBVHDEF float4x4 compute_from_roll_pitch_yaw_transformation(float rx, float ry, float rz, float tx, float ty, float tz);
+  JTKQBVHDEF float4 roll_pitch_yaw_to_quaternion(float rx, float ry, float rz);
+  JTKQBVHDEF float4x4 quaternion_to_rotation(const float4& quaternion);
 
   template <typename T>
   struct range
@@ -3809,7 +3811,7 @@ namespace jtk
     return m;
     }
 
-  JTKQBVHDEF void solve_roll_pitch_yawn_transformation(float& rx, float& ry, float& rz, float& tx, float& ty, float& tz, const float4x4& m)
+  JTKQBVHDEF void solve_roll_pitch_yaw_transformation(float& rx, float& ry, float& rz, float& tx, float& ty, float& tz, const float4x4& m)
     {
     rz = std::atan2(m.col[0][1], m.col[0][0]);
     const auto sg = std::sin(rz);
@@ -3821,7 +3823,7 @@ namespace jtk
     tz = m.col[3][2];
     }
 
-  JTKQBVHDEF float4x4 compute_from_roll_pitch_yawn_transformation(
+  JTKQBVHDEF float4x4 compute_from_roll_pitch_yaw_transformation(
     float rx, float ry, float rz,
     float tx, float ty, float tz)
     {
@@ -3845,6 +3847,48 @@ namespace jtk
     m.col[3][1] = ty;
     m.col[3][2] = tz;
     return m;
+    }
+
+  JTKQBVHDEF float4x4 quaternion_to_rotation(const float4& quaternion)
+    {
+    jtk::float4x4 rot;
+    rot[0] = 1.f - 2.f * (quaternion[1] * quaternion[1] + quaternion[2] * quaternion[2]);
+    rot[1] = 2.f * (quaternion[0] * quaternion[1] - quaternion[2] * quaternion[3]);
+    rot[2] = 2.f * (quaternion[2] * quaternion[0] + quaternion[1] * quaternion[3]);
+    rot[3] = 0.f;
+
+    rot[4] = 2.f * (quaternion[0] * quaternion[1] + quaternion[2] * quaternion[3]);
+    rot[5] = 1.f - 2.f * (quaternion[2] * quaternion[2] + quaternion[0] * quaternion[0]);
+    rot[6] = 2.f * (quaternion[1] * quaternion[2] - quaternion[0] * quaternion[3]);
+    rot[7] = 0.f;
+
+    rot[8] = 2.f * (quaternion[2] * quaternion[0] - quaternion[1] * quaternion[3]);
+    rot[9] = 2.f * (quaternion[1] * quaternion[2] + quaternion[0] * quaternion[3]);
+    rot[10] = 1.f - 2.f * (quaternion[1] * quaternion[1] + quaternion[0] * quaternion[0]);
+    rot[11] = 0.f;
+
+    rot[12] = 0.f;
+    rot[13] = 0.f;
+    rot[14] = 0.f;
+    rot[15] = 1.f;
+    return rot;
+    }
+
+  JTKQBVHDEF float4 roll_pitch_yaw_to_quaternion(float rx, float ry, float rz)
+    {    
+    float cy = std::cos(rz * 0.5f);
+    float sy = std::sin(rz * 0.5f);
+    float cp = std::cos(ry * 0.5f);
+    float sp = std::sin(ry * 0.5f);
+    float cr = std::cos(rx * 0.5f);
+    float sr = std::sin(rx * 0.5f);
+
+    float4 q;    
+    q[0] = sr * cp * cy - cr * sp * sy;
+    q[1] = cr * sp * cy + sr * cp * sy;
+    q[2] = cr * cp * sy - sr * sp * cy;
+    q[3] = cr * cp * cy + sr * sp * sy;
+    return q;
     }
 
   JTKQBVHDEF float4x4 transpose(const float4x4& m)
