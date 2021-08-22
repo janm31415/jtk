@@ -410,6 +410,8 @@ namespace jtk
   JTKQBVHDEF vec3<float> get_y_axis(const float4x4& matrix);
   JTKQBVHDEF vec3<float> get_z_axis(const float4x4& matrix);
   JTKQBVHDEF float determinant(const float4x4& m);
+  JTKQBVHDEF void solve_roll_pitch_yawn_transformation(float& rx, float& ry, float& rz, float& tx, float& ty, float& tz, const float4x4& m);
+  JTKQBVHDEF float4x4 compute_from_roll_pitch_yawn_transformation(float rx, float ry, float rz, float tx, float ty, float tz);
 
   template <typename T>
   struct range
@@ -3804,6 +3806,44 @@ namespace jtk
   JTKQBVHDEF float4x4 make_translation(float x, float y, float z)
     {
     float4x4 m(_mm_set_ps(0.f, 0.f, 0.f, 1.f), _mm_set_ps(0.f, 0.f, 1.f, 0.f), _mm_set_ps(0.f, 1.f, 0.f, 0.f), _mm_set_ps(1.f, z, y, x));
+    return m;
+    }
+
+  JTKQBVHDEF void solve_roll_pitch_yawn_transformation(float& rx, float& ry, float& rz, float& tx, float& ty, float& tz, const float4x4& m)
+    {
+    rz = std::atan2(m.col[0][1], m.col[0][0]);
+    const auto sg = std::sin(rz);
+    const auto cg = std::cos(rz);    
+    ry = std::atan2(-m.col[0][2], m.col[0][0] * cg + m.col[0][1] * sg);    
+    rx = std::atan2(m.col[2][0] * sg - m.col[2][1] * cg, m.col[1][1] * cg - m.col[1][0] * sg);    
+    tx = m.col[3][0];    
+    ty = m.col[3][1];    
+    tz = m.col[3][2];
+    }
+
+  JTKQBVHDEF float4x4 compute_from_roll_pitch_yawn_transformation(
+    float rx, float ry, float rz,
+    float tx, float ty, float tz)
+    {
+    float4x4 m = get_identity();
+    float ca = std::cos(rx);
+    float sa = std::sin(rx);
+    float cb = std::cos(ry);
+    float sb = std::sin(ry);
+    float cg = std::cos(rz);
+    float sg = std::sin(rz);    
+    m.col[0][0] = cb * cg;
+    m.col[1][0] = cg * sa * sb - ca * sg;
+    m.col[2][0] = sa * sg + ca * cg * sb;
+    m.col[0][1] = cb * sg;
+    m.col[1][1] = sa * sb * sg + ca * cg;
+    m.col[2][1] = ca * sb * sg - cg * sa;
+    m.col[0][2] = -sb;
+    m.col[1][2] = cb * sa;
+    m.col[2][2] = ca * cb;
+    m.col[3][0] = tx;
+    m.col[3][1] = ty;
+    m.col[3][2] = tz;
     return m;
     }
 
