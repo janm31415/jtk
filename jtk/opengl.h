@@ -345,6 +345,7 @@ namespace jtk
       void set_uniform_value(int location, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
 
       void set_uniform_value(const char* name, GLint value);
+      void set_uniform_value(const char* name, GLint x, GLint y, GLint z);
       void set_uniform_value(const char* name, GLuint value);
       void set_uniform_value(const char* name, GLfloat value);
       void set_uniform_value(const char* name, GLfloat x, GLfloat y);
@@ -1611,6 +1612,12 @@ namespace jtk
     {
     GLint location = glGetUniformLocation(_program_id, name);
     glUniform1i(location, value);
+    }
+
+  void shader_program::set_uniform_value(const char* name, GLint x, GLint y, GLint z)
+    {
+    GLint location = glGetUniformLocation(_program_id, name);
+    glUniform3i(location, x, y, z);
     }
 
   void shader_program::set_uniform_value(const char* name, GLuint value)
