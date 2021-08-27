@@ -89,6 +89,8 @@ namespace jtk
 
       void load_from_pixels(GLubyte* pixels, GLint w, GLint h, GLint channels, pixel_type pt);
 
+      void load_from_pixels(GLubyte* pixels, GLint offsx, GLint offsy, GLint w, GLint h, GLint channels, pixel_type pt);
+
       void create_empty(GLint w, GLint h, GLint channels, pixel_type pt);
 
       void bind_to_channel(GLint channel);
@@ -107,7 +109,7 @@ namespace jtk
       void fill_pixels(GLubyte* pixels, GLint channels);
 
     private:
-      void _load_pixels(GLubyte* pixels, GLint w, GLint h, GLint channels, pixel_type pt);
+      void _load_pixels(GLubyte* pixels, GLint offsx, GLint offsy, GLint w, GLint h, GLint channels, pixel_type pt);
 
     private:
       GLenum _filter_mode;
@@ -492,7 +494,12 @@ namespace jtk
 
   void texture::load_from_pixels(GLubyte* pixels, int w, int h, int channels, pixel_type pt)
     {
-    _load_pixels(pixels, w, h, channels, pt);
+    _load_pixels(pixels, 0, 0, w, h, channels, pt);
+    }
+
+  void texture::load_from_pixels(GLubyte* pixels, GLint offsx, GLint offsy, GLint w, GLint h, GLint channels, pixel_type pt)
+    {
+    _load_pixels(pixels, offsx, offsy, w, h, channels, pt);
     }
 
   void texture::create_empty(int w, int h, GLint channels, pixel_type pt)
@@ -570,7 +577,7 @@ namespace jtk
     _height = h;
     }
 
-  void texture::_load_pixels(GLubyte* pixels, int w, int h, int channels, pixel_type pt)
+  void texture::_load_pixels(GLubyte* pixels, GLint offsx, GLint offsy, GLint w, GLint h, GLint channels, pixel_type pt)
     {    
     GLenum sourceFormat = GL_RGBA;
     GLenum pixtype = GL_UNSIGNED_BYTE;
@@ -619,7 +626,7 @@ namespace jtk
     glBindTexture(GL_TEXTURE_2D, _texture_id);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // opengl by default aligns rows on 4 bytes I think    
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, sourceFormat, pixtype, pixels);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, offsx, offsy, w, h, sourceFormat, pixtype, pixels);
     gl_check_error("texture.cpp: glTexSubImage2D");
 
     _width = w;
