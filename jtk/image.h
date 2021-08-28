@@ -72,6 +72,10 @@ namespace jtk
   JTKIDEF void fill_image(image<uint32_t>& im, uint32_t value);
   JTKIDEF void fill_image(image<float>& im, float value);
 
+  JTKIDEF image<uint8_t> red(const image<uint32_t>& im);
+  JTKIDEF image<uint8_t> green(const image<uint32_t>& im);
+  JTKIDEF image<uint8_t> blue(const image<uint32_t>& im);
+  JTKIDEF image<uint8_t> alpha(const image<uint32_t>& im);
   JTKIDEF image<uint8_t> image_to_gray(const image<uint32_t>& im);
   JTKIDEF image<uint8_t> image_to_gray(const image<float>& im);
 
@@ -832,12 +836,27 @@ namespace jtk
     return true;
     }
 
-  JTKIDEF image<uint8_t> image_to_gray(const image<uint32_t>& im)
+  JTKIDEF image<uint8_t> red(const image<uint32_t>& im)
     {
     image<uint8_t> out(im.width(), im.height(), false);
     for (int y = 0; y < (int)im.height(); ++y)
       {
-      const uint32_t* p_f = im.data() + im.stride()*y;
+      const uint32_t* p_f = im.data() + im.stride() * y;
+      uint8_t* p_g = out.data() + out.stride() * y;
+      for (int x = 0; x < (int)im.width(); ++x, ++p_f, ++p_g)
+        {
+        *p_g = (*p_f) & 0xff;
+        }
+      }
+    return out;
+    }
+
+  JTKIDEF image<uint8_t> green(const image<uint32_t>& im)
+    {
+    image<uint8_t> out(im.width(), im.height(), false);
+    for (int y = 0; y < (int)im.height(); ++y)
+      {
+      const uint32_t* p_f = im.data() + im.stride() * y;
       uint8_t* p_g = out.data() + out.stride() * y;
       for (int x = 0; x < (int)im.width(); ++x, ++p_f, ++p_g)
         {
@@ -845,6 +864,41 @@ namespace jtk
         }
       }
     return out;
+    }
+
+  JTKIDEF image<uint8_t> blue(const image<uint32_t>& im)
+    {
+    image<uint8_t> out(im.width(), im.height(), false);
+    for (int y = 0; y < (int)im.height(); ++y)
+      {
+      const uint32_t* p_f = im.data() + im.stride() * y;
+      uint8_t* p_g = out.data() + out.stride() * y;
+      for (int x = 0; x < (int)im.width(); ++x, ++p_f, ++p_g)
+        {
+        *p_g = (*p_f >> 16) & 0xff;
+        }
+      }
+    return out;
+    }
+
+  JTKIDEF image<uint8_t> alpha(const image<uint32_t>& im)
+    {
+    image<uint8_t> out(im.width(), im.height(), false);
+    for (int y = 0; y < (int)im.height(); ++y)
+      {
+      const uint32_t* p_f = im.data() + im.stride() * y;
+      uint8_t* p_g = out.data() + out.stride() * y;
+      for (int x = 0; x < (int)im.width(); ++x, ++p_f, ++p_g)
+        {
+        *p_g = (*p_f >> 24) & 0xff;
+        }
+      }
+    return out;
+    }
+
+  JTKIDEF image<uint8_t> image_to_gray(const image<uint32_t>& im)
+    {
+    return green(im);
     }
 
   JTKIDEF void minmax(float& min, float& max, const image<float>& im, bool skip_infinity)
