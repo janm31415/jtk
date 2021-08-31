@@ -558,10 +558,10 @@ namespace jtk
       {
       switch (channels)
         {
-        case 1: _format = GL_R32F; break;
-        case 2: _format = GL_RG32F; break;
-        case 3: _format = GL_RGB32F; break;
-        case 4: _format = GL_RGBA32F; break;
+        case 1: _format = GL_R16F; break;
+        case 2: _format = GL_RG16F; break;
+        case 3: _format = GL_RGB16F; break;
+        case 4: _format = GL_RGBA16F; break;
         }
       break;
       }
@@ -617,7 +617,13 @@ namespace jtk
       case real:
       {
       pixtype = GL_FLOAT;
-      assert(0); // todo
+      switch (channels)
+        {
+        case 1: sourceFormat = GL_RED; break;
+        case 2: sourceFormat = GL_RG; break;
+        case 3: sourceFormat = GL_RGB; break;
+        case 4: sourceFormat = GL_RGBA; break;
+        }
       break;
       }
       }
