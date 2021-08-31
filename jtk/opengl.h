@@ -1519,12 +1519,12 @@ namespace jtk
 
   void shader_program::set_attribute_array(int location, GLenum type, const void* values, int tupleSize, int stride)
     {
-    glVertexAttribPointer(location, tupleSize, type, GL_TRUE, stride, values);
+    glVertexAttribPointer(location, tupleSize, type, GL_FALSE, stride, values);
     }
 
   void shader_program::set_attribute_buffer(int location, GLenum type, int offset, int tupleSize, int stride)
     {
-    glVertexAttribPointer(location, tupleSize, type, GL_TRUE, stride,
+    glVertexAttribPointer(location, tupleSize, type, GL_FALSE, stride,
       reinterpret_cast<const void*>(intptr_t(offset)));
     }
 
@@ -1537,13 +1537,13 @@ namespace jtk
   void shader_program::set_attribute_array(const char* name, GLenum type, const void* values, int tupleSize, int stride)
     {
     GLint location = glGetAttribLocation(_program_id, name);;
-    glVertexAttribPointer(location, tupleSize, type, GL_TRUE, stride, values);
+    glVertexAttribPointer(location, tupleSize, type, GL_FALSE, stride, values);
     }
 
   void shader_program::set_attribute_buffer(const char* name, GLenum type, int offset, int tupleSize, int stride)
     {
     GLint location = glGetAttribLocation(_program_id, name);;
-    glVertexAttribPointer(location, tupleSize, type, GL_TRUE, stride,
+    glVertexAttribPointer(location, tupleSize, type, GL_FALSE, stride,
       reinterpret_cast<const void*>(intptr_t(offset)));
     }
 
