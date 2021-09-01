@@ -414,6 +414,7 @@ namespace jtk
   JTKQBVHDEF float4x4 compute_from_roll_pitch_yaw_transformation(float rx, float ry, float rz, float tx, float ty, float tz);
   JTKQBVHDEF float4 roll_pitch_yaw_to_quaternion(float rx, float ry, float rz);
   JTKQBVHDEF float4x4 quaternion_to_rotation(const float4& quaternion);
+  JTKQBVHDEF float4x4 look_at(const vec3<float>& eye, const vec3<float>& center, const vec3<float>& up);
 
   template <typename T>
   struct range
@@ -3872,6 +3873,34 @@ namespace jtk
     rot[14] = 0.f;
     rot[15] = 1.f;
     return rot;
+    }
+
+  JTKQBVHDEF float4x4 look_at(const vec3<float>& eye, const vec3<float>& center, const vec3<float>& up)
+    {
+    float4x4 m;
+    vec3<float> z = normalize(eye - center);
+    vec3<float> y = up;
+    vec3<float> x = cross(y, z);
+    y = cross(z, x);
+    x = normalize(x);
+    y = normalize(y);
+    m[0] = x[0];
+    m[1] = x[1];
+    m[2] = x[2];
+    m[3] = 0.f;
+    m[4] = y[0];
+    m[5] = y[1];
+    m[6] = y[2];
+    m[7] = 0.f;
+    m[8] = z[0];
+    m[9] = z[1];
+    m[10] = z[2];
+    m[11] = 0.f;
+    m[12] = -dot(x, eye);
+    m[13] = -dot(y, eye);
+    m[14] = -dot(z, eye);
+    m[15] = 1.f;
+    return m;
     }
 
   JTKQBVHDEF float4 roll_pitch_yaw_to_quaternion(float rx, float ry, float rz)
