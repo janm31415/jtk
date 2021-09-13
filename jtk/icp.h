@@ -140,7 +140,8 @@ namespace jtk
               active_template_points.push_back(i);
             }
           }
-
+        if (active_template_points.empty())
+          return jtk::identity<T>(4,4);
         matrix<T> source((uint32_t)active_template_points.size(), 3);
         matrix<T> destination((uint32_t)active_template_points.size(), 3);
         for (uint32_t i = 0; i < (uint32_t)active_template_points.size(); ++i)
