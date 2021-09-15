@@ -36,7 +36,7 @@ namespace jtk
   namespace
     {
 
-
+#ifndef _JTK_FOR_ARM
     inline image<uint32_t> census_transform_avx(const image<uint8_t>& im)
       {
       /*
@@ -130,10 +130,13 @@ namespace jtk
         }
       return ct;
       }
+    
+#endif
     }
 
   void test_census()
     {
+#ifndef _JTK_FOR_ARM
     int w = 64;
     int h = 64;
     image<uint8_t> im(w, h);
@@ -147,11 +150,13 @@ namespace jtk
         {
         TEST_EQ(imc1(x, y), imc2(x, y));
         }
+#endif
     }
 
 
   void test_census_32()
     {
+#ifndef _JTK_FOR_ARM
     int w = 64;
     int h = 64;
     image<uint32_t> im(w, h);
@@ -171,6 +176,7 @@ namespace jtk
         TEST_EQ(imcg(x, y), imc1(x, y)[1]);
         TEST_EQ(imcb(x, y), imc1(x, y)[2]);
         }
+#endif
     }
 
   }

@@ -288,11 +288,13 @@ namespace jtk
     TEST_EQ(res9[1], 0);
     TEST_EQ(res9[2], -1);
     TEST_EQ(res9[3], -1);
+#ifndef _JTK_FOR_ARM
     int4 res10 = (iota << 2);
     TEST_EQ(res10[0], 4);
     TEST_EQ(res10[1], 8);
     TEST_EQ(res10[2], 12);
     TEST_EQ(res10[3], 16);
+#endif
     int4 res11 = masked_update(bool4(true, false, false, true), two, iota);
     TEST_EQ(res11[0], 1);
     TEST_EQ(res11[1], 2);
@@ -901,7 +903,7 @@ namespace jtk
     intersect_sphere(sphere_origin, sphere_radius, ray_orig, ray_dir, t_near, t_far, h);
     TEST_ASSERT(all(h.found));
     for (int i = 0; i < 4; ++i)
-      TEST_EQ(h.distance[i], 2.f);
+      TEST_EQ_CLOSE(h.distance[i], 2.f, 1e-5);
     }
 
   void sphere_intersection_2()
