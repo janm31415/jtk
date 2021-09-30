@@ -5,9 +5,9 @@
 #define JTK_IMAGE_STATIC
 #include "../jtk/image.h"
 
-#define JTK_DEFORMATION_IMPLEMENTATION
-#define JTK_DEFORMATION_STATIC
-#include "../jtk/deformation.h"
+//#define JTK_DEFORMATION_IMPLEMENTATION
+//#define JTK_DEFORMATION_STATIC
+//#include "../jtk/deformation.h"
 
 #define JTK_GEOMETRY_IMPLEMENTATION
 #define JTK_GEOMETRY_STATIC

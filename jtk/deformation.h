@@ -199,17 +199,17 @@ namespace jtk
 
 namespace jtk
   {
-  JTKDEFORMATIONINLINE distance_field::distance_field()
+  distance_field::distance_field()
     {
     }
 
-  JTKDEFORMATIONINLINE distance_field::distance_field(uint32_t i_x, uint32_t i_y, uint32_t i_z, float i_offset_x, float i_offset_y, float i_offset_z,
+  distance_field::distance_field(uint32_t i_x, uint32_t i_y, uint32_t i_z, float i_offset_x, float i_offset_y, float i_offset_z,
     const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, bool signed_distance)
     {
     init(i_x, i_y, i_z, i_offset_x, i_offset_y, i_offset_z, vertices, triangles, signed_distance);
     }
 
-  JTKDEFORMATIONINLINE void distance_field::init(uint32_t i_x, uint32_t i_y, uint32_t i_z, float i_offset_x, float i_offset_y, float i_offset_z,
+  void distance_field::init(uint32_t i_x, uint32_t i_y, uint32_t i_z, float i_offset_x, float i_offset_y, float i_offset_z,
     const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, bool signed_distance)
     {
     m_x = i_x;
@@ -227,7 +227,7 @@ namespace jtk
     refresh_distance_field();
     }
 
-  JTKDEFORMATIONINLINE void distance_field::refresh_distance_field()
+  void distance_field::refresh_distance_field()
     {
     if (m_vertices.empty() || m_triangles.empty())
       return;
@@ -247,7 +247,7 @@ namespace jtk
     mp_qbvh.reset(new qbvh(m_triangles, m_vertices.data()));
     }
 
-  JTKDEFORMATIONINLINE void distance_field::reset_offset(float i_offset_x, float i_offset_y, float i_offset_z)
+  void distance_field::reset_offset(float i_offset_x, float i_offset_y, float i_offset_z)
     {
     m_offset_x = i_offset_x;
     m_offset_y = i_offset_y;
@@ -255,37 +255,37 @@ namespace jtk
     refresh_distance_field();
     }
 
-  JTKDEFORMATIONINLINE const uint32_t distance_field::size_x() const
+  const uint32_t distance_field::size_x() const
     {
     return m_x;
     }
 
-  JTKDEFORMATIONINLINE const uint32_t distance_field::size_y() const
+  const uint32_t distance_field::size_y() const
     {
     return m_y;
     }
 
-  JTKDEFORMATIONINLINE const uint32_t distance_field::size_z() const
+  const uint32_t distance_field::size_z() const
     {
     return m_z;
     }
 
-  JTKDEFORMATIONINLINE float distance_field::offset_x() const
+  float distance_field::offset_x() const
     {
     return m_offset_x;
     }
 
-  JTKDEFORMATIONINLINE float distance_field::offset_y() const
+  float distance_field::offset_y() const
     {
     return m_offset_y;
     }
 
-  JTKDEFORMATIONINLINE float distance_field::offset_z() const
+  float distance_field::offset_z() const
     {
     return m_offset_z;
     }
 
-  JTKDEFORMATIONINLINE float distance_field::distance_from_point_to_surface(const vec3<float>& i_point) const
+  float distance_field::distance_from_point_to_surface(const vec3<float>& i_point) const
     {
     uint32_t triangle_id;
     auto h = mp_qbvh->find_closest_triangle(triangle_id, i_point, m_triangles.data(), m_vertices.data());
@@ -299,14 +299,14 @@ namespace jtk
       auto v = (i_point - pos);
       float sgn = dot(v, n);
       float dist = h.distance;
-      return sgn >= 0.f ? std::sqrt(dist) : -std::sqrt(dist);
+      return sgn >= 0.f ? dist : -dist;
       }
     else
-      return std::sqrt(h.distance);
+      return h.distance;
     }
 
 
-  JTKDEFORMATIONINLINE boundingbox3d<float> distance_field::bounding_box() const
+  boundingbox3d<float> distance_field::bounding_box() const
     {
     return m_bounding_box;
     }
@@ -390,7 +390,7 @@ namespace jtk
       }
     }
 
-  JTKDEFORMATIONINLINE warping_tool::warping_tool(const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, int distance_field_discretization, float i_decay_factor, bool i_signed_distance) :
+  warping_tool::warping_tool(const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, int distance_field_discretization, float i_decay_factor, bool i_signed_distance) :
     rotation_angle(0.0), decay_factor(i_decay_factor), weight_type(0), signed_distance(i_signed_distance)
     {
     df = std::make_shared<distance_field>(distance_field_discretization, distance_field_discretization, distance_field_discretization, decay_factor * 1.2f, decay_factor * 1.2f, decay_factor * 1.2f, vertices, triangles, signed_distance);
@@ -402,16 +402,16 @@ namespace jtk
     _compute_boundingbox();
     }
 
-  JTKDEFORMATIONINLINE warping_tool::~warping_tool()
+  warping_tool::~warping_tool()
     {
     }
 
-  JTKDEFORMATIONINLINE  void warping_tool::set_weight_type(int w)
+  void warping_tool::set_weight_type(int w)
     {
     weight_type = w;
     }
 
-  JTKDEFORMATIONINLINE void warping_tool::_transform(vec3<float>& pt, float distance) const
+  void warping_tool::_transform(vec3<float>& pt, float distance) const
     {
     float w = _weight(distance, decay_factor, weight_type);
     if (w)
@@ -426,19 +426,19 @@ namespace jtk
       }
     }
 
-  JTKDEFORMATIONINLINE void warping_tool::transform(vec3<float>& pt)
+  void warping_tool::transform(vec3<float>& pt)
     {
     vec3<float> transformed_pt = jtk::transform(coordinate_system_inv, pt);
     float distance = df->distance_from_point_to_surface(transformed_pt);
     _transform(pt, distance);
     }
 
-  JTKDEFORMATIONINLINE bool warping_tool::influences_point(const vec3<float>& pt) const
+  bool warping_tool::influences_point(const vec3<float>& pt) const
     {
     return inside(bb, pt);
     }
 
-  JTKDEFORMATIONINLINE void warping_tool::set_decay_factor(float decay)
+  void warping_tool::set_decay_factor(float decay)
     {
     decay_factor = decay;
     if (decay * 1.2 > df->offset_x())
@@ -446,7 +446,7 @@ namespace jtk
     _compute_boundingbox();
     }
 
-  JTKDEFORMATIONINLINE void warping_tool::set_rotation(const vec3<float>& center, const vec3<float>& vector, float angle)
+  void warping_tool::set_rotation(const vec3<float>& center, const vec3<float>& vector, float angle)
     {
     rotation_angle = angle;
     rotation_center = center;
@@ -472,24 +472,24 @@ namespace jtk
     P[2 + 4 * 2] = vector[2] * vector[2];
     }
 
-  JTKDEFORMATIONINLINE void warping_tool::set_translation(const vec3<float>& t)
+  void warping_tool::set_translation(const vec3<float>& t)
     {
     translation = t;
     }
 
-  JTKDEFORMATIONINLINE const float4x4& warping_tool::get_coordinate_system() const
+  const float4x4& warping_tool::get_coordinate_system() const
     {
     return coordinate_system;
     }
 
-  JTKDEFORMATIONINLINE void warping_tool::set_coordinate_system(const float4x4& cs)
+  void warping_tool::set_coordinate_system(const float4x4& cs)
     {
     coordinate_system = cs;
     coordinate_system_inv = invert_orthonormal(cs);
     _compute_boundingbox();
     }
 
-  JTKDEFORMATIONINLINE void warping_tool::_compute_boundingbox()
+  void warping_tool::_compute_boundingbox()
     {
     bb = df->bounding_box();
     vec3<float> p[8];
@@ -510,7 +510,7 @@ namespace jtk
     }
 
 
-  JTKDEFORMATIONINLINE pushpull_tool::pushpull_tool(const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, float i_decay_factor, bool i_signed_distance) :
+  pushpull_tool::pushpull_tool(const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, float i_decay_factor, bool i_signed_distance) :
     m_vertices(vertices), m_triangles(triangles), decay_factor(i_decay_factor), weight_type(0), signed_distance(i_signed_distance)
     {
     compute_triangle_normals(triangle_normals, m_vertices.data(), m_triangles.data(), (uint32_t)m_triangles.size());
@@ -522,16 +522,16 @@ namespace jtk
     _compute_boundingbox();
     }
 
-  JTKDEFORMATIONINLINE pushpull_tool::~pushpull_tool()
+  pushpull_tool::~pushpull_tool()
     {
     }
 
-  JTKDEFORMATIONINLINE void pushpull_tool::set_weight_type(int w)
+  void pushpull_tool::set_weight_type(int w)
     {
     weight_type = w;
     }
 
-  JTKDEFORMATIONINLINE void pushpull_tool::_transform(vec3<float>& pt, float distance) const
+  void pushpull_tool::_transform(vec3<float>& pt, float distance) const
     {
     float w = _weight(distance, decay_factor, weight_type);
     if (w)
@@ -540,7 +540,7 @@ namespace jtk
       }
     }
 
-  JTKDEFORMATIONINLINE void pushpull_tool::transform(vec3<float>& pt)
+  void pushpull_tool::transform(vec3<float>& pt)
     {
     vec3<float> transformed_pt = jtk::transform(coordinate_system_inv, pt);
 
@@ -563,29 +563,29 @@ namespace jtk
       }
     }
 
-  JTKDEFORMATIONINLINE bool pushpull_tool::influences_point(const vec3<float>& pt) const
+  bool pushpull_tool::influences_point(const vec3<float>& pt) const
     {
     return inside(bb, pt);
     }
 
-  JTKDEFORMATIONINLINE void pushpull_tool::set_decay_factor(float decay)
+  void pushpull_tool::set_decay_factor(float decay)
     {
     decay_factor = decay;
     _compute_boundingbox();
     }
 
-  JTKDEFORMATIONINLINE void pushpull_tool::set_translation(const vec3<float>& t)
+  void pushpull_tool::set_translation(const vec3<float>& t)
     {
     translation = t;
     transformed_translation = normalize(jtk::transform(coordinate_system_inv, translation, true));
     }
 
-  JTKDEFORMATIONINLINE const float4x4& pushpull_tool::get_coordinate_system() const
+  const float4x4& pushpull_tool::get_coordinate_system() const
     {
     return coordinate_system;
     }
 
-  JTKDEFORMATIONINLINE void pushpull_tool::set_coordinate_system(const float4x4& cs)
+  void pushpull_tool::set_coordinate_system(const float4x4& cs)
     {
     coordinate_system = cs;
     coordinate_system_inv = invert_orthonormal(cs);
@@ -593,7 +593,7 @@ namespace jtk
     _compute_boundingbox();
     }
 
-  JTKDEFORMATIONINLINE void pushpull_tool::_compute_boundingbox()
+  void pushpull_tool::_compute_boundingbox()
     {
     bb = bounding_volume_3d<float>(m_vertices.begin(), m_vertices.end());
     bb.min[0] -= decay_factor;
