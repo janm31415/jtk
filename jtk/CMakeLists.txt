@@ -12,6 +12,7 @@ alsc.h
 clamp.h
 concurrency.h
 containers.h
+deformation.h
 file_utils.h
 fitting.h
 geometry.h
