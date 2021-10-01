@@ -1270,7 +1270,8 @@ namespace jtk
           type = types[0];
         else if (_shader_type == shader::shader_type::Fragment)
           type = types[1];
-        std::cout << _log.c_str() << "\n";
+        //std::cout << _log.c_str() << "\n";
+        throw std::runtime_error(_log.c_str());
         }
       }
 
@@ -1332,7 +1333,8 @@ namespace jtk
         }
       else
         {
-        std::cout << "Compile shader error: " << s->log().c_str() << "\n";
+        //std::cout << "Compile shader error: " << s->log().c_str() << "\n";
+        throw std::runtime_error(s->log().c_str());
         s->destroy();
         delete s;
         return false;
@@ -1434,7 +1436,8 @@ namespace jtk
         {
         _log.resize(value);
         glGetProgramInfoLog(_program_id, value, &length, &_log[0]);
-        std::cout << "shader program: link error: " << _log.c_str() << "\n";
+        //std::cout << "shader program: link error: " << _log.c_str() << "\n";
+        throw std::runtime_error(_log.c_str());
         }
 
       remove_all_shaders();
