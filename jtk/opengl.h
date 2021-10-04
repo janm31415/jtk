@@ -652,10 +652,10 @@ namespace jtk
       {
       switch (channels)
         {
-        case 1:  targetFormat = GL_RED_INTEGER;  break;
+        case 1:  targetFormat = GL_RED;  break;
         case 2:  targetFormat = GL_RG; break;
         case 3:  targetFormat = GL_RGB; break;
-        case 4:  targetFormat = GL_RGBA_INTEGER; break;
+        case 4:  targetFormat = GL_RGBA; break;
         }
       pixtype = GL_UNSIGNED_BYTE;
       break;
