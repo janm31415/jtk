@@ -515,10 +515,13 @@ namespace jtk
     const int border = rd.point_size;
 
     float inv[16];
-    float light[4];
-    float tmp[4] = { rd.light_direction[0], rd.light_direction[1], rd.light_direction[2], 0.f };
+    float light[4] = { rd.light_direction[0], rd.light_direction[1], rd.light_direction[2], 0.f };
+    float tmp[4];
     invert_orthonormal(inv, rd.camera_position);
+    mat_vec_multiply(tmp, inv, light);
+    invert_orthonormal(inv, rd.object_system);
     mat_vec_multiply(light, inv, tmp);
+
 #ifdef _JTK_AVX2
     __m256 light_avx[3] = { _mm256_set1_ps(light[0]), _mm256_set1_ps(light[1]), _mm256_set1_ps(light[2]) };
 #else
