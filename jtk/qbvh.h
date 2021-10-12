@@ -214,10 +214,8 @@ namespace jtk
   JTKQBVHDEF int4 masked_update(const bool4& mask, const int4& original, const int4& updated_values);
   JTKQBVHDEF int4 operator & (const int4& left, const int4& right);
   JTKQBVHDEF int4 operator | (const int4& left, const int4& right);
-#ifndef _JTK_FOR_ARM
   JTKQBVHDEF int4 operator >> (const int4& a, int n);
   JTKQBVHDEF int4 operator << (const int4& a, int n);
-#endif
   JTKQBVHDEF int any(const int4& a);
 
 #ifdef _WIN32
@@ -3583,17 +3581,25 @@ namespace jtk
     return _mm_and_si128(left.m128i, right.m128i);
     }
 
-#ifndef _JTK_FOR_ARM
   JTKQBVHDEF int4 operator >> (const int4& a, int n)
     {
+    #ifdef _JTK_FOR_ARM
+    int4 b(a[0]>>n, a[1]>>n, a[2]>>n, a[3]>>n);
+    return b;
+    #else
     return _mm_srai_epi32(a.m128i, n);
+    #endif
     }
 
   JTKQBVHDEF int4 operator << (const int4& a, int n)
     {
+    #ifdef _JTK_FOR_ARM
+    int4 b(a[0]<<n, a[1]<<n, a[2]<<n, a[3]<<n);
+    return b;
+    #else
     return _mm_slli_epi32(a.m128i, n);
+    #endif
     }
-#endif
 
   JTKQBVHDEF int any(const int4& a)
     {
