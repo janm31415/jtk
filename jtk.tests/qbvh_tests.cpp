@@ -983,11 +983,26 @@ namespace jtk
       TEST_EQ_CLOSE(z, rz[i], 1e-5f);
       jtk::float4 q = jtk::rotation_to_quaternion(rot);
       jtk::float4 q2 = jtk::roll_pitch_yaw_to_quaternion(x, y, z);
+
+      jtk::float4 q_inv = jtk::quaternion_inverse(q);
+      jtk::float4 q_qinv = jtk::quaternion_multiply(q, q_inv);
+      TEST_EQ_CLOSE(0, q_qinv[0], 1e-5f);
+      TEST_EQ_CLOSE(0, q_qinv[1], 1e-5f);
+      TEST_EQ_CLOSE(0, q_qinv[2], 1e-5f);
+      TEST_EQ_CLOSE(1, q_qinv[3], 1e-5f);
+
       for (int j = 0; j < 4; ++j)
         TEST_EQ_CLOSE(q[j], q2[j], 1e-5f);
       jtk::float4x4 rot2 = jtk::quaternion_to_rotation(q);
       for (int j = 0; j < 16; ++j)
         TEST_EQ_CLOSE(rot[j], rot2[j], 1e-5f);
+
+      float angle = quaternion_angle(q);
+      jtk::vec3<float> axis = quaternion_axis(q);
+      jtk::float4x4 rot3 = jtk::make_rotation(jtk::vec3<float>(0,0,0), axis, angle);
+      jtk::float4 q3 = jtk::rotation_to_quaternion(rot3);
+      for (int j = 0; j < 4; ++j)
+        TEST_EQ_CLOSE(q[j], q3[j], 1e-5f);
       }
     }
   }

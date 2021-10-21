@@ -85,9 +85,9 @@ namespace jtk
       vector_t& operator=(const vector_t& other);
       vector_t& operator=(vector_t&& other);
       void swap(vector_t& other);
-            iterator begin();
+      iterator begin();
       const_iterator begin() const;
-            iterator end();
+      iterator end();
       const_iterator end() const;
       bool   empty() const;
       size_t size() const;
@@ -95,13 +95,13 @@ namespace jtk
       void resize(size_t new_size);
       void reserve(size_t new_alloced);
       void shrink_to_fit();
-            T& operator[](size_t i);
+      T& operator[](size_t i);
       const T& operator[](size_t i) const;
-            T& at(size_t i);
+      T& at(size_t i);
       const T& at(size_t i) const;
       T& front() const;
       T& back() const;
-            T* data();
+      T* data();
       const T* data() const;
       void push_back(const T& nt);
       void pop_back();
@@ -412,7 +412,13 @@ namespace jtk
   JTKQBVHDEF float4x4 compute_from_roll_pitch_yaw_transformation(float rx, float ry, float rz, float tx, float ty, float tz);
   JTKQBVHDEF float4 roll_pitch_yaw_to_quaternion(float rx, float ry, float rz);
   JTKQBVHDEF float4 rotation_to_quaternion(const float4x4& rotation);
-  JTKQBVHDEF float4x4 quaternion_to_rotation(const float4& quaternion);  
+  JTKQBVHDEF float4x4 quaternion_to_rotation(const float4& quaternion);
+  JTKQBVHDEF float4 quaternion_conjugate(const float4& quaternion);
+  JTKQBVHDEF float4 quaternion_inverse(const float4& quaternion);
+  JTKQBVHDEF float4 quaternion_normalize(const float4& quaternion);
+  JTKQBVHDEF float4 quaternion_multiply(const float4& q1, const float4& q2);
+  JTKQBVHDEF vec3<float> quaternion_axis(const float4& q);
+  JTKQBVHDEF float quaternion_angle(const float4& q);
   JTKQBVHDEF float4x4 look_at(const vec3<float>& eye, const vec3<float>& center, const vec3<float>& up);
 
   template <typename T>
@@ -608,12 +614,12 @@ namespace jtk
       int32_t root_id;
       std::vector<uint32_t>::iterator start;
     };
-    
-    
+
+
   /////////////////////////////////////////////////////////////////////////
   // template class implementations
   /////////////////////////////////////////////////////////////////////////
-    
+
   template<typename T, size_t alignment>
   typename aligned_allocator<T, alignment>::pointer aligned_allocator<T, alignment>::allocate(size_type n)
     {
@@ -760,12 +766,12 @@ namespace jtk
     }
 
   template<typename T, typename allocator>
-   T& vector_t<T, allocator>::operator[](size_t i) { assert(i < size_active); return items[i]; }
+  T& vector_t<T, allocator>::operator[](size_t i) { assert(i < size_active); return items[i]; }
   template<typename T, typename allocator>
   const T& vector_t<T, allocator>::operator[](size_t i) const { assert(i < size_active); return items[i]; }
 
   template<typename T, typename allocator>
-        T& vector_t<T, allocator>::at(size_t i) { assert(i < size_active); return items[i]; }
+  T& vector_t<T, allocator>::at(size_t i) { assert(i < size_active); return items[i]; }
   template<typename T, typename allocator>
   const T& vector_t<T, allocator>::at(size_t i) const { assert(i < size_active); return items[i]; }
 
@@ -775,7 +781,7 @@ namespace jtk
   T& vector_t<T, allocator>::back() const { assert(size_active > 0); return items[size_active - 1]; };
 
   template<typename T, typename allocator>
-        T* vector_t<T, allocator>::data() { return items; };
+  T* vector_t<T, allocator>::data() { return items; };
   template<typename T, typename allocator>
   const T* vector_t<T, allocator>::data() const { return items; };
 
@@ -899,21 +905,21 @@ namespace jtk
       }
     return new_size_alloced;
     }
-    
+
   /////////////////////////////////////////////////////////////////////////
   // struct bool4
   /////////////////////////////////////////////////////////////////////////
-    
+
   template <typename T>
   int32_t& bool4::operator [](T index) { return i[index]; }
 
   template <typename T>
   int32_t bool4::operator [](T index) const { return i[index]; }
-  
+
   /////////////////////////////////////////////////////////////////////////
   // struct int4
   /////////////////////////////////////////////////////////////////////////
-  
+
   template <typename T>
   int32_t& int4::operator [] (T ind)
     {
@@ -925,7 +931,7 @@ namespace jtk
     {
     return i[ind];
     }
-    
+
   /////////////////////////////////////////////////////////////////////////
   // struct float4
   /////////////////////////////////////////////////////////////////////////
@@ -942,7 +948,7 @@ namespace jtk
     {
     return f[i];
     }
-    
+
   /////////////////////////////////////////////////////////////////////////
   // struct float4x4
   /////////////////////////////////////////////////////////////////////////
@@ -960,7 +966,7 @@ namespace jtk
     {
     return f[i];
     }
-    
+
   /////////////////////////////////////////////////////////////////////////
   // parallel partition
   /////////////////////////////////////////////////////////////////////////
@@ -1216,7 +1222,7 @@ I'm following the same algorithm steps, but do everything in place.
 
     return mid;
     }
-    
+
   static const uint32_t order[8][4] =
     { { 3,2,1,0 },
     { 3,2,0,1 },
@@ -1232,7 +1238,7 @@ I'm following the same algorithm steps, but do everything in place.
   static const uint32_t sign_bit = 0x80000000;
   static const int4 sign_mask = int4(0x80000000, 0x80000000, 0x80000000, 0x80000000);
   static const int4 bit_mask = int4(0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF);
-  
+
   static const __m128 lookup_mask[16] =
     {
     _mm_castsi128_ps(_mm_set_epi32(0x00000000, 0x00000000, 0x00000000, 0x00000000)), // 0000b
@@ -1253,7 +1259,7 @@ I'm following the same algorithm steps, but do everything in place.
     _mm_castsi128_ps(_mm_set_epi32(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff))  // 1111b
     };
 
-  static const float epsilon = std::numeric_limits<float>::epsilon()*2.f;
+  static const float epsilon = std::numeric_limits<float>::epsilon() * 2.f;
   static const __m128 three_128 = _mm_set1_ps(3.0f);
   static const __m128 half_128 = _mm_set1_ps(0.5f);
   static const __m128 one_128 = _mm_set1_ps(1.f);
@@ -1263,7 +1269,7 @@ I'm following the same algorithm steps, but do everything in place.
   static const __m128 minus_epsilon_128 = _mm_set1_ps(-epsilon);
   static const __m128 one_plus_epsilon_128 = _mm_set1_ps(1.f + epsilon);
   static const uint32_t modulo[] = { 0,1,2,0,1 };
-    
+
   JTKQBVHINLINE bool4::bool4() {}
   JTKQBVHINLINE bool4::bool4(const __m128 in) : m128(in) {}
   JTKQBVHINLINE bool4::bool4(const __m128i in) : m128(_mm_castsi128_ps(in)) {}
@@ -1275,13 +1281,13 @@ I'm following the same algorithm steps, but do everything in place.
   JTKQBVHINLINE int4::int4(int32_t in) : m128i(_mm_set1_epi32(in)) {}
   JTKQBVHINLINE int4::int4(int32_t i0, int32_t i1, int32_t i2, int32_t i3) : m128i(_mm_set_epi32(i3, i2, i1, i0)) {}
   JTKQBVHINLINE int4::int4(const bool4& in) : m128i(_mm_castps_si128(in.m128)) {}
-  
+
   JTKQBVHINLINE float4::float4() {}
   JTKQBVHINLINE float4::float4(const __m128 in) : m128(in) {}
   JTKQBVHINLINE float4::float4(float f) : m128(_mm_set1_ps(f)) {}
   JTKQBVHINLINE float4::float4(float _x, float _y, float _z) : m128(_mm_set_ps(1.f, _z, _y, _x)) {}
   JTKQBVHINLINE float4::float4(float _x, float _y, float _z, float _w) : m128(_mm_set_ps(_w, _z, _y, _x)) {}
-  
+
   JTKQBVHINLINE float4x4::float4x4() {}
   JTKQBVHINLINE float4x4::float4x4(const float4& col0, const float4& col1, const float4& col2, const float4& col3) : col{ col0, col1, col2, col3 } {}
   JTKQBVHINLINE float4x4::float4x4(float* m)
@@ -1289,14 +1295,14 @@ I'm following the same algorithm steps, but do everything in place.
     for (int i = 0; i < 16; ++i)
       f[i] = m[i];
     }
-    
+
   JTKQBVHINLINE void* qbvh_voxel::operator new(size_t size) { return aligned_malloc(size, 16); }
   JTKQBVHINLINE void qbvh_voxel::operator delete(void* ptr) { aligned_free(ptr); }
   JTKQBVHINLINE void* qbvh_voxel::operator new[](size_t size) { return aligned_malloc(size, 16); }
   JTKQBVHINLINE void qbvh_voxel::operator delete[](void* ptr) { aligned_free(ptr); }
 
 
-  template <int K>
+    template <int K>
   void sah_optimized(std::vector<uint32_t>::iterator& mid, qbvh_voxel& bbox_left, qbvh_voxel& bbox_right, qbvh_voxel& centroid_left, qbvh_voxel& centroid_right, uint8_t& dim, const qbvh_voxel& bbox, const qbvh_voxel& centroid_bb, const qbvh_voxel* voxels, std::vector<uint32_t>::iterator first, std::vector<uint32_t>::iterator last)
     {
     const uint32_t nr_of_triangles = (uint32_t)std::distance(first, last);
@@ -1315,8 +1321,8 @@ I'm following the same algorithm steps, but do everything in place.
 
     for (auto it = first; it != last; ++it)
       {
-      const uint32_t bmin = (uint32_t)std::floor(k1*(voxels[*it].bbox_min[dim] - k0));
-      const uint32_t bmax = (uint32_t)std::floor(k1*(voxels[*it].bbox_max[dim] - k0));
+      const uint32_t bmin = (uint32_t)std::floor(k1 * (voxels[*it].bbox_min[dim] - k0));
+      const uint32_t bmax = (uint32_t)std::floor(k1 * (voxels[*it].bbox_max[dim] - k0));
       ++bin[bmin];
       ++bin[K + bmax];
       }
@@ -1335,7 +1341,7 @@ I'm following the same algorithm steps, but do everything in place.
     const float bsize = s;
     const float bstep = bsize * one_over_K;
 
-    split_pos = k0 + (float)0.5*bstep;
+    split_pos = k0 + (float)0.5 * bstep;
     minimal_cost = std::numeric_limits<float>::max();
 
     uint32_t left = 0;
@@ -1353,7 +1359,7 @@ I'm following the same algorithm steps, but do everything in place.
       assert(left <= nr_of_triangles);
       assert(right <= nr_of_triangles);
 
-      const float pos = k0 + (i + 0.5f)*bstep;
+      const float pos = k0 + (i + 0.5f) * bstep;
       bmaxleft[dim] = pos;
       bminright[dim] = pos;
 
@@ -1453,8 +1459,8 @@ I'm following the same algorithm steps, but do everything in place.
       const auto it_end = first + e;
       for (; it != it_end; ++it)
         {
-        const uint32_t bmin = (uint32_t)std::floor(k1*(voxels[*it].bbox_min[dim] - k0));
-        const uint32_t bmax = (uint32_t)std::floor(k1*(voxels[*it].bbox_max[dim] - k0));
+        const uint32_t bmin = (uint32_t)std::floor(k1 * (voxels[*it].bbox_min[dim] - k0));
+        const uint32_t bmax = (uint32_t)std::floor(k1 * (voxels[*it].bbox_max[dim] - k0));
         ++local_bins[t][bmin];
         ++local_bins[t][K + bmax];
         }
@@ -1480,7 +1486,7 @@ I'm following the same algorithm steps, but do everything in place.
     const float bsize = sw;
     const float bstep = bsize * one_over_K;
 
-    split_pos = k0 + (float)0.5*bstep;
+    split_pos = k0 + (float)0.5 * bstep;
     minimal_cost = std::numeric_limits<float>::max();
 
     uint32_t left = 0;
@@ -1498,7 +1504,7 @@ I'm following the same algorithm steps, but do everything in place.
       assert(left <= nr_of_triangles);
       assert(right <= nr_of_triangles);
 
-      const float pos = k0 + (i + (float)0.5)*bstep;
+      const float pos = k0 + (i + (float)0.5) * bstep;
       bmaxleft[dim] = pos;
       bminright[dim] = pos;
 
@@ -1552,7 +1558,7 @@ I'm following the same algorithm steps, but do everything in place.
     parallel_for((unsigned int)0, number_of_blocks, [&](unsigned int t)
       {
       const uint64_t s1 = (uint64_t)t * (uint64_t)(nr_of_left_items) / (uint64_t)number_of_blocks;
-      const uint64_t e1 = (uint64_t)(t + 1) *(uint64_t)(nr_of_left_items) / (uint64_t)number_of_blocks;
+      const uint64_t e1 = (uint64_t)(t + 1) * (uint64_t)(nr_of_left_items) / (uint64_t)number_of_blocks;
       auto it1 = first + s1;
       const auto it1_end = first + e1;
       for (; it1 != it1_end; ++it1)
@@ -1689,20 +1695,20 @@ I'm following the same algorithm steps, but do everything in place.
                     const uint32_t v32 = (*tria3)[2];
                     ++ind;
 
-                    _mm_prefetch((char *)(vertices + v00), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v10), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v20), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v30), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v00), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v10), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v20), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v30), _MM_HINT_T0);
 
-                    _mm_prefetch((char *)(vertices + v01), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v11), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v21), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v31), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v01), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v11), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v21), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v31), _MM_HINT_T0);
 
-                    _mm_prefetch((char *)(vertices + v02), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v12), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v22), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v32), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v02), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v12), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v22), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v32), _MM_HINT_T0);
 
                     acc.v0[0] = float4(vertices[v00][0], vertices[v10][0], vertices[v20][0], vertices[v30][0]);
                     acc.v0[1] = float4(vertices[v00][1], vertices[v10][1], vertices[v20][1], vertices[v30][1]);
@@ -1836,20 +1842,20 @@ I'm following the same algorithm steps, but do everything in place.
                     const uint32_t v32 = (*tria3)[2];
                     ++ind;
 
-                    _mm_prefetch((char *)(vertices + v00), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v10), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v20), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v30), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v00), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v10), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v20), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v30), _MM_HINT_T0);
 
-                    _mm_prefetch((char *)(vertices + v01), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v11), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v21), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v31), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v01), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v11), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v21), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v31), _MM_HINT_T0);
 
-                    _mm_prefetch((char *)(vertices + v02), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v12), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v22), _MM_HINT_T0);
-                    _mm_prefetch((char *)(vertices + v32), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v02), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v12), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v22), _MM_HINT_T0);
+                    _mm_prefetch((char*)(vertices + v32), _MM_HINT_T0);
 
                     acc.v0[0] = float4(vertices[v00][0], vertices[v10][0], vertices[v20][0], vertices[v30][0]);
                     acc.v0[1] = float4(vertices[v00][1], vertices[v10][1], vertices[v20][1], vertices[v30][1]);
@@ -1970,20 +1976,20 @@ I'm following the same algorithm steps, but do everything in place.
                 const uint32_t v32 = (*tria3)[2];
                 ++ind;
 
-                _mm_prefetch((char *)(vertices + v00), _MM_HINT_T0);
-                _mm_prefetch((char *)(vertices + v10), _MM_HINT_T0);
-                _mm_prefetch((char *)(vertices + v20), _MM_HINT_T0);
-                _mm_prefetch((char *)(vertices + v30), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v00), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v10), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v20), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v30), _MM_HINT_T0);
 
-                _mm_prefetch((char *)(vertices + v01), _MM_HINT_T0);
-                _mm_prefetch((char *)(vertices + v11), _MM_HINT_T0);
-                _mm_prefetch((char *)(vertices + v21), _MM_HINT_T0);
-                _mm_prefetch((char *)(vertices + v31), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v01), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v11), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v21), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v31), _MM_HINT_T0);
 
-                _mm_prefetch((char *)(vertices + v02), _MM_HINT_T0);
-                _mm_prefetch((char *)(vertices + v12), _MM_HINT_T0);
-                _mm_prefetch((char *)(vertices + v22), _MM_HINT_T0);
-                _mm_prefetch((char *)(vertices + v32), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v02), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v12), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v22), _MM_HINT_T0);
+                _mm_prefetch((char*)(vertices + v32), _MM_HINT_T0);
 
                 acc.v0[0] = float4(vertices[v00][0], vertices[v10][0], vertices[v20][0], vertices[v30][0]);
                 acc.v0[1] = float4(vertices[v00][1], vertices[v10][1], vertices[v20][1], vertices[v30][1]);
@@ -2960,8 +2966,8 @@ I'm following the same algorithm steps, but do everything in place.
 
     return id;
     }
-    
-    
+
+
 
   JTKQBVHINLINE qbvh_two_level::qbvh_two_level(const qbvh** objects, uint32_t nr_of_objects)
     {
@@ -2976,7 +2982,7 @@ I'm following the same algorithm steps, but do everything in place.
       {
       const qbvh* current_bvh = objects[t];
       unite_four_aabbs(voxels[t], current_bvh->nodes[current_bvh->root_id].bbox);
-      voxels[t].centroid = (voxels[t].bbox_min + voxels[t].bbox_max)*0.5f;
+      voxels[t].centroid = (voxels[t].bbox_min + voxels[t].bbox_max) * 0.5f;
       total_bb.bbox_min = min(total_bb.bbox_min, voxels[t].bbox_min);
       total_bb.bbox_max = max(total_bb.bbox_max, voxels[t].bbox_max);
       centroid_bb.bbox_min = min(centroid_bb.bbox_min, voxels[t].centroid);
@@ -3159,7 +3165,7 @@ I'm following the same algorithm steps, but do everything in place.
       return node_id;
       }
     }
-    
+
 
   JTKQBVHINLINE qbvh_two_level_with_transformations::qbvh_two_level_with_transformations(const qbvh** objects, const float4x4* transformations, uint32_t nr_of_objects)
     {
@@ -3175,7 +3181,7 @@ I'm following the same algorithm steps, but do everything in place.
       const qbvh* current_bvh = objects[t];
       unite_four_aabbs(voxels[t], current_bvh->nodes[current_bvh->root_id].bbox);
       transform(voxels[t], transformations[t]);
-      voxels[t].centroid = (voxels[t].bbox_min + voxels[t].bbox_max)*0.5f;
+      voxels[t].centroid = (voxels[t].bbox_min + voxels[t].bbox_max) * 0.5f;
       total_bb.bbox_min = min(total_bb.bbox_min, voxels[t].bbox_min);
       total_bb.bbox_max = max(total_bb.bbox_max, voxels[t].bbox_max);
       centroid_bb.bbox_min = min(centroid_bb.bbox_min, voxels[t].centroid);
@@ -3360,7 +3366,7 @@ I'm following the same algorithm steps, but do everything in place.
       return node_id;
       }
     }
-    
+
   } // namespace jtk
 
 #endif //#ifndef JTK_QBVH_H
@@ -3524,7 +3530,7 @@ namespace jtk
 
   JTKQBVHDEF int4 operator * (int32_t left, const int4& right)
     {
-    return int4(left)*right;
+    return int4(left) * right;
     }
 
   JTKQBVHDEF int4 min(const int4& left, const int4& right)
@@ -3584,22 +3590,22 @@ namespace jtk
 
   JTKQBVHDEF int4 operator >> (const int4& a, int n)
     {
-    #ifdef _JTK_FOR_ARM
-    int4 b(a[0]>>n, a[1]>>n, a[2]>>n, a[3]>>n);
+#ifdef _JTK_FOR_ARM
+    int4 b(a[0] >> n, a[1] >> n, a[2] >> n, a[3] >> n);
     return b;
-    #else
+#else
     return _mm_srai_epi32(a.m128i, n);
-    #endif
+#endif
     }
 
   JTKQBVHDEF int4 operator << (const int4& a, int n)
     {
-    #ifdef _JTK_FOR_ARM
-    int4 b(a[0]<<n, a[1]<<n, a[2]<<n, a[3]<<n);
+#ifdef _JTK_FOR_ARM
+    int4 b(a[0] << n, a[1] << n, a[2] << n, a[3] << n);
     return b;
-    #else
+#else
     return _mm_slli_epi32(a.m128i, n);
-    #endif
+#endif
     }
 
   JTKQBVHDEF int any(const int4& a)
@@ -3643,7 +3649,7 @@ namespace jtk
 
   JTKQBVHDEF float4 operator * (float left, const float4& right)
     {
-    return float4(left)*right;
+    return float4(left) * right;
     }
 
   JTKQBVHDEF float4 operator / (const float4& left, const float4& right)
@@ -3823,11 +3829,11 @@ namespace jtk
     {
     rz = std::atan2(m.col[0][1], m.col[0][0]);
     const auto sg = std::sin(rz);
-    const auto cg = std::cos(rz);    
-    ry = std::atan2(-m.col[0][2], m.col[0][0] * cg + m.col[0][1] * sg);    
-    rx = std::atan2(m.col[2][0] * sg - m.col[2][1] * cg, m.col[1][1] * cg - m.col[1][0] * sg);    
-    tx = m.col[3][0];    
-    ty = m.col[3][1];    
+    const auto cg = std::cos(rz);
+    ry = std::atan2(-m.col[0][2], m.col[0][0] * cg + m.col[0][1] * sg);
+    rx = std::atan2(m.col[2][0] * sg - m.col[2][1] * cg, m.col[1][1] * cg - m.col[1][0] * sg);
+    tx = m.col[3][0];
+    ty = m.col[3][1];
     tz = m.col[3][2];
     }
 
@@ -3841,7 +3847,7 @@ namespace jtk
     float cb = std::cos(ry);
     float sb = std::sin(ry);
     float cg = std::cos(rz);
-    float sg = std::sin(rz);    
+    float sg = std::sin(rz);
     m.col[0][0] = cb * cg;
     m.col[1][0] = cg * sa * sb - ca * sg;
     m.col[2][0] = sa * sg + ca * cg * sb;
@@ -3882,6 +3888,43 @@ namespace jtk
     return rot;
     }
 
+  JTKQBVHDEF float4 quaternion_multiply(const float4& q1, const float4& q2)
+    {
+    return float4(q1[3] * q2[0] + q1[0] * q2[3] + q1[1] * q2[2] - q1[2] * q2[1],
+      q1[3] * q2[1] - q1[0] * q2[2] + q1[1] * q2[3] + q1[2] * q2[0],
+      q1[3] * q2[2] + q1[0] * q2[1] - q1[1] * q2[0] + q1[2] * q2[3],
+      q1[3] * q2[3] - q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2]);
+    }
+
+  JTKQBVHDEF vec3<float> quaternion_axis(const float4& q)
+    {
+    return normalize(vec3<float>(q[0], q[1], q[2]));
+    }
+
+  JTKQBVHDEF float quaternion_angle(const float4& q)
+    {
+    return 2.f*std::acos(q[3]);
+    }
+
+  JTKQBVHDEF float4 quaternion_conjugate(const float4& quaternion)
+    {
+    return float4(-quaternion[0], -quaternion[1], -quaternion[2], quaternion[3]);
+    }
+
+  JTKQBVHDEF float4 quaternion_inverse(const float4& quaternion)
+    {
+    //float denom = quaternion[0] * quaternion[0] + quaternion[1] * quaternion[1] + quaternion[2] * quaternion[2] + quaternion[3] * quaternion[3];
+    float denom = dot4(quaternion, quaternion);
+    return quaternion_conjugate(quaternion)/denom;
+    }
+
+  JTKQBVHDEF float4 quaternion_normalize(const float4& quaternion)
+    {
+    //float denom = std::sqrt(quaternion[0] * quaternion[0] + quaternion[1] * quaternion[1] + quaternion[2] * quaternion[2] + quaternion[3] * quaternion[3]);
+    float denom = std::sqrt(dot4(quaternion, quaternion));
+    return quaternion / denom;
+    }
+
   JTKQBVHDEF float4x4 look_at(const vec3<float>& eye, const vec3<float>& center, const vec3<float>& up)
     {
     float4x4 m;
@@ -3911,7 +3954,7 @@ namespace jtk
     }
 
   JTKQBVHDEF float4 roll_pitch_yaw_to_quaternion(float rx, float ry, float rz)
-    {    
+    {
     float cy = std::cos(rz * 0.5f);
     float sy = std::sin(rz * 0.5f);
     float cp = std::cos(ry * 0.5f);
@@ -3919,7 +3962,7 @@ namespace jtk
     float cr = std::cos(rx * 0.5f);
     float sr = std::sin(rx * 0.5f);
 
-    float4 q;     
+    float4 q;
     q[0] = sr * cp * cy - cr * sp * sy;
     q[1] = cr * sp * cy + sr * cp * sy;
     q[2] = cr * cp * sy - sr * sp * cy;
@@ -4148,12 +4191,12 @@ namespace jtk
     const auto B = acc.v1 - r_orig;
     const auto C = acc.v2 - r_orig;
 
-    const float4 Ax = A[pre.kx] - pre.Sx*A[pre.kz];
-    const float4 Ay = A[pre.ky] - pre.Sy*A[pre.kz];
-    const float4 Bx = B[pre.kx] - pre.Sx*B[pre.kz];
-    const float4 By = B[pre.ky] - pre.Sy*B[pre.kz];
-    const float4 Cx = C[pre.kx] - pre.Sx*C[pre.kz];
-    const float4 Cy = C[pre.ky] - pre.Sy*C[pre.kz];
+    const float4 Ax = A[pre.kx] - pre.Sx * A[pre.kz];
+    const float4 Ay = A[pre.ky] - pre.Sy * A[pre.kz];
+    const float4 Bx = B[pre.kx] - pre.Sx * B[pre.kz];
+    const float4 By = B[pre.ky] - pre.Sy * B[pre.kz];
+    const float4 Cx = C[pre.kx] - pre.Sx * C[pre.kz];
+    const float4 Cy = C[pre.ky] - pre.Sy * C[pre.kz];
 
     float4 U = Cx * By - Cy * Bx;
     float4 V = Ax * Cy - Ay * Cx;
@@ -4173,9 +4216,9 @@ namespace jtk
 
     const float4 inv_det = reciprocal(det);
 
-    const float4 Az = pre.Sz*A[pre.kz];
-    const float4 Bz = pre.Sz*B[pre.kz];
-    const float4 Cz = pre.Sz*C[pre.kz];
+    const float4 Az = pre.Sz * A[pre.kz];
+    const float4 Bz = pre.Sz * B[pre.kz];
+    const float4 Cz = pre.Sz * C[pre.kz];
     const float4 T = U * Az + V * Bz + W * Cz;
     const float4 t = T * inv_det;
 
@@ -4247,7 +4290,7 @@ namespace jtk
       return;
     const bool4 t0_is_closest = abs(t0) < abs(t1);
     const float4 t_closest = masked_update(t0_is_closest, t1, t0);
-    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
+    h.distance = masked_update(t0_is_valid & t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
 #else
     /*
     Precision Improvements for Ray/Sphere Intersection
@@ -4294,7 +4337,7 @@ namespace jtk
     if (none(h.found))
       return;
     const float4 c = dot(f, f) - sphere_radius_sqr;
-    const float4 q = b + masked_update(b > float4(0.f), float4(-1.f), float4(1.f))*sqrt(delta);
+    const float4 q = b + masked_update(b > float4(0.f), float4(-1.f), float4(1.f)) * sqrt(delta);
     const float4 t0 = c / q;
     const float4 t1 = q;
     const bool4 t0_is_valid = (t_near <= t0) & (t0 <= t_far);
@@ -4304,7 +4347,7 @@ namespace jtk
       return;
     const bool4 t0_is_closest = abs(t0) < abs(t1);
     const float4 t_closest = masked_update(t0_is_closest, t1, t0);
-    h.distance = masked_update(t0_is_valid&t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
+    h.distance = masked_update(t0_is_valid & t1_is_valid, masked_update(t0_is_valid, t1, t0), t_closest);
 #endif
     }
 
@@ -4341,7 +4384,7 @@ namespace jtk
     exit |= mask2;
     if (all(exit))
       {
-      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+      const vec3<float4> closest_point = acc.v0 + dist.u * ab + dist.v * ac;
       dist.distance_sqr = length_sqr(closest_point - point);
       return;
       }
@@ -4356,7 +4399,7 @@ namespace jtk
     exit |= mask3;
     if (all(exit))
       {
-      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+      const vec3<float4> closest_point = acc.v0 + dist.u * ab + dist.v * ac;
       dist.distance_sqr = length_sqr(closest_point - point);
       return;
       }
@@ -4371,7 +4414,7 @@ namespace jtk
     exit |= mask4;
     if (all(exit))
       {
-      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+      const vec3<float4> closest_point = acc.v0 + dist.u * ab + dist.v * ac;
       dist.distance_sqr = length_sqr(closest_point - point);
       return;
       }
@@ -4386,7 +4429,7 @@ namespace jtk
     exit |= mask5;
     if (all(exit))
       {
-      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+      const vec3<float4> closest_point = acc.v0 + dist.u * ab + dist.v * ac;
       dist.distance_sqr = length_sqr(closest_point - point);
       return;
       }
@@ -4401,7 +4444,7 @@ namespace jtk
     exit |= mask6;
     if (all(exit))
       {
-      const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+      const vec3<float4> closest_point = acc.v0 + dist.u * ab + dist.v * ac;
       dist.distance_sqr = length_sqr(closest_point - point);
       return;
       }
@@ -4413,7 +4456,7 @@ namespace jtk
     const auto mask7 = !exit;
     dist.u = masked_update(exit, masked_update(mask7, dist.u, v2), dist.u);
     dist.v = masked_update(exit, masked_update(mask7, dist.v, w3), dist.v);
-    const vec3<float4> closest_point = acc.v0 + dist.u*ab + dist.v*ac;
+    const vec3<float4> closest_point = acc.v0 + dist.u * ab + dist.v * ac;
     dist.distance_sqr = length_sqr(closest_point - point);
     }
 
@@ -4636,7 +4679,7 @@ namespace jtk
         const float4 v2(vertices[triangles[t][2]][0], vertices[triangles[t][2]][1], vertices[triangles[t][2]][2], 1);
         lst[t].bbox_min = min(min(v0, v1), v2);
         lst[t].bbox_max = max(max(v0, v1), v2);
-        lst[t].centroid = (lst[t].bbox_min + lst[t].bbox_max)*0.5;
+        lst[t].centroid = (lst[t].bbox_min + lst[t].bbox_max) * 0.5;
         total_bbs[i].bbox_min = min(total_bbs[i].bbox_min, lst[t].bbox_min);
         total_bbs[i].bbox_max = max(total_bbs[i].bbox_max, lst[t].bbox_max);
         total_centroids[i].bbox_min = min(total_centroids[i].bbox_min, lst[t].centroid);
@@ -4651,8 +4694,8 @@ namespace jtk
       centroid_bb.bbox_min = min(centroid_bb.bbox_min, total_centroids[i].bbox_min);
       centroid_bb.bbox_max = max(centroid_bb.bbox_max, total_centroids[i].bbox_max);
       }
-    total_bb.centroid = (total_bb.bbox_min + total_bb.bbox_max)*0.5;
-    centroid_bb.centroid = (centroid_bb.bbox_min + centroid_bb.bbox_max)*0.5;
+    total_bb.centroid = (total_bb.bbox_min + total_bb.bbox_max) * 0.5;
+    centroid_bb.centroid = (centroid_bb.bbox_min + centroid_bb.bbox_max) * 0.5;
     return lst;
     }
 
@@ -4691,8 +4734,8 @@ namespace jtk
       centroid_bb.bbox_min = min(centroid_bb.bbox_min, total_centroids[i].bbox_min);
       centroid_bb.bbox_max = max(centroid_bb.bbox_max, total_centroids[i].bbox_max);
       }
-    total_bb.centroid = (total_bb.bbox_min + total_bb.bbox_max)*0.5;
-    centroid_bb.centroid = (centroid_bb.bbox_min + centroid_bb.bbox_max)*0.5;
+    total_bb.centroid = (total_bb.bbox_min + total_bb.bbox_max) * 0.5;
+    centroid_bb.centroid = (centroid_bb.bbox_min + centroid_bb.bbox_max) * 0.5;
     return lst;
     }
 
