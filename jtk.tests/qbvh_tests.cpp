@@ -963,12 +963,40 @@ namespace jtk
     sphere_intersection_3();
     sphere_intersection_4();
     }
+
+  void run_all_quaternion_tests()
+    {
+    std::vector<float> rx, ry, rz;
+    rx = {{0.0, 0.1, 0.2, 0.3, 0.4, -0.1, -0.2, -0.3, -0.4, 0.5, 0.6, 0.7, 0.8, 0.9, -0.5, -0.6, -0.7, -0.8, -0.9, 1.0}};
+    ry = { {0.0, 0.0, 0.1, 0.1, 0.2, 0.2, 0.3, 0.3, -0.1, -0.1, -0.2, -0.2, -0.3, -0.3, -0.4, -0.4, 0.7, 0.8, 0.9, 1.0} };
+    rz = { {1.0, 0.9, 0.8, 0.7, -1.0, -0.9, -0.8, -0.7, 0.6, 0.5, 0.4, 0.3, -0.6, -0.5, -0.4, -0.3, 0.1, 0.0, -0.1, -0.9} };
+    for (size_t i = 0; i < rx.size(); ++i)
+      {
+      float x = rx[i];
+      float y = ry[i];
+      float z = rz[i];
+      jtk::float4x4 rot = jtk::compute_from_roll_pitch_yaw_transformation(x, y, z, 0.f, 0.f, 0.f);
+      float tx,ty,tz;
+      jtk::solve_roll_pitch_yaw_transformation(x, y, z, tx, ty, tz, rot);
+      TEST_EQ_CLOSE(x, rx[i], 1e-5f);
+      TEST_EQ_CLOSE(y, ry[i], 1e-5f);
+      TEST_EQ_CLOSE(z, rz[i], 1e-5f);
+      jtk::float4 q = jtk::rotation_to_quaternion(rot);
+      jtk::float4 q2 = jtk::roll_pitch_yaw_to_quaternion(x, y, z);
+      for (int j = 0; j < 4; ++j)
+        TEST_EQ_CLOSE(q[j], q2[j], 1e-5f);
+      jtk::float4x4 rot2 = jtk::quaternion_to_rotation(q);
+      for (int j = 0; j < 16; ++j)
+        TEST_EQ_CLOSE(rot[j], rot2[j], 1e-5f);
+      }
+    }
   }
 
 
 void run_all_qbvh_tests()
   {
   using namespace jtk;
+  run_all_quaternion_tests();
   run_all_simd_tests();
   run_all_bvh_tests();
   run_all_parallel_partition_tests();
