@@ -3929,27 +3929,16 @@ namespace jtk
     {
     float4x4 m;
     vec3<float> z = normalize(eye - center);
-    vec3<float> y = up;
-    vec3<float> x = cross(y, z);
-    y = cross(z, x);
-    x = normalize(x);
-    y = normalize(y);
-    m[0] = x[0];
-    m[1] = x[1];
-    m[2] = x[2];
-    m[3] = 0.f;
-    m[4] = y[0];
-    m[5] = y[1];
-    m[6] = y[2];
-    m[7] = 0.f;
-    m[8] = z[0];
-    m[9] = z[1];
-    m[10] = z[2];
-    m[11] = 0.f;
-    m[12] = -dot(x, eye);
-    m[13] = -dot(y, eye);
-    m[14] = -dot(z, eye);
-    m[15] = 1.f;
+    vec3<float> x = normalize(cross(up, z));
+    vec3<float> y = cross(z, x);
+    float4 X(x[0], y[0], z[0], 0.f);
+    float4 Y(x[1], y[1], z[1], 0.f);
+    float4 Z(x[2], y[2], z[2], 0.f);
+    float4 W(-dot(x, eye), -dot(y, eye), -dot(z, eye), 1.f);
+    m.col[0] = X;
+    m.col[1] = Y;
+    m.col[2] = Z;
+    m.col[3] = W;
     return m;
     }
 
