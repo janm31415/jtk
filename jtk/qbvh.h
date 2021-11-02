@@ -420,6 +420,7 @@ namespace jtk
   JTKQBVHDEF vec3<float> quaternion_axis(const float4& q);
   JTKQBVHDEF float quaternion_angle(const float4& q);
   JTKQBVHDEF float4x4 look_at(const vec3<float>& eye, const vec3<float>& center, const vec3<float>& up);
+  JTKQBVHDEF void get_eye_center_up(vec3<float>& eye, vec3<float>& center, vec3<float>& up, const float4x4& transform);
 
   template <typename T>
   struct range
@@ -3940,6 +3941,17 @@ namespace jtk
     m.col[2] = Z;
     m.col[3] = W;
     return m;
+    }
+
+  JTKQBVHDEF void get_eye_center_up(vec3<float>& eye, vec3<float>& center, vec3<float>& up, const float4x4& transform)
+    {
+    float4x4 tr_inv = invert_orthonormal(transform);
+    eye[0] = tr_inv[12];
+    eye[1] = tr_inv[13];
+    eye[2] = tr_inv[14];
+
+    up = vec3<float>(tr_inv[4], tr_inv[5], tr_inv[6]);
+    center = eye - vec3<float>(tr_inv[8], tr_inv[9], tr_inv[10]);
     }
 
   JTKQBVHDEF float4 roll_pitch_yaw_to_quaternion(float rx, float ry, float rz)

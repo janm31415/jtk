@@ -1005,16 +1005,47 @@ namespace jtk
         TEST_EQ_CLOSE(q[j], q3[j], 1e-5f);
       }
     }
+
+  void run_all_lookat_tests()
+    {
+    std::mt19937 gen(0);
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+    for (int i = 0; i < 10; ++i)
+      {
+      jtk::vec3<float> eye(dis(gen), dis(gen), dis(gen));
+      jtk::vec3<float> center(dis(gen), dis(gen), dis(gen));
+      eye = eye * 50.f;
+      center = center * 50.f;
+      jtk::vec3<float> x(dis(gen), dis(gen), dis(gen));
+      jtk::vec3<float> up = jtk::normalize(jtk::cross(center-eye, x));
+      auto tr = jtk::look_at(eye, center, up);
+      jtk::vec3<float> eye2, center2, up2;
+      jtk::get_eye_center_up(eye2, center2, up2, tr);
+      float tol = 1e-5f;
+      TEST_EQ_CLOSE(eye[0], eye2[0], tol);
+      TEST_EQ_CLOSE(eye[1], eye2[1], tol);
+      TEST_EQ_CLOSE(eye[2], eye2[2], tol);
+      TEST_EQ_CLOSE(up[0], up2[0], tol);
+      TEST_EQ_CLOSE(up[1], up2[1], tol);
+      TEST_EQ_CLOSE(up[2], up2[2], tol);
+      jtk::vec3<float> center_dir = jtk::normalize(center - eye);
+      jtk::vec3<float> expected_center = eye + center_dir;
+      TEST_EQ_CLOSE(expected_center[0], center2[0], tol);
+      TEST_EQ_CLOSE(expected_center[1], center2[1], tol);
+      TEST_EQ_CLOSE(expected_center[2], center2[2], tol);
+      }
+    }
   }
 
 
 void run_all_qbvh_tests()
   {
   using namespace jtk;
+  run_all_lookat_tests();  
   run_all_quaternion_tests();
   run_all_simd_tests();
   run_all_bvh_tests();
   run_all_parallel_partition_tests();
   run_all_vector_tests();
-  run_all_sphere_intersection_tests();
+  run_all_sphere_intersection_tests();  
   }
