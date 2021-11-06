@@ -1334,9 +1334,10 @@ namespace jtk
       else
         {
         //std::cout << "Compile shader error: " << s->log().c_str() << "\n";
-        throw std::runtime_error(s->log().c_str());
+        std::string error_message = s->log();
         s->destroy();
         delete s;
+        throw std::runtime_error(error_message.c_str());
         return false;
         }
       }
