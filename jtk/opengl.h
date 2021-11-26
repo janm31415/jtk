@@ -101,6 +101,7 @@ namespace jtk
 
       GLint width() const { return _width; }
       GLint height() const { return _height; }
+      GLint channels() const { return _channels; }
 
       bool is_loaded() const { return _loaded; }
 
@@ -119,6 +120,7 @@ namespace jtk
 
       GLuint _texture_id;
       GLint _width, _height;
+      GLint _channels;
 
       bool _loaded;
       bool _isfloat;
@@ -575,6 +577,7 @@ namespace jtk
 
     _width = w;
     _height = h;
+    _channels = channels;
     }
 
   void texture::_load_pixels(GLubyte* pixels, GLint offsx, GLint offsy, GLint w, GLint h, GLint channels, pixel_type pt)
