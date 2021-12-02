@@ -4997,8 +4997,7 @@ namespace
 
 void run_all_mat_tests()
   {
-  using namespace jtk;
-  /*
+  using namespace jtk;  
   matrix_construction_vector().test();
   matrix_construction_array().test();
   copy_constructor().test();
@@ -5190,8 +5189,7 @@ void run_all_mat_tests()
   bipcgstab_tests();  
   poisson_with_conjugate_gradient_tests();
   poisson_with_bicgstab_tests();
-  matvec_multiply_performance_test();
-  */
+  matvec_multiply_performance_test();  
   mat_exp_test();
   matf_exp_test();
   }
