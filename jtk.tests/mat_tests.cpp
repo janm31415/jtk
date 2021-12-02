@@ -4936,6 +4936,42 @@ namespace jtk
       std::cout << "Time spent in multiply: " << time_spent << " s\n";
       
       }
+
+    void matf_exp_test()
+      {
+      matf A(3,3);
+      A << 0, -0.785398f, 0, 0.785398f, 0, 0, 0, 0, 0;
+      matf Aexp;
+      exp(Aexp, A);
+      const float tol = 1e-6f;
+      TEST_EQ_CLOSE(0.707107f, Aexp(0,0), tol);
+      TEST_EQ_CLOSE(-0.707107f, Aexp(0, 1), tol);
+      TEST_EQ_CLOSE(0.707107f, Aexp(1, 0), tol);
+      TEST_EQ_CLOSE(0.707107f, Aexp(1, 1), tol);
+      TEST_EQ_CLOSE(0.f, Aexp(0, 2), tol);
+      TEST_EQ_CLOSE(0.f, Aexp(1, 2), tol);
+      TEST_EQ_CLOSE(0.f, Aexp(2, 0), tol);
+      TEST_EQ_CLOSE(0.f, Aexp(2, 1), tol);
+      TEST_EQ_CLOSE(1.f, Aexp(2, 2), tol);
+      }
+
+    void mat_exp_test()
+      {
+      mat A(3, 3);
+      A << 0, -0.785398, 0, 0.785398, 0, 0, 0, 0, 0;
+      mat Aexp;
+      exp(Aexp, A);
+      const double tol = 1e-6f;
+      TEST_EQ_CLOSE(0.707107f, Aexp(0, 0), tol);
+      TEST_EQ_CLOSE(-0.707107f, Aexp(0, 1), tol);
+      TEST_EQ_CLOSE(0.707107f, Aexp(1, 0), tol);
+      TEST_EQ_CLOSE(0.707107f, Aexp(1, 1), tol);
+      TEST_EQ_CLOSE(0.f, Aexp(0, 2), tol);
+      TEST_EQ_CLOSE(0.f, Aexp(1, 2), tol);
+      TEST_EQ_CLOSE(0.f, Aexp(2, 0), tol);
+      TEST_EQ_CLOSE(0.f, Aexp(2, 1), tol);
+      TEST_EQ_CLOSE(1.f, Aexp(2, 2), tol);
+      }
     }
   }
 
@@ -4962,6 +4998,7 @@ namespace
 void run_all_mat_tests()
   {
   using namespace jtk;
+  /*
   matrix_construction_vector().test();
   matrix_construction_array().test();
   copy_constructor().test();
@@ -5154,4 +5191,7 @@ void run_all_mat_tests()
   poisson_with_conjugate_gradient_tests();
   poisson_with_bicgstab_tests();
   matvec_multiply_performance_test();
+  */
+  mat_exp_test();
+  matf_exp_test();
   }

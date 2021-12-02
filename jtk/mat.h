@@ -4,8 +4,8 @@
 // matrices are stored row major
 //
 // Author    :  Jan Maes                                            
-// Version   :  1.5
-// Date      :  08 September 2020
+// Version   :  1.6
+// Date      :  02 December 2021
 // License   :  MIT License
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -27,6 +27,8 @@ V1.4: 30 June 2020
 V1.5: 08 September 2020
   - adding sparse matrices.
   - iterative solvers (conjugate gradient and bicgstab + preconditioned versions)
+V1.6: 02 December 2021
+  - adding computation of exponential of a matrix using Pade approximation.
 */
 
 
@@ -443,14 +445,20 @@ namespace jtk
   of the eigenvalues are returned in wr and wi, respectively.
   */
   template <class T, class Container>
-  bool hqr(matrix<T, Container>& a, matrix<T, Container>&  wr, matrix<T, Container>&  wi);
+  bool hqr(matrix<T, Container>& a, matrix<T, Container>& wr, matrix<T, Container>& wi);
 
   /*
   finds all eigenvalues of a square matrix a. on output a is destroyed. the real and imaginary parts
   of the eigenvalues are returned in wr and wi, respectively.
   */
   template <class T, class Container>
-  bool eig(matrix<T, Container>& a, matrix<T, Container>&  wr, matrix<T, Container>&  wi);
+  bool eig(matrix<T, Container>& a, matrix<T, Container>& wr, matrix<T, Container>& wi);
+
+  /*
+  Computes the exponential of a matrix using Pade approximation.
+  */
+  template <class T, class Container>
+  void exp(matrix<T, Container>& Aexp, const matrix<T, Container>& A);
 
   template <class T>
   class symmetric_sparse_matrix_wrapper;
@@ -1184,7 +1192,7 @@ namespace jtk
 
       Diagonal& operator += (const std::ptrdiff_t offset)
         {
-        _a += (_cols + 1)*offset;
+        _a += (_cols + 1) * offset;
         return *this;
         }
 
@@ -2011,10 +2019,10 @@ namespace jtk
     {
     public:
       using value_type = T;
-      using pointer = T * ;
-      using reference = T & ;
-      using const_pointer = const T *;
-      using const_reference = const T &;
+      using pointer = T*;
+      using reference = T&;
+      using const_pointer = const T*;
+      using const_reference = const T&;
       using iterator = typename Container::iterator;
       using const_iterator = typename Container::const_iterator;
 
@@ -2025,7 +2033,7 @@ namespace jtk
       matrix(uint32_t rows, uint32_t cols) : _rows(rows), _cols(cols)
         {
         ::jtk::implementation_details::resize<T, Container> r;
-        r(_entries, (uint64_t)_rows*(uint64_t)_cols);
+        r(_entries, (uint64_t)_rows * (uint64_t)_cols);
         }
 
       matrix(uint32_t rows) : _rows(rows), _cols(1)
@@ -2115,7 +2123,7 @@ namespace jtk
         {
         matrix temp(result.rows(), result.cols());
         auto it = temp._entries.begin();
-        uint64_t sz = (uint64_t)result.rows()*(uint64_t)result.cols();
+        uint64_t sz = (uint64_t)result.rows() * (uint64_t)result.cols();
         *it = (T)*result;
         for (uint64_t i = 1; i < sz; ++i)
           {
@@ -2131,7 +2139,7 @@ namespace jtk
         {
         resize(result.rows(), result.cols());
         auto it = _entries.begin();
-        uint64_t sz = (uint64_t)result.rows()*(uint64_t)result.cols();
+        uint64_t sz = (uint64_t)result.rows() * (uint64_t)result.cols();
         *it = (T)*result;
         for (uint64_t i = 1; i < sz; ++i)
           {
@@ -2146,14 +2154,14 @@ namespace jtk
         {
         matrix temp(result.rows(), result.cols());
         auto it = temp._entries.begin();
-        uint64_t sz = (uint64_t)result.rows()*(uint64_t)result.cols();
+        uint64_t sz = (uint64_t)result.rows() * (uint64_t)result.cols();
 #ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
-          *(it + (std::ptrdiff_t)i) = (T)*(result + (std::ptrdiff_t)i);
+          *(it + (std::ptrdiff_t)i) = (T) * (result + (std::ptrdiff_t)i);
           });
 #else
-        *it = (T)*result;
+        * it = (T)*result;
         for (uint64_t i = 1; i < sz; ++i)
           {
           ++result;
@@ -2169,14 +2177,14 @@ namespace jtk
         {
         resize(result.rows(), result.cols());
         auto it = _entries.begin();
-        uint64_t sz = (uint64_t)result.rows()*(uint64_t)result.cols();
+        uint64_t sz = (uint64_t)result.rows() * (uint64_t)result.cols();
 #ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
-          *(it + (std::ptrdiff_t)i) = (T)*(result + (std::ptrdiff_t)i);
+          *(it + (std::ptrdiff_t)i) = (T) * (result + (std::ptrdiff_t)i);
           });
 #else
-        *it = (T)*result;
+        * it = (T)*result;
         for (uint64_t i = 1; i < sz; ++i)
           {
           ++result;
@@ -2316,7 +2324,7 @@ namespace jtk
           *it += (T)*result;
           }
         swap(temp);
-          }
+        }
 
       template <class ExprOp>
       void add_assign_no_alias(Expr<ExprOp> result)
@@ -2345,10 +2353,10 @@ namespace jtk
 #ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
-          *(it + (std::ptrdiff_t)i) += (T)*(result + (std::ptrdiff_t)i);
-          });         
+          *(it + (std::ptrdiff_t)i) += (T) * (result + (std::ptrdiff_t)i);
+          });
 #else
-        *it += (T)*result;
+        * it += (T)*result;
         for (uint64_t i = 1; i < sz; ++i)
           {
           ++it;
@@ -2369,10 +2377,10 @@ namespace jtk
 #ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
-          *(it + (std::ptrdiff_t)i) += (T)*(result + (std::ptrdiff_t)i);
-          });     
+          *(it + (std::ptrdiff_t)i) += (T) * (result + (std::ptrdiff_t)i);
+          });
 #else
-        *it += (T)*result;
+        * it += (T)*result;
         for (uint64_t i = 1; i < sz; ++i)
           {
           ++it;
@@ -2432,7 +2440,7 @@ namespace jtk
           *it -= (T)*result;
           }
         swap(temp);
-          }
+        }
 
       template <class ExprOp>
       void subtract_assign_no_alias(Expr<ExprOp> result)
@@ -2461,10 +2469,10 @@ namespace jtk
 #ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
-          *(it + (std::ptrdiff_t)i) -= (T)*(result + (std::ptrdiff_t)i);
-          });          
+          *(it + (std::ptrdiff_t)i) -= (T) * (result + (std::ptrdiff_t)i);
+          });
 #else
-        *it -= (T)*result;
+        * it -= (T)*result;
         for (uint64_t i = 1; i < sz; ++i)
           {
           ++it;
@@ -2485,10 +2493,10 @@ namespace jtk
 #ifdef _JTK_MAT_PARALLEL
         parallel_for((uint64_t)0, sz, [&](uint64_t i)
           {
-          *(it + (std::ptrdiff_t)i) -= (T)*(result + (std::ptrdiff_t)i);
-          });          
+          *(it + (std::ptrdiff_t)i) -= (T) * (result + (std::ptrdiff_t)i);
+          });
 #else
-        *it -= (T)*result;
+        * it -= (T)*result;
         for (uint64_t i = 1; i < sz; ++i)
           {
           ++it;
@@ -2534,11 +2542,11 @@ namespace jtk
 
       void resize(uint32_t rows, uint32_t cols)
         {
-        assert((uint64_t)rows*(uint64_t)cols <= capacity());
+        assert((uint64_t)rows * (uint64_t)cols <= capacity());
         _rows = rows;
         _cols = cols;
         ::jtk::implementation_details::resize<T, Container> r;
-        r(_entries, (uint64_t)_rows*(uint64_t)_cols);
+        r(_entries, (uint64_t)_rows * (uint64_t)_cols);
         }
 
       const_reference operator()(uint32_t r, uint32_t c) const
@@ -2627,7 +2635,7 @@ namespace jtk
     private:
       Container _entries;
       uint32_t _rows, _cols;
-          };
+    };
 
   ///////////////////////////////////////////////////////////////////////////////
   // sparse vector class
@@ -2954,10 +2962,10 @@ namespace jtk
 
     public:
       using value_type = T;
-      using pointer = T * ;
-      using reference = T & ;
-      using const_pointer = const T *;
-      using const_reference = const T &;
+      using pointer = T*;
+      using reference = T&;
+      using const_pointer = const T*;
+      using const_reference = const T&;
       using iterator = sparse_vector_iterator<T>;
       using const_iterator = sparse_vector_const_iterator<T>;
 
@@ -3461,10 +3469,10 @@ namespace jtk
 
     public:
       using value_type = T;
-      using pointer = T * ;
-      using reference = T & ;
-      using const_pointer = const T *;
-      using const_reference = const T &;
+      using pointer = T*;
+      using reference = T&;
+      using const_pointer = const T*;
+      using const_reference = const T&;
       using iterator = sparse_array_iterator<T, N>;
       using const_iterator = sparse_array_const_iterator<T, N>;
 
@@ -3960,10 +3968,10 @@ namespace jtk
 
     public:
       using value_type = T;
-      using pointer = T * ;
-      using reference = T & ;
-      using const_pointer = const T *;
-      using const_reference = const T &;
+      using pointer = T*;
+      using reference = T&;
+      using const_pointer = const T*;
+      using const_reference = const T&;
       using iterator = sparse_matrix_iterator<T, Container>;
       using const_iterator = sparse_matrix_const_iterator<T, Container>;
 
@@ -4306,7 +4314,7 @@ namespace jtk
       return false;
     if (*left != *right)
       return false;
-    const uint64_t sz = (uint64_t)left.rows()*(uint64_t)left.cols();
+    const uint64_t sz = (uint64_t)left.rows() * (uint64_t)left.cols();
     for (uint64_t i = 1; i < sz; ++i)
       {
       ++left;
@@ -4405,7 +4413,7 @@ namespace jtk
       typename matrix<T, Container>::const_iterator,
       typename matrix<T2, Container2>::const_iterator,
       OpAdd<typename gettype<T, T2>::ty> > ExprT;
-    assert(a.rows()*a.cols() == b.rows()*b.cols());
+    assert(a.rows() * a.cols() == b.rows() * b.cols());
     return Expr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false, false));
     }
 
@@ -4420,7 +4428,7 @@ namespace jtk
       typename matrix<T, Container>::const_iterator,
       Expr<ExprOp>,
       OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
-    assert(a.rows()*a.cols() == b.rows()*b.cols());
+    assert(a.rows() * a.cols() == b.rows() * b.cols());
     return Expr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning(), b.process_parallel()));
     }
 
@@ -4435,7 +4443,7 @@ namespace jtk
       Expr<ExprOp>,
       typename matrix<T, Container>::const_iterator,
       OpAdd<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
-    assert(a.rows()*a.cols() == b.rows()*b.cols());
+    assert(a.rows() * a.cols() == b.rows() * b.cols());
     return Expr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
@@ -4450,7 +4458,7 @@ namespace jtk
       Expr<ExprOp1>,
       Expr<ExprOp2>,
       OpAdd<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > ExprT;
-    assert(a.rows()*a.cols() == b.rows()*b.cols());
+    assert(a.rows() * a.cols() == b.rows() * b.cols());
     return Expr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning(), a.process_parallel() || b.process_parallel()));
     }
 
@@ -4534,7 +4542,7 @@ namespace jtk
       typename matrix<T, Container>::const_iterator,
       typename matrix<T2, Container2>::const_iterator,
       OpSub<typename gettype<T, T2>::ty> > ExprT;
-    assert(a.rows()*a.cols() == b.rows()*b.cols());
+    assert(a.rows() * a.cols() == b.rows() * b.cols());
     return Expr<ExprT>(ExprT(a.begin(), b.begin(), a.rows(), a.cols(), false, false));
     }
 
@@ -4549,7 +4557,7 @@ namespace jtk
       typename matrix<T, Container>::const_iterator,
       Expr<ExprOp>,
       OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
-    assert(a.rows()*a.cols() == b.rows()*b.cols());
+    assert(a.rows() * a.cols() == b.rows() * b.cols());
     return Expr<ExprT>(ExprT(a.begin(), b, a.rows(), a.cols(), b.evaluate_before_assigning(), b.process_parallel()));
     }
 
@@ -4564,7 +4572,7 @@ namespace jtk
       Expr<ExprOp>,
       typename matrix<T, Container>::const_iterator,
       OpSub<typename gettype<T, typename ExprOp::value_type>::ty> > ExprT;
-    assert(a.rows()*a.cols() == b.rows()*b.cols());
+    assert(a.rows() * a.cols() == b.rows() * b.cols());
     return Expr<ExprT>(ExprT(a, b.begin(), a.rows(), a.cols(), a.evaluate_before_assigning(), a.process_parallel()));
     }
 
@@ -4579,7 +4587,7 @@ namespace jtk
       Expr<ExprOp1>,
       Expr<ExprOp2>,
       OpSub<typename gettype<typename ExprOp1::value_type, typename ExprOp2::value_type>::ty> > ExprT;
-    assert(a.rows()*a.cols() == b.rows()*b.cols());
+    assert(a.rows() * a.cols() == b.rows() * b.cols());
     return Expr<ExprT>(ExprT(a, b, a.rows(), a.cols(), a.evaluate_before_assigning() || b.evaluate_before_assigning(), a.process_parallel() || b.process_parallel()));
     }
 
@@ -5114,7 +5122,7 @@ namespace jtk
         for (; it2 != it2_end; ++it2)
           {
           uint32_t j = it2.entry();
-          out.put(i, j) += *it*(T)(*it2);
+          out.put(i, j) += *it * (T)(*it2);
           }
         }
       }
@@ -5138,7 +5146,7 @@ namespace jtk
         for (; it2 != it2_end; ++it2)
           {
           uint32_t j = it2.entry();
-          out.put(i, j) += *it*(typename ExprOp1::value_type)(*it2);
+          out.put(i, j) += *it * (typename ExprOp1::value_type)(*it2);
           }
         }
       }
@@ -5162,7 +5170,7 @@ namespace jtk
         for (; it2 != it2_end; ++it2)
           {
           uint32_t j = it2.entry();
-          out.put(i, j) += *it*(T)(*it2);
+          out.put(i, j) += *it * (T)(*it2);
           }
         }
       }
@@ -5187,7 +5195,7 @@ namespace jtk
         for (; it2 != it2_end; ++it2)
           {
           uint32_t j = it2.entry();
-          out.put(i, j) += *it*(typename ExprOp1::value_type)(*it2);
+          out.put(i, j) += *it * (typename ExprOp1::value_type)(*it2);
           }
         }
       }
@@ -5316,7 +5324,7 @@ namespace jtk
     const float* ita = a.data();
     const float* itb = b.data();
     double sum = 0.0;
-    const uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
+    const uint64_t len = (uint64_t)a.rows() * (uint64_t)a.cols();
 #ifdef _JTK_MAT_NO_SIMD
     const uint64_t len4 = 0;
 #else
@@ -5344,7 +5352,7 @@ namespace jtk
     {
     const double* ita = a.data();
     const double* itb = b.data();
-    uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
+    uint64_t len = (uint64_t)a.rows() * (uint64_t)a.cols();
 #ifdef _JTK_FOR_ARM
     uint64_t len2 = 0;
     double totalsum = 0.0;
@@ -5580,7 +5588,7 @@ namespace jtk
   float norm_sqr(const matrix<float, Container>& a)
     {
     const float* ita = a.data();
-    const uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();    
+    const uint64_t len = (uint64_t)a.rows() * (uint64_t)a.cols();
     double sum = 0.0;
 #ifdef _JTK_MAT_NO_SIMD
     const uint64_t len4 = 0;
@@ -5606,7 +5614,7 @@ namespace jtk
   double norm_sqr(const matrix<double, Container>& a)
     {
     const double* ita = a.data();
-    uint64_t len = (uint64_t)a.rows()*(uint64_t)a.cols();
+    uint64_t len = (uint64_t)a.rows() * (uint64_t)a.cols();
 #if defined(_JTK_FOR_ARM) || defined(_JTK_MAT_NO_SIMD)
     const uint64_t len2 = 0;
     double totalsum = 0.0;
@@ -5635,16 +5643,16 @@ namespace jtk
   template <class ExprOp>
   double norm_sqr(Expr<ExprOp> expr)
     {
-    uint64_t sz = (uint64_t)expr.rows()*(uint64_t)expr.cols();
+    uint64_t sz = (uint64_t)expr.rows() * (uint64_t)expr.cols();
     if (sz == 0)
       return 0.0;
     auto value = *expr;
-    double sum = (double)value*value;
+    double sum = (double)value * value;
     for (uint64_t i = 1; i < sz; ++i)
       {
       ++expr;
       value = *expr;
-      sum += (double)value*value;
+      sum += (double)value * value;
       }
     return sum;
     }
@@ -5666,7 +5674,7 @@ namespace jtk
     while (expr != expr_end)
       {
       auto value = *expr;
-      sum += (double)value*value;
+      sum += (double)value * value;
       ++expr;
       }
     return sum;
@@ -5824,8 +5832,8 @@ namespace jtk
       T absa, absb;
       absa = std::abs(a);
       absb = std::abs(b);
-      if (absa > absb) return absa * std::sqrt((T)1 + (absb / absa)*(absb / absa));
-      else return (absb == (T)0 ? (T)0 : absb * std::sqrt((T)1 + (absa / absb)*(absa / absb)));
+      if (absa > absb) return absa * std::sqrt((T)1 + (absb / absa) * (absb / absa));
+      else return (absb == (T)0 ? (T)0 : absb * std::sqrt((T)1 + (absa / absb) * (absa / absb)));
       }
 
     template <class T, class Matrix_mxn, class Matrix_nxn, class Vector_n>
@@ -5932,7 +5940,7 @@ namespace jtk
             {
             for (s = (T)0, k = l; k < m; ++k)
               s += a[k][i] * a[k][j];
-            f = (s / a[i][i])*g;
+            f = (s / a[i][i]) * g;
             for (k = i; k < m; ++k)
               a[k][j] += f * a[k][i];
             }
@@ -5999,9 +6007,9 @@ namespace jtk
           y = w(nm);
           g = rv1(nm);
           h = rv1(k);
-          f = ((y - z)*(y + z) + (g - h)*(g + h)) / ((T)2 * h*y);
+          f = ((y - z) * (y + z) + (g - h) * (g + h)) / ((T)2 * h * y);
           g = pythag(f, (T)1);
-          f = ((x - z)*(x + z) + h * ((y / (f + sign(g, f))) - h)) / x;
+          f = ((x - z) * (x + z) + h * ((y / (f + sign(g, f))) - h)) / x;
           c = s = (T)1; /* Next QR transformation: */
           for (j = l; j <= nm; ++j)
             {
@@ -6133,7 +6141,7 @@ namespace jtk
     matrix<T, Container> V;
     svd(A, sigma, V);
     matrix < T, Container2 > res;
-    res.noalias() = transpose(A)*b;
+    res.noalias() = transpose(A) * b;
     for (uint32_t i = 0; i < res.rows(); ++i)
       {
       if (std::abs(sigma(i)) < tol)
@@ -6180,7 +6188,7 @@ namespace jtk
         {
         sum = A(i, j);
         for (k = 0; k < i; ++k)
-          sum -= A(i, k)*A(k, j);
+          sum -= A(i, k) * A(k, j);
         A(i, j) = sum;
         }
       big = 0;
@@ -6188,7 +6196,7 @@ namespace jtk
         {
         sum = A(i, j);
         for (k = 0; k < j; ++k)
-          sum -= A(i, k)*A(k, j);
+          sum -= A(i, k) * A(k, j);
         A(i, j) = sum;
         if ((dum = vv[i] * std::abs(sum)) >= big)
           {
@@ -6234,7 +6242,7 @@ namespace jtk
       b(ip) = b(i);
       if (ii < 0xffffffff)
         for (j = ii; j < i; ++j)
-          sum -= A(i, j)*b(j);
+          sum -= A(i, j) * b(j);
       else if (sum)
         ii = i;
       b(i) = sum;
@@ -6243,7 +6251,7 @@ namespace jtk
       {
       sum = b(i - 1);
       for (j = i; j < n; ++j)
-        sum -= A(i - 1, j)*b(j);
+        sum -= A(i - 1, j) * b(j);
       b(i - 1) = sum / A(i - 1, i - 1);
       }
     }
@@ -6357,7 +6365,7 @@ namespace jtk
       auto xit = x[ind + 1];
       for (; it != it_end; ++it, ++xit)
         {
-        val -= *xit*(*it);
+        val -= *xit * (*it);
         }
       val /= diag;
       x(ind) = val;
@@ -6378,7 +6386,7 @@ namespace jtk
       auto xit = x[0];
       for (; it != it_end; ++it, ++xit)
         {
-        val -= *xit*(*it);
+        val -= *xit * (*it);
         }
       val /= diag;
       x(j) = val;
@@ -6758,7 +6766,7 @@ namespace jtk
         wa2(j) = diag(j) * x(j);
       dxnorm = norm(wa2);
       fp = dxnorm - delta;
-      if (fp <= (T)0.1*delta)
+      if (fp <= (T)0.1 * delta)
         {
         if (iter == 0)
           par = (T)0;
@@ -6816,7 +6824,7 @@ namespace jtk
         temp = fp;
         fp = dxnorm - delta;
 
-        if ((std::abs(fp) <= (T)0.1*delta) || ((parl == (T)0) && (fp <= temp) && (temp > (T)0)) || iter == 10)
+        if ((std::abs(fp) <= (T)0.1 * delta) || ((parl == (T)0) && (fp <= temp) && (temp > (T)0)) || iter == 10)
           {
           if (iter == 0)
             par = (T)0;
@@ -7006,7 +7014,7 @@ namespace jtk
         fnorm1 = norm(wa4);
         actred = (T)-1;
         if ((T)0.1 * fnorm1 < fnorm)
-          actred = (T)1 - (fnorm1*fnorm1 / (fnorm*fnorm));
+          actred = (T)1 - (fnorm1 * fnorm1 / (fnorm * fnorm));
         for (j = 0; j < n; j++)
           {
           wa3(j) = (T)0;
@@ -7018,14 +7026,14 @@ namespace jtk
         temp1 = norm(wa3) / fnorm;
         temp2 = std::sqrt(par) * pnorm / fnorm;
         prered = temp1 * temp1 + temp2 * temp2 / (T)0.5;
-        dirder = -(temp1*temp1 + temp2 * temp2);
+        dirder = -(temp1 * temp1 + temp2 * temp2);
         ratio = (T)0;
         if (prered != (T)0)
           ratio = actred / prered;
         if (ratio <= (T)0.25)
           {
           if (actred > (T)0) temp = (T)0.5;
-          if (actred < (T)0) temp = (T)0.5*dirder / (dirder + (T)0.5*actred);
+          if (actred < (T)0) temp = (T)0.5 * dirder / (dirder + (T)0.5 * actred);
           delta = temp * std::min<T>(delta, pnorm / (T)0.1);
           par /= temp;
           }
@@ -7050,17 +7058,17 @@ namespace jtk
           iter++;
           }
         if ((std::abs(actred) <= ftol) && (prered <= ftol) &&
-          ((T)0.5*ratio <= (T)1))
+          ((T)0.5 * ratio <= (T)1))
           info = 1;
         if (delta <= xtol * xnorm)
           info = 2;
         if ((std::abs(actred) <= ftol) && (prered <= ftol) &&
-          ((T)0.5*ratio <= (T)1) && (info == 2))
+          ((T)0.5 * ratio <= (T)1) && (info == 2))
           info = 3;
         if (nfev >= maxfev)
           info = 5;
         if ((std::abs(actred) <= epsmch) && (prered <= epsmch) &&
-          ((T)0.5*ratio <= (T)1))
+          ((T)0.5 * ratio <= (T)1))
           info = 6;
         if (delta <= epsmch * xnorm)
           info = 7;
@@ -7132,7 +7140,7 @@ namespace jtk
           for (k = 0; k <= l; ++k)
             {
             a(i, k) /= scale;
-            h += a(i, k)*a(i, k);
+            h += a(i, k) * a(i, k);
             }
           f = a(i, l);
           g = (f >= 0.0 ? -sqrt(h) : sqrt(h));
@@ -7145,11 +7153,11 @@ namespace jtk
             a(j, i) = a(i, j) / h;
             g = 0.0;
             for (k = 0; k <= j; ++k)
-              g += a(j, k)*a(i, k);
+              g += a(j, k) * a(i, k);
             for (k = j + 1; k <= l; ++k)
-              g += a(k, j)*a(i, k);
+              g += a(k, j) * a(i, k);
             subdiagonal(j) = g / h;
-            f += subdiagonal(j)*a(i, j);
+            f += subdiagonal(j) * a(i, j);
             } // for j
           hh = f / (h + h);
           for (j = 0; j <= l; ++j)
@@ -7159,7 +7167,7 @@ namespace jtk
             subdiagonal(j) = g;
             for (k = 0; k <= j; ++k)
               {
-              a(j, k) -= (f*subdiagonal(k) + g * a(i, k));
+              a(j, k) -= (f * subdiagonal(k) + g * a(i, k));
               } // for k
             } // for j
           }
@@ -7182,7 +7190,7 @@ namespace jtk
             {
             g = 0.0;
             for (k = 0; k <= l; ++k)
-              g += a(i, k)*a(k, j);
+              g += a(i, k) * a(k, j);
             for (k = 0; k <= l; ++k)
               a(k, j) -= g * a(k, i);
             } // for j
@@ -7224,8 +7232,8 @@ namespace jtk
           {
           if (iterations++ == 100)
             return false; // to many iterations					
-          g = (diagonal(l) - diagonal(l - 1)) / (2.0*subdiagonal(l - 1));
-          r = sqrt(g*g + 1.0);
+          g = (diagonal(l) - diagonal(l - 1)) / (2.0 * subdiagonal(l - 1));
+          r = sqrt(g * g + 1.0);
           g = diagonal(m - 1) - diagonal(l - 1) + subdiagonal(l - 1) / (g + svd_details::sign(r, g));
           s = 1.0;
           c = 1.0;
@@ -7234,7 +7242,7 @@ namespace jtk
             {
             f = s * subdiagonal(i - 1);
             b = c * subdiagonal(i - 1);
-            r = sqrt(f*f + g * g);
+            r = sqrt(f * f + g * g);
             subdiagonal(i) = r;
             if (r == 0.0)
               {
@@ -7245,7 +7253,7 @@ namespace jtk
             s = f / r;
             c = g / r;
             g = diagonal(i) - p;
-            r = (diagonal(i - 1) - g)*s + 2.0*c*b;
+            r = (diagonal(i - 1) - g) * s + 2.0 * c * b;
             p = s * r;
             diagonal(i) = g + p;
             g = c * r - b;
@@ -7316,7 +7324,7 @@ namespace jtk
             f /= RADIX;
             c /= sqrdx;
             }
-          if ((c + r) / f < 0.95*s)
+          if ((c + r) / f < 0.95 * s)
             {
             last = 0;
             g = 1.0 / f;
@@ -7378,7 +7386,7 @@ namespace jtk
     }
 
   template <class T, class Container>
-  bool hqr(matrix<T, Container>& a, matrix<T, Container>&  wr, matrix<T, Container>&  wi)
+  bool hqr(matrix<T, Container>& a, matrix<T, Container>& wr, matrix<T, Container>& wi)
     {
     assert(a.rows() == a.cols());
     uint32_t n = a.rows();
@@ -7422,7 +7430,7 @@ namespace jtk
           if (l == (nn - 2))
             {
             //Two roots found...
-            p = (T)0.5*(y - x);
+            p = (T)0.5 * (y - x);
             q = p * p + w;
             z = std::sqrt(std::abs(q));
             x += t;
@@ -7454,8 +7462,8 @@ namespace jtk
               for (i = 0; i < nn; ++i)
                 a[i][i] -= x;
               s = std::abs(a[nn - 1][nn - 2]) + std::abs(a[nn - 2][nn - 3]);
-              y = x = (T)0.75*s;
-              w = (T)-0.4375*s*s;
+              y = x = (T)0.75 * s;
+              w = (T)-0.4375 * s * s;
               }
             ++its;
             for (m = (nn - 3); m >= l; --m)
@@ -7465,7 +7473,7 @@ namespace jtk
               z = a[m][m];
               r = x - z;
               s = y - z;
-              p = (r*s - w) / a[m + 1][m] + a[m][m + 1];
+              p = (r * s - w) / a[m + 1][m] + a[m][m + 1];
               q = a[m + 1][m + 1] - z - r - s;
               r = a[m + 2][m + 1];
               s = std::abs(p) + std::abs(q) + std::abs(r); //Scale to prevent overflow or underflow.
@@ -7474,8 +7482,8 @@ namespace jtk
               r /= s;
               if (m == l)
                 break;
-              u = std::abs(a[m][m - 1])*(fabs(q) + fabs(r));
-              v = std::abs(p)*(std::abs(a[m - 1][m - 1]) + std::abs(z) + std::abs(a[m + 1][m + 1]));
+              u = std::abs(a[m][m - 1]) * (fabs(q) + fabs(r));
+              v = std::abs(p) * (std::abs(a[m - 1][m - 1]) + std::abs(z) + std::abs(a[m + 1][m + 1]));
               if ((T)(u + v) == v) break;
               }
             for (i = m + 2; i < nn; ++i)
@@ -7498,7 +7506,7 @@ namespace jtk
                   r /= x;
                   }
                 }
-              if ((s = svd_details::sign(std::sqrt(p*p + q * q + r * r), p)) != (T)0)
+              if ((s = svd_details::sign(std::sqrt(p * p + q * q + r * r), p)) != (T)0)
                 {
                 if (k == m) {
                   if (l != m)
@@ -7546,7 +7554,7 @@ namespace jtk
     }
 
   template <class T, class Container>
-  bool eig(matrix<T, Container>& a, matrix<T, Container>&  wr, matrix<T, Container>&  wi)
+  bool eig(matrix<T, Container>& a, matrix<T, Container>& wr, matrix<T, Container>& wi)
     {
     assert(a.rows() == a.cols());
     balanc(a);
@@ -7611,7 +7619,7 @@ namespace jtk
         }
       if ((it != it_end) && (it.entry() == i))
         {
-        val += (*it)*bi;
+        val += (*it) * bi;
         }
       out(i) = val;
       }
@@ -7669,8 +7677,8 @@ namespace jtk
           case 19: fill_lower(m19, A); break;
           case 20: fill_lower(m20, A); break;
           default: fill_lower(m, A); break;
+          }
         }
-    }
 
       uint32_t rows() const
         {
@@ -7822,7 +7830,7 @@ namespace jtk
       sparse_matrix<T, sparse_array<T, 20>> m20;
       uint32_t id;
       uint32_t _rows;
-          };
+    };
 
   template <class T>
   class diagonal_preconditioner
@@ -8047,14 +8055,14 @@ namespace jtk
     matrix<T, Container> y, z, kt, ks, s, t;
 
     T tol2 = tolerance * tolerance * b_sqnorm;
-    T eps2 = std::numeric_limits<T>::epsilon()*std::numeric_limits<T>::epsilon();
+    T eps2 = std::numeric_limits<T>::epsilon() * std::numeric_limits<T>::epsilon();
 
     uint32_t i = 0;
     while (norm_sqr(r) > tol2 && i < A.rows())
       {
       T rho_old = rho;
       rho = dot(r0, r);
-      if (std::abs(rho) < eps2*r0_sqnorm)
+      if (std::abs(rho) < eps2 * r0_sqnorm)
         {
         // The new residual vector became too orthogonal to the arbitrarily chosen direction r0
         // Let's restart with a new r0:
@@ -8100,6 +8108,152 @@ namespace jtk
     {
     diagonal_preconditioner<T> P(A);
     bipcgstab(out, residu, iterations, A, P, b, x0, tolerance);
+    }
+
+  template <class T, class Container>
+  void exp_pade3(matrix<T, Container>& U, matrix<T, Container>& V, const matrix<T, Container>& A)
+    {
+    const T b[] = { (T)120, (T)60, (T)12, (T)1 };
+    matrix<T, Container> A2 = A * A;
+    const matrix<T, Container> tmp = b[3] * A2 + b[1] * identity<T>(A.rows(), A.cols());
+    U.noalias() = A * tmp;
+    V = b[2] * A2 + b[0] * identity<T>(A.rows(), A.cols());
+    }
+
+  template <class T, class Container>
+  void exp_pade5(matrix<T, Container>& U, matrix<T, Container>& V, const matrix<T, Container>& A)
+    {
+    const T b[] = { (T)30240, (T)15120, (T)3360, (T)420, (T)30, (T)1 };
+    matrix<T, Container> A2 = A * A;
+    matrix<T, Container> A4 = A2 * A2;
+    const matrix<T, Container> tmp = b[5] * A4 + b[3] * A2 + b[1] * identity<T>(A.rows(), A.cols());
+    U.noalias() = A * tmp;
+    V = b[4] * A4 + b[2] * A2 + b[0] * identity<T>(A.rows(), A.cols());
+    }
+
+  template <class T, class Container>
+  void exp_pade7(matrix<T, Container>& U, matrix<T, Container>& V, const matrix<T, Container>& A)
+    {
+    const T b[] = { (T)17297280, (T)8648640, (T)1995840, (T)277200, (T)25200, (T)1512, (T)56, (T)1 };
+    matrix<T, Container> A2 = A * A;
+    matrix<T, Container> A4 = A2 * A2;
+    matrix<T, Container> A6 = A4 * A2;
+    const matrix<T, Container> tmp = b[7] * A6 + b[5] * A4 + b[3] * A2
+      + b[1] * identity<T>(A.rows(), A.cols());
+    U.noalias() = A * tmp;
+    V = b[6] * A6 + b[4] * A4 + b[2] * A2 + b[0] * identity<T>(A.rows(), A.cols());
+    }
+
+  template <class T, class Container>
+  void exp_pade9(matrix<T, Container>& U, matrix<T, Container>& V, const matrix<T, Container>& A)
+    {
+    const T b[] = { (T)17643225600, (T)8821612800, (T)2075673600, (T)302702400, (T)30270240,
+                          (T)2162160, (T)110880, (T)3960, (T)90, (T)1 };
+
+    matrix<T, Container> A2 = A * A;
+    matrix<T, Container> A4 = A2 * A2;
+    matrix<T, Container> A6 = A4 * A2;
+    matrix<T, Container> A8 = A6 * A2;
+    const matrix<T, Container>  tmp = b[9] * A8 + b[7] * A6 + b[5] * A4 + b[3] * A2 + b[1] * identity<T>(A.rows(), A.cols());
+    U.noalias() = A * tmp;
+    V = b[8] * A8 + b[6] * A6 + b[4] * A4 + b[2] * A2 + b[0] * identity<T>(A.rows(), A.cols());
+    }
+
+  template <class T, class Container>
+  void exp_pade13(matrix<T, Container>& U, matrix<T, Container>& V, const matrix<T, Container>& A)
+    {
+    const T b[] = { (T)64764752532480000, (T)32382376266240000, (T)7771770303897600,
+                          (T)1187353796428800, (T)129060195264000, (T)10559470521600, (T)670442572800,
+                          (T)33522128640, (T)1323241920, (T)40840800, (T)960960, (T)16380, (T)182, (T)1 };
+    matrix<T, Container> A2 = A * A;
+    matrix<T, Container> A4 = A2 * A2;
+    matrix<T, Container> A6 = A4 * A2;
+    V = b[13] * A6 + b[11] * A4 + b[9] * A2;
+    matrix<T, Container> tmp = A6 * V;
+    tmp += b[7] * A6 + b[5] * A4 + b[3] * A2 + b[1] * identity<T>(A.rows(), A.cols());
+    U.noalias() = A * tmp;
+    tmp = b[12] * A6 + b[10] * A4 + b[8] * A2;
+    V.noalias() = A6 * tmp;
+    V += b[6] * A6 + b[4] * A4 + b[2] * A2 + b[0] * identity<T>(A.rows(), A.cols());
+    }
+
+  template <class Container>
+  void exp(matrix<float, Container>& Aexp, const matrix<float, Container>& A)
+    {
+    float l1norm = 0.f;
+    for (uint32_t r = 0; r < A.rows(); ++r)
+      {
+      float sum = 0.f;
+      for (uint32_t c = 0; c < A.cols(); ++c)
+        sum += A(r, c);
+      sum = sum < 0 ? -sum : sum;
+      l1norm = sum > l1norm ? sum : l1norm;
+      }
+    int squarings = 0;
+    
+    matrix<float, Container> U, V;
+    if (l1norm < 4.258730016922831e-001f)
+      exp_pade3(U, V, A);
+    else if (l1norm < 1.880152677804762e+000f)
+      exp_pade5(U, V, A);   
+    else
+      {
+      const float maxnorm = 3.925724783138660f;
+      std::frexp(l1norm / maxnorm, &squarings);
+      if (squarings < 0)
+        squarings = 0;
+      Aexp = A / std::pow(2.f, squarings);
+      exp_pade7(U, V, Aexp);
+      }
+    matrix<float, Container> numer = U + V;
+    matrix<float, Container> denom = -U + V;
+    invert(Aexp, denom);
+    Aexp *= numer;
+    for (int k = 0; k < squarings; ++k)
+      {
+      Aexp *= Aexp;
+      }
+    }
+
+  template <class T, class Container>
+  void exp(matrix<T, Container>& Aexp, const matrix<T, Container>& A)
+    {
+    T l1norm = (T)0;
+    for (uint32_t r = 0; r < A.rows(); ++r)
+      {
+      T sum = (T)0;
+      for (uint32_t c = 0; c < A.cols(); ++c)
+        sum += A(r, c);
+      sum = sum < 0 ? -sum : sum;
+      l1norm = sum > l1norm ? sum : l1norm;
+      }
+    int squarings = 0;   
+    matrix<T, Container> U, V;
+    if (l1norm < 1.495585217958292e-002)
+      exp_pade3(U, V, A);
+    else if (l1norm < 2.539398330063230e-001)
+      exp_pade5(U, V, A);
+    else if (l1norm < 9.504178996162932e-001)
+      exp_pade7(U, V, A);
+    else if (l1norm < 2.097847961257068e+000)
+      exp_pade9(U, V, A);
+    else
+      {
+      const T maxnorm = (const T)5.371920351148152;
+      std::frexp(l1norm / maxnorm, &squarings);
+      if (squarings < 0)
+        squarings = 0;
+      Aexp = A / std::pow((T)2, squarings);
+      exp_pade13(U, V, Aexp);
+      }
+    matrix<T, Container> numer = U + V;
+    matrix<T, Container> denom = -U + V;
+    invert(Aexp, denom);
+    Aexp *= numer;
+    for (int k = 0; k < squarings; ++k)
+      {
+      Aexp *= Aexp;
+      }
     }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -8309,4 +8463,4 @@ namespace jtk
   typedef matrix<float, std::array<float, 99>> matf99;
   typedef matrix<float, std::array<float, 100>> matf100;
 
-        }
+  }
