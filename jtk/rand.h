@@ -8,6 +8,8 @@ namespace jtk
   class xorshift32
     {
     public:
+      typedef uint32_t result_type;
+
       xorshift32() : _state(0x74382381) {}
       ~xorshift32() {}
 
@@ -31,6 +33,16 @@ namespace jtk
         this->operator()();
         }
 
+      static constexpr uint32_t(max)()
+        {
+        return 0xffffffff;
+        }
+
+      static constexpr uint32_t(min)()
+        {
+        return 0;
+        }
+
     private:
       uint32_t _state;
     };
@@ -38,6 +50,8 @@ namespace jtk
   class xorshift64
     {
     public:
+      typedef uint64_t result_type;
+
       xorshift64() : _state(7967805708226634297) {}
       ~xorshift64() {}
 
@@ -61,6 +75,16 @@ namespace jtk
         this->operator()();
         }
 
+      static constexpr uint64_t(max)()
+        {
+        return 0xffffffffffffffff;
+        }
+
+      static constexpr uint64_t(min)()
+        {
+        return 0;
+        }
+
     private:
       uint64_t _state;
     };
@@ -68,6 +92,8 @@ namespace jtk
   class xorshift64star
     {
     public:
+      typedef uint64_t result_type;
+
       xorshift64star() : _state(7967805708226634297) {}
       ~xorshift64star() {}
 
@@ -89,6 +115,16 @@ namespace jtk
         this->operator()();
         _state ^= s + s * 17 + s * 121 + (s * 121 / 17);
         this->operator()();
+        }
+
+      static constexpr uint64_t(max)()
+        {
+        return 0xffffffffffffffff;
+        }
+
+      static constexpr uint64_t(min)()
+        {
+        return 0;
         }
 
     private:
@@ -158,6 +194,8 @@ namespace jtk
   class rndhash32
     {
     public:
+      typedef uint32_t result_type;
+
       rndhash32() : _state(0), _seed(0) {}
       ~rndhash32() {}
 
@@ -171,6 +209,16 @@ namespace jtk
         _seed = s;
         }
 
+      static constexpr uint32_t(max)()
+        {
+        return 0xffffffff;
+        }
+
+      static constexpr uint32_t(min)()
+        {
+        return 0;
+        }
+
     private:
       uint32_t _state;
       uint32_t _seed;
@@ -179,6 +227,8 @@ namespace jtk
   class rndhash64
     {
     public:
+      typedef uint64_t result_type;
+
       rndhash64() : _state(0), _seed(0) {}
       ~rndhash64() {}
 
@@ -190,6 +240,16 @@ namespace jtk
       void seed(uint64_t s)
         {
         _seed = s;
+        }
+
+      static constexpr uint64_t(max)()
+        {
+        return 0xffffffffffffffff;
+        }
+
+      static constexpr uint64_t(min)()
+        {
+        return 0;
         }
 
     private:

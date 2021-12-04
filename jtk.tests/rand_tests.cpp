@@ -94,6 +94,36 @@ namespace jtk
     TEST_EQ(12448303717905564719, gen());
     TEST_EQ(9360494376432242552, gen());
     }
+
+  void test_uniform_int_distribution()
+    {
+    rndhash32 gen;
+    std::uniform_int_distribution<int> dist(0,100);
+    TEST_EQ(12, dist(gen));
+    xorshift32 gen2;
+    TEST_EQ(11, dist(gen2));
+    xorshift64 gen3;
+    TEST_EQ(22, dist(gen3));
+    xorshift64star gen4;
+    TEST_EQ(33, dist(gen4));
+    rndhash64 gen5;
+    TEST_EQ(95, dist(gen5));
+    }
+
+  void test_uniform_real_distribution()
+    {
+    rndhash32 gen;
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+    TEST_EQ(0.16898341595701036, dist(gen));
+    xorshift32 gen2;
+    TEST_EQ(0.52092439366361742, dist(gen2));
+    xorshift64 gen3;
+    TEST_EQ(0.53525415882940430, dist(gen3));
+    xorshift64star gen4;
+    TEST_EQ(0.69168813734950074, dist(gen4));
+    rndhash64 gen5;
+    TEST_EQ(0.19260513038729990, dist(gen5));
+    }
   }
 
 void run_all_rand_tests()
@@ -104,4 +134,6 @@ void run_all_rand_tests()
   test_xorshift64star();
   test_rndhash32();
   test_rndhash64();
+  test_uniform_int_distribution();
+  test_uniform_real_distribution();
   }
