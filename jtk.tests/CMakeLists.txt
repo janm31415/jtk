@@ -24,6 +24,7 @@ log_tests.h
 mat_tests.h
 ply_tests.h
 qbvh_tests.h
+rand_tests.h
 test_assert.h
 vec_tests.h
     )
@@ -39,6 +40,7 @@ log_tests.cpp
 mat_tests.cpp
 ply_tests.cpp
 qbvh_tests.cpp
+rand_tests.cpp
 test_assert.cpp
 test.cpp
 vec_tests.cpp

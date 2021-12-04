@@ -25,6 +25,7 @@ pipe.h
 ply.h
 point_tree.h
 qbvh.h
+rand.h
 render.h
 sse2neon.h
 timer.h
