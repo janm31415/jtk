@@ -41,4 +41,8 @@
 #define JTK_WINDOW_STATIC
 #include "../jtk/window.h"
 
+#define JTK_HALFFLOAT_IMPLEMENTATION
+#define JTK_HALFFLOAT_STATIC
+#include "../jtk/halffloat.h"
+
 #pragma warning(pop)

@@ -18,6 +18,7 @@ concurrency_tests.h
 container_tests.h
 file_utils_tests.h
 geometry_tests.h
+halffloat_tests.h
 icp_tests.h
 image_tests.h
 log_tests.h
@@ -34,6 +35,7 @@ concurrency_tests.cpp
 container_tests.cpp
 file_utils_tests.cpp
 geometry_tests.cpp
+halffloat_tests.cpp
 icp_tests.cpp
 image_tests.cpp
 log_tests.cpp

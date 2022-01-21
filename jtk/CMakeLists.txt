@@ -16,6 +16,7 @@ deformation.h
 file_utils.h
 fitting.h
 geometry.h
+halffloat.h
 icp.h
 image.h
 log.h

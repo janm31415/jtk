@@ -11,6 +11,7 @@
 #include "qbvh_tests.h"
 #include "vec_tests.h"
 #include "rand_tests.h"
+#include "halffloat_tests.h"
 
 #include <ctime>
 
@@ -30,7 +31,8 @@ int main(int /*argc*/, const char* /*argv*/[])
   //run_all_log_tests();
   //run_all_ply_tests();
   //run_all_icp_tests();
-  run_all_rand_tests();
+  //run_all_rand_tests();
+  run_all_halffloat_tests();
   auto toc = std::clock();
 
   if (!testing_fails) 
