@@ -131,6 +131,55 @@ namespace jtk
       uint64_t _state;
     };
 
+  class pcg32
+    {
+    public:
+      typedef uint32_t result_type;
+
+      pcg32() : _state(0x74382381), _inc(1) {}
+      ~pcg32() {}
+
+      uint32_t operator()()
+        {
+        uint64_t old_state = _state;
+        _state = old_state * 6364136223846793005ULL + (_inc|1);
+        uint32_t xorshifted = (uint32_t)(((old_state >> 18u) ^ old_state) >> 27u);
+        uint32_t rot = old_state >> 59u;
+        return (xorshifted >> rot) | (xorshifted << ((uint32_t)(-(int32_t)rot) & 31));
+        }
+
+      void seed(uint32_t s)
+        {
+        _state = s + s * 17 + s * 121 + (s * 121 / 17);
+        this->operator()();
+        _state ^= s + s * 17 + s * 121 + (s * 121 / 17);
+        this->operator()();
+        _state ^= s + s * 17 + s * 121 + (s * 121 / 17);
+        this->operator()();
+        _state ^= s + s * 17 + s * 121 + (s * 121 / 17);
+        this->operator()();
+        }
+
+      void set_increment(uint64_t incr)
+        {
+        _inc = incr;
+        }
+
+      static constexpr uint32_t(max)()
+        {
+        return 0xffffffff;
+        }
+
+      static constexpr uint32_t(min)()
+        {
+        return 0;
+        }
+
+    private:
+      uint64_t _state;
+      uint64_t _inc;
+    };
+
   inline uint32_t hash32(int32_t position, uint32_t seed = 0)
     {
     constexpr uint32_t BIT_NOISE1 = 0xB5297A4D;

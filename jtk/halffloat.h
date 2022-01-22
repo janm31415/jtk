@@ -57,7 +57,7 @@ inline uint32_t convertmantissa(uint32_t i)
   return m | e;     // Return combined number
 }
 
-std::array<uint32_t, 2048> generate_halffloat_mantissatable()
+static std::array<uint32_t, 2048> generate_halffloat_mantissatable()
 {
   std::array<uint32_t, 2048> out{};
   out[0] = 0;
@@ -68,7 +68,7 @@ std::array<uint32_t, 2048> generate_halffloat_mantissatable()
   return out;
 }
 
-std::array<uint32_t, 64> generate_halffloat_exponenttable()
+static std::array<uint32_t, 64> generate_halffloat_exponenttable()
 {
   std::array<uint32_t, 64> out{};
   out[0] = 0;
@@ -82,7 +82,7 @@ std::array<uint32_t, 64> generate_halffloat_exponenttable()
   return out;
 }
 
-std::array<uint32_t, 64> generate_halffloat_offsettable()
+static std::array<uint32_t, 64> generate_halffloat_offsettable()
 {
   std::array<uint32_t, 64> out{};
   for (uint32_t i = 1; i < 64; ++i)
@@ -92,7 +92,7 @@ std::array<uint32_t, 64> generate_halffloat_offsettable()
   return out;
 }
 
-std::array<uint8_t, 512> generate_halffloat_shifttable()
+static std::array<uint8_t, 512> generate_halffloat_shifttable()
 {
   std::array<uint8_t, 512> shifttable;
   unsigned int i;
@@ -104,8 +104,8 @@ std::array<uint8_t, 512> generate_halffloat_shifttable()
       shifttable[i | 0x100] = 24;
     }
     else if (e < -14) { // Small numbers map to denorms
-      shifttable[i | 0x000] = -e - 1;
-      shifttable[i | 0x100] = -e - 1;
+      shifttable[i | 0x000] = (uint8_t)(-e - 1);
+      shifttable[i | 0x100] = (uint8_t)(-e - 1);
     }
     else if (e <= 15) { // Normal numbers just lose precision
       shifttable[i | 0x000] = 13;
@@ -123,7 +123,7 @@ std::array<uint8_t, 512> generate_halffloat_shifttable()
   return shifttable;
 }
 
-std::array<uint16_t, 512> generate_halffloat_basetable()
+static std::array<uint16_t, 512> generate_halffloat_basetable()
 {
   std::array<uint16_t, 512> basetable;
   unsigned int i;
@@ -139,8 +139,8 @@ std::array<uint16_t, 512> generate_halffloat_basetable()
       basetable[i | 0x100] = (0x0400 >> (-e - 14)) | 0x8000;
     }
     else if (e <= 15) { // Normal numbers just lose precision
-      basetable[i | 0x000] = ((e + 15) << 10);
-      basetable[i | 0x100] = ((e + 15) << 10) | 0x8000;
+      basetable[i | 0x000] = (uint16_t)((e + 15) << 10);
+      basetable[i | 0x100] = (uint16_t)((e + 15) << 10) | 0x8000;
     }
     else if (e < 128) { // Large numbers map to Infinity
       basetable[i | 0x000] = 0x7C00;

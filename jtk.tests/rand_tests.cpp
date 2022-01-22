@@ -63,6 +63,24 @@ namespace jtk
     TEST_EQ(9695351890346187618U, gen());
     }
 
+  void test_pcg32()
+    {
+    pcg32 gen;
+
+    gen.seed(0x74382381);
+
+    TEST_EQ(1401873887, gen());
+    TEST_EQ(241846669, gen());
+    TEST_EQ(2780668099, gen());
+    TEST_EQ(2743032811, gen());
+    TEST_EQ(115076087, gen());
+    TEST_EQ(409013220, gen());
+    TEST_EQ(3427455128, gen());
+    TEST_EQ(1424442367, gen());
+    TEST_EQ(1516166086, gen());
+    TEST_EQ(2775139601, gen());
+    }
+
   void test_rndhash32()
     {
     rndhash32 gen;    
@@ -108,6 +126,8 @@ namespace jtk
     TEST_EQ(33, dist(gen4));
     rndhash64 gen5;
     TEST_EQ(95, dist(gen5));
+    pcg32 gen6;
+    TEST_EQ(14, dist(gen6));
     }
 
   void test_uniform_real_distribution()
@@ -123,6 +143,8 @@ namespace jtk
     TEST_EQ(0.69168813734950074, dist(gen4));
     rndhash64 gen5;
     TEST_EQ(0.19260513038729990, dist(gen5));
+    pcg32 gen6;
+    TEST_EQ(0.14998129499144852, dist(gen6));
     }
   }
 
@@ -132,6 +154,7 @@ void run_all_rand_tests()
   test_xorshift32();
   test_xorshift64();
   test_xorshift64star();
+  test_pcg32();
   test_rndhash32();
   test_rndhash64();
 #ifdef _WIN32 // these tests are std implementation dependent
