@@ -1,6 +1,10 @@
 #ifndef SSE2NEON_H
 #define SSE2NEON_H
 
+#ifdef _JTK_NO_SIMD
+  #error "This file should not be included when the user required no SIMD instructions"
+#endif
+
 // This header file provides a simple API translation layer
 // between SSE intrinsics to their corresponding Arm/Aarch64 NEON versions
 //

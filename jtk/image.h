@@ -13,11 +13,19 @@
 #ifndef JTK_IMAGE_H
 #define JTK_IMAGE_H
 
-#ifdef _JTK_FOR_ARM
-#include "sse2neon.h"
-#else
-#include <immintrin.h>
-#include <emmintrin.h>
+#ifndef _JTK_IMAGE_NO_SIMD
+#ifdef _JTK_NO_SIMD
+#define _JTK_IMAGE_NO_SIMD
+#endif
+#endif
+
+#ifndef _JTK_IMAGE_NO_SIMD
+#  ifdef _JTK_FOR_ARM
+#    include "sse2neon.h"
+#  else
+#    include <immintrin.h>
+#    include <emmintrin.h>
+#  endif
 #endif
 
 #include <array>
@@ -106,6 +114,10 @@ namespace jtk
 
   JTKIDEF image<uint32_t> three_gray_to_uint32_t(const image<uint8_t>& r, const image<uint8_t>& g, const image<uint8_t>& b);
 
+  JTKIDEF void split(image<uint8_t>& red, image<uint8_t>& green, image<uint8_t>& blue, const image<uint32_t>& im);
+
+#ifndef _JTK_IMAGE_NO_SIMD
+
   JTKIDEF image<uint32_t> census_transform(const image<uint8_t>& im);
 
   JTKIDEF void census_transform(image<uint32_t>& census_red, image<uint32_t>& census_green, image<uint32_t>& census_blue, const image<uint32_t>& im);
@@ -120,8 +132,6 @@ namespace jtk
 
   JTKIDEF image<uint8_t> pyramid_up(const image<uint8_t>& im);
 
-  JTKIDEF void split(image<uint8_t>& red, image<uint8_t>& green, image<uint8_t>& blue, const image<uint32_t>& im);
-
   JTKIDEF image<uint8_t> remove_even_col_even_row_sse(const image<uint8_t>& im);
 
   JTKIDEF image<uint8_t> add_even_col_even_row_sse(const image<uint8_t>& im);
@@ -131,6 +141,8 @@ namespace jtk
   JTKIDEF image<uint32_t> pyramid_down(const image<uint32_t>& im);
 
   JTKIDEF image<uint32_t> pyramid_up(const image<uint32_t>& im);
+  
+#endif
 
   template <class T>
   class image
@@ -173,7 +185,11 @@ namespace jtk
             }
             }
           }
+#ifndef _JTK_IMAGE_NO_SIMD
         _data = (T*)(_mm_malloc(_stride*_h * sizeof(T), 16));
+#else
+        _data = (T*)(malloc(_stride*_h * sizeof(T)));
+#endif
         _access = (T**)(malloc(_h * sizeof(T*)));
         for (uint32_t i = 0; i < h; ++i)
           _access[i] = _data + (i * _stride);
@@ -207,7 +223,11 @@ namespace jtk
 
       image(const image& other) : _w(other._w), _h(other._h), _stride(other._stride), _data(nullptr), _access(nullptr)
         {
+#ifndef _JTK_IMAGE_NO_SIMD
         _data = (T*)(_mm_malloc(_stride*_h * sizeof(T), 16));
+#else
+        _data = (T*)(malloc(_stride*_h * sizeof(T)));
+#endif
         _access = (T**)(malloc(_h * sizeof(T*)));
         for (uint32_t i = 0; i < _h; ++i)
           _access[i] = _data + (i * _stride);
@@ -232,7 +252,11 @@ namespace jtk
 
       ~image()
         {
+#ifndef _JTK_IMAGE_NO_SIMD
         _mm_free(_data);
+#else
+        free(_data);
+#endif
         free(_access);
         }
 
@@ -364,8 +388,12 @@ namespace jtk
       T* p_out = out.data() + y * out.stride();
       for (uint32_t x = 0; x < w; x += offset, p_im += offset, p_out += offset)
         {
+#ifndef _JTK_IMAGE_NO_SIMD
         __m128 data = _mm_loadu_ps((const float*)p_im);
         _mm_store_ps((float*)p_out, data);
+#else
+        memcpy((void*)p_out, (void*)p_im, 16);
+#endif
         }
       }
     return out;
@@ -611,6 +639,7 @@ namespace jtk
       3, 2
       };
 
+#ifndef _JTK_IMAGE_NO_SIMD
     JTKIDEF float horizontal_min_ps(__m128 x)
       {
       __m128 max1 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 0, 3, 2));
@@ -671,6 +700,17 @@ namespace jtk
         }
       }
 
+#else
+
+    template <class T>
+    void fill_image(image<T>& im, T value)
+      {
+      for (auto& v : im)
+        v = value;
+      }
+      
+#endif
+
     JTKIDEF std::string pnm_read_line(std::ifstream& file)
       {
       std::string line;
@@ -679,6 +719,8 @@ namespace jtk
         std::getline(file, line);
       return line;
       }
+
+#ifndef _JTK_IMAGE_NO_SIMD
 
     JTKIDEF void unpack_8bit_to_16bit(const __m128i a, __m128i& b0, __m128i& b1)
       {
@@ -692,6 +734,8 @@ namespace jtk
       hi = _mm_unpackhi_epi8(a, b);
       lo = _mm_unpacklo_epi8(a, b);
       }
+      
+#endif
     } // namespace image_details
 
   JTKIDEF void fill_image(image<uint8_t>& im, uint8_t value)
@@ -901,6 +945,8 @@ namespace jtk
     return green(im);
     }
 
+#ifndef _JTK_IMAGE_NO_SIMD
+
   JTKIDEF void minmax(float& min, float& max, const image<float>& im, bool skip_infinity)
     {
     using namespace image_details;
@@ -949,6 +995,47 @@ namespace jtk
     min = std::min<float>(single_min, horizontal_min_ps(current_min));
     max = std::max<float>(single_max, horizontal_max_ps(current_max));
     }
+    
+#else
+
+  JTKIDEF void minmax(float& min, float& max, const image<float>& im, bool skip_infinity)
+    {
+    using namespace image_details;
+    const uint32_t w = (int)im.width();
+    const uint32_t s = (int)im.stride();
+    const uint32_t h = (int)im.height();
+
+    float single_min = std::numeric_limits<float>::max();
+    float single_max = -std::numeric_limits<float>::max();
+
+    float current_min = std::numeric_limits<float>::max();
+    float current_max = -std::numeric_limits<float>::max();
+
+    float inf = std::numeric_limits<float>::infinity();
+
+    for (uint32_t y = 0; y < h; ++y)
+      {
+      float* p_im = (float*)(im.data() + y * s);
+      for (uint32_t x = 0; x < w; ++x)
+        {
+        float val_min = *p_im;
+        float val_max = val_min;
+        if (skip_infinity && val_min == inf)
+          {
+          val_min = current_min;
+          val_max = current_max;
+          }
+        current_min = std::min<float>(current_min, val_min);
+        current_max = std::max<float>(current_max, val_max);
+        ++p_im;
+        }
+      }
+
+    min = current_min;
+    max = current_max;
+    }
+
+#endif
 
   JTKIDEF image<uint8_t> image_to_gray(const image<float>& im)
     {
@@ -1124,6 +1211,7 @@ namespace jtk
     return out;
     }
 
+#ifndef _JTK_IMAGE_NO_SIMD
 
   JTKIDEF image<uint32_t> census_transform(const image<uint8_t>& im)
     {
@@ -1605,12 +1693,14 @@ namespace jtk
     for (auto& v : temp)
       v *= 4;
     convolve_row_14641_div_256(green, temp);
-    convolve_col_14641(temp, add_even_col_even_row_sse(blue), true);
+    convolve_col_14641(temp, add_even_col_even_row_ssuint32_te(blue), true);
     for (auto& v : temp)
       v *= 4;
     convolve_row_14641_div_256(blue, temp);
     return three_gray_to_uint32_t(red, green, blue);
     }
+    
+#endif
 
   } // namespace jtk
 
