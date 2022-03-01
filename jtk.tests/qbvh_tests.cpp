@@ -57,7 +57,7 @@ namespace jtk
     {
     float4 a(1.f, 2.f, 3.f, 4.f);
     auto res = rsqrt(a);
-    float tol = 1e-7f;
+    float tol = 1e-5f;
     TEST_EQ_CLOSE(1.f, res[0], tol);
     TEST_EQ_CLOSE(1.f / std::sqrt(2.f), res[1], tol);
     TEST_EQ_CLOSE(1.f / std::sqrt(3.f), res[2], tol);

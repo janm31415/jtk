@@ -16,6 +16,10 @@ if (JTK_MAT_PARALLEL)
 add_definitions(-D_JTK_MAT_PARALLEL)
 endif (JTK_MAT_PARALLEL)
 
+if (JTK_NO_SIMD)
+add_definitions(-D_JTK_NO_SIMD)
+endif (JTK_NO_SIMD)
+
 if (${JTK_TARGET} STREQUAL "arm")
 add_definitions(-D_JTK_FOR_ARM)
 endif (${JTK_TARGET} STREQUAL "arm")

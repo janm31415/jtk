@@ -2,6 +2,10 @@
 
 #include "concurrency.h"
 
+#ifdef _JTK_NO_SIMD
+  #error "No non SIMD version available for render"
+#endif
+
 #ifdef _JTK_FOR_ARM
 #include "sse2neon.h"
 #else

@@ -4,6 +4,8 @@ set_property(CACHE JTK_THREADING PROPERTY STRINGS tbb ppl std none)
 
 option(JTK_MAT_PARALLEL "Certain matrix operations (e.g. conjugate gradients) run in parallel" ON)
 
+option(JTK_NO_SIMD "No SIMD instructions" OFF)
+
 set(JTK_TARGET "x64" CACHE STRING  "Choose your target platform: x64 compatible pc or arm.")
 set_property(CACHE JTK_TARGET PROPERTY STRINGS x64 arm)
 
