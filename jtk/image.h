@@ -1693,7 +1693,7 @@ namespace jtk
     for (auto& v : temp)
       v *= 4;
     convolve_row_14641_div_256(green, temp);
-    convolve_col_14641(temp, add_even_col_even_row_ssuint32_te(blue), true);
+    convolve_col_14641(temp, add_even_col_even_row_sse(blue), true);
     for (auto& v : temp)
       v *= 4;
     convolve_row_14641_div_256(blue, temp);
