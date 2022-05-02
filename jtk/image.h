@@ -1594,7 +1594,7 @@ namespace jtk
       imp = im.data() + y * im.stride();
       intp = integr.data() + (y + 1) * integr.stride();
       *intp = 0;
-      for (int x = 0; x < w; ++x)
+      for (uint32_t x = 0; x < w; ++x)
         {
         f += imp[x];
         intp[x + 1] = f + intp_lower[x + 1];
