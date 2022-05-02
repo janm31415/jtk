@@ -116,6 +116,13 @@ namespace jtk
 
   JTKIDEF void split(image<uint8_t>& red, image<uint8_t>& green, image<uint8_t>& blue, const image<uint32_t>& im);
 
+  /*
+  Suppose an image is w pixels wide and h pixels high. Then the integral of this will be w+1 pixels wide and h+1 pixels high. The first row and column of the integral image are all zeros.
+  All other pixels have a value equal to the sum of all pixels before it.
+  */
+  JTKIDEF void integral(image<uint32_t>& integr, const image<uint8_t>& im);
+
+
 #ifndef _JTK_IMAGE_NO_SIMD
 
   JTKIDEF image<uint32_t> census_transform(const image<uint8_t>& im);
@@ -1552,6 +1559,45 @@ namespace jtk
         *p_r = clr & 255;
         *p_g = (clr >> 8) & 255;
         *p_b = (clr >> 16) & 255;
+        }
+      }
+    }
+
+  JTKIDEF void integral(image<uint32_t>& integr, const image<uint8_t>& im)
+    {
+    const auto w = im.width();
+    const auto h = im.height();
+    integr = image<uint32_t>(w + 1, h + 1, false);
+
+    const uint8_t* imp = im.data();
+    uint32_t* intp = integr.data();
+
+    for (uint32_t x = 0; x <= w; ++x, ++intp)
+      {
+      *intp = 0;
+      }
+    intp = integr.row(1);
+    *intp = 0;
+    ++intp;
+
+    int f = 0;
+    for (uint32_t x = 0; x < w; ++x)
+      {
+      f += imp[x];
+      intp[x] = f;
+      }
+
+    for (uint32_t y = 1; y < h; ++y)
+      {
+      f = 0;
+      uint32_t* intp_lower = integr.data() + (y) * integr.stride();
+      imp = im.data() + y * im.stride();
+      intp = integr.data() + (y + 1) * integr.stride();
+      *intp = 0;
+      for (int x = 0; x < w; ++x)
+        {
+        f += imp[x];
+        intp[x + 1] = f + intp_lower[x + 1];
         }
       }
     }

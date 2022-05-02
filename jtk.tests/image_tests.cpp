@@ -179,6 +179,89 @@ namespace jtk
 #endif
     }
 
+  void test_image_integral()
+    {
+    image<uint8_t> im(5, 5);
+    im(0, 0) = 5;
+    im(1, 0) = 2;
+    im(2, 0) = 3;
+    im(3, 0) = 4;
+    im(4, 0) = 1;
+
+    im(0, 1) = 1;
+    im(1, 1) = 5;
+    im(2, 1) = 4;
+    im(3, 1) = 2;
+    im(4, 1) = 3;
+
+    im(0, 2) = 2;
+    im(1, 2) = 2;
+    im(2, 2) = 1;
+    im(3, 2) = 3;
+    im(4, 2) = 4;
+
+    im(0, 3) = 3;
+    im(1, 3) = 5;
+    im(2, 3) = 6;
+    im(3, 3) = 4;
+    im(4, 3) = 5;
+
+    im(0, 4) = 4;
+    im(1, 4) = 1;
+    im(2, 4) = 3;
+    im(3, 4) = 2;
+    im(4, 4) = 6;
+
+    image<uint32_t> in;
+
+    integral(in, im);
+
+    TEST_EQ(6, in.width());
+    TEST_EQ(6, in.height());
+
+    TEST_EQ(0, in(0, 0));
+    TEST_EQ(0, in(1, 0));
+    TEST_EQ(0, in(2, 0));
+    TEST_EQ(0, in(3, 0));
+    TEST_EQ(0, in(4, 0));
+    TEST_EQ(0, in(5, 0));
+
+    TEST_EQ(0, in(0, 1));
+    TEST_EQ(5, in(1, 1));
+    TEST_EQ(7, in(2, 1));
+    TEST_EQ(10, in(3, 1));
+    TEST_EQ(14, in(4, 1));
+    TEST_EQ(15, in(5, 1));
+
+    TEST_EQ(0, in(0, 2));
+    TEST_EQ(6, in(1, 2));
+    TEST_EQ(13, in(2, 2));
+    TEST_EQ(20, in(3, 2));
+    TEST_EQ(26, in(4, 2));
+    TEST_EQ(30, in(5, 2));
+
+    TEST_EQ(0, in(0, 3));
+    TEST_EQ(8, in(1, 3));
+    TEST_EQ(17, in(2, 3));
+    TEST_EQ(25, in(3, 3));
+    TEST_EQ(34, in(4, 3));
+    TEST_EQ(42, in(5, 3));
+
+    TEST_EQ(0, in(0, 4));
+    TEST_EQ(11, in(1, 4));
+    TEST_EQ(25, in(2, 4));
+    TEST_EQ(39, in(3, 4));
+    TEST_EQ(52, in(4, 4));
+    TEST_EQ(65, in(5, 4));
+
+    TEST_EQ(0, in(0, 5));
+    TEST_EQ(15, in(1, 5));
+    TEST_EQ(30, in(2, 5));
+    TEST_EQ(47, in(3, 5));
+    TEST_EQ(62, in(4, 5));
+    TEST_EQ(81, in(5, 5));
+    }
+
   }
 
 
@@ -188,4 +271,5 @@ void run_all_image_tests()
   test_fill_image();
   test_census();
   test_census_32();
+  test_image_integral();
   }
