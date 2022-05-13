@@ -7143,7 +7143,7 @@ namespace jtk
             h += a(i, k) * a(i, k);
             }
           f = a(i, l);
-          g = (f >= 0.0 ? -sqrt(h) : sqrt(h));
+          g = (f >= 0.0 ? -std::sqrt(h) : std::sqrt(h));
           subdiagonal(i) = scale * g;
           h -= f * g;
           a(i, l) = f - g;
@@ -7233,7 +7233,7 @@ namespace jtk
           if (iterations++ == 100)
             return false; // to many iterations					
           g = (diagonal(l) - diagonal(l - 1)) / (2.0 * subdiagonal(l - 1));
-          r = sqrt(g * g + 1.0);
+          r = std::sqrt(g * g + 1.0);
           g = diagonal(m - 1) - diagonal(l - 1) + subdiagonal(l - 1) / (g + svd_details::sign(r, g));
           s = 1.0;
           c = 1.0;
@@ -7242,7 +7242,7 @@ namespace jtk
             {
             f = s * subdiagonal(i - 1);
             b = c * subdiagonal(i - 1);
-            r = sqrt(f * f + g * g);
+            r = std::sqrt(f * f + g * g);
             subdiagonal(i) = r;
             if (r == 0.0)
               {
