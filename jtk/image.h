@@ -9,7 +9,7 @@
    #define JTK_IMAGE_IMPLEMENTATION
    #include "jtk/image.h"
  */
- 
+
 #ifndef JTK_IMAGE_H
 #define JTK_IMAGE_H
 
@@ -148,7 +148,7 @@ namespace jtk
   JTKIDEF image<uint32_t> pyramid_down(const image<uint32_t>& im);
 
   JTKIDEF image<uint32_t> pyramid_up(const image<uint32_t>& im);
-  
+
 #endif
 
   template <class T>
@@ -160,9 +160,9 @@ namespace jtk
       typedef const T* const_iterator;
       typedef T value_type;
 
-      image() : _w(0), _h(0), _stride(0), _data(nullptr), _access(nullptr) {}
+      image() : _w(0), _h(0), _stride(0), _data(nullptr), _access(nullptr), _memory_owner(true) {}
 
-      image(uint32_t w, uint32_t h, bool init_to_zero = true) : _w(w), _h(h), _stride(w), _data(nullptr), _access(nullptr)
+      image(uint32_t w, uint32_t h, bool init_to_zero = true) : _w(w), _h(h), _stride(w), _data(nullptr), _access(nullptr), _memory_owner(true)
         {
         if ((_w * sizeof(T)) & 15)
           {
@@ -193,15 +193,22 @@ namespace jtk
             }
           }
 #ifndef _JTK_IMAGE_NO_SIMD
-        _data = (T*)(_mm_malloc(_stride*_h * sizeof(T), 16));
+        _data = (T*)(_mm_malloc(_stride * _h * sizeof(T), 16));
 #else
-        _data = (T*)(malloc(_stride*_h * sizeof(T)));
+        _data = (T*)(malloc(_stride * _h * sizeof(T)));
 #endif
         _access = (T**)(malloc(_h * sizeof(T*)));
         for (uint32_t i = 0; i < h; ++i)
           _access[i] = _data + (i * _stride);
         if (init_to_zero)
           memset(_data, 0, _stride * _h * sizeof(T));
+        }
+
+      image(T* raw, uint32_t w, uint32_t h, uint32_t stride) : _w(w), _h(h), _stride(stride), _data(raw), _access(nullptr), _memory_owner(false)
+        {
+        _access = (T**)(malloc(_h * sizeof(T*)));
+        for (uint32_t i = 0; i < h; ++i)
+          _access[i] = _data + (i * _stride);
         }
 
       image(image&& other) : _w(0), _h(0), _stride(0), _data(nullptr), _access(nullptr)
@@ -211,6 +218,7 @@ namespace jtk
         _w = other._w;
         _h = other._h;
         _stride = other._stride;
+        _memory_owner = other._memory_owner;
         other._data = nullptr;
         other._access = nullptr;
         other._w = 0;
@@ -225,20 +233,33 @@ namespace jtk
         std::swap(_w, other._w);
         std::swap(_h, other._h);
         std::swap(_stride, other._stride);
+        std::swap(_memory_owner, other._memory_owner);
         return *this;
         }
 
       image(const image& other) : _w(other._w), _h(other._h), _stride(other._stride), _data(nullptr), _access(nullptr)
         {
+        if (other._memory_owner)
+          {
 #ifndef _JTK_IMAGE_NO_SIMD
-        _data = (T*)(_mm_malloc(_stride*_h * sizeof(T), 16));
+          _data = (T*)(_mm_malloc(_stride * _h * sizeof(T), 16));
 #else
-        _data = (T*)(malloc(_stride*_h * sizeof(T)));
+          _data = (T*)(malloc(_stride * _h * sizeof(T)));
 #endif
-        _access = (T**)(malloc(_h * sizeof(T*)));
-        for (uint32_t i = 0; i < _h; ++i)
-          _access[i] = _data + (i * _stride);
-        memcpy(_data, other._data, _stride * _h * sizeof(T));
+          _access = (T**)(malloc(_h * sizeof(T*)));
+          for (uint32_t i = 0; i < _h; ++i)
+            _access[i] = _data + (i * _stride);
+          memcpy(_data, other._data, _stride * _h * sizeof(T));
+          _memory_owner = true;
+          }
+        else
+          {
+          _data = other._data;
+          _access = (T**)(malloc(_h * sizeof(T*)));
+          for (uint32_t i = 0; i < _h; ++i)
+            _access[i] = _data + (i * _stride);
+          _memory_owner = false;
+          }
         }
 
       void swap(image& other)
@@ -248,6 +269,7 @@ namespace jtk
         std::swap(_stride, other._stride);
         std::swap(_data, other._data);
         std::swap(_access, other._access);
+        std::swap(_memory_owner, other._memory_owner);
         }
 
       image& operator = (const image& other)
@@ -259,11 +281,14 @@ namespace jtk
 
       ~image()
         {
+        if (_memory_owner)
+          {
 #ifndef _JTK_IMAGE_NO_SIMD
-        _mm_free(_data);
+          _mm_free(_data);
 #else
-        free(_data);
+          free(_data);
 #endif
+          }
         free(_access);
         }
 
@@ -358,15 +383,16 @@ namespace jtk
       uint32_t _w, _h, _stride;
       T* _data;
       T** _access;
+      bool _memory_owner;
     };
-    
+
   ///////////////////////////////////////////////////////////
   // template class implementations
   ///////////////////////////////////////////////////////////
-  
+
   namespace image_details
     {
-    
+
     template <class T>
     void put_pixel(T* raw, const int x, const int y, const uint32_t stride, const T& clr)
       {
@@ -379,9 +405,9 @@ namespace jtk
       if (x >= 0 && y >= 0 && x < (int)w && y < (int)h)
         put_pixel(raw, x, y, stride, clr);
       }
-      
+
     }
-      
+
   template <class T>
   image<T> span_to_image(uint32_t w, uint32_t h, uint32_t stride, const T* p_image)
     {
@@ -537,7 +563,7 @@ namespace jtk
       }
     return out;
     }
-    
+
   template <class T, class TValid>
   void convolve_col_14641_div_16(image<T>& out, const image<T>& im, TValid valid)
     {
@@ -607,9 +633,9 @@ namespace jtk
     convolve_col_14641_div_16(temp, im, valid);
     convolve_row_14641_div_16(im, temp, valid);
     }
-    
+
   } // namespace jtk
-  
+
 #endif // #ifndef JTK_IMAGE_H
 
 #ifdef JTK_IMAGE_IMPLEMENTATION
@@ -686,7 +712,7 @@ namespace jtk
       {
       return _mm_castsi128_ps(_mm_set1_epi32(value));
       }
-      
+
     template <class T>
     void fill_image(image<T>& im, T value)
       {
@@ -715,7 +741,7 @@ namespace jtk
       for (auto& v : im)
         v = value;
       }
-      
+
 #endif
 
     JTKIDEF std::string pnm_read_line(std::ifstream& file)
@@ -741,7 +767,7 @@ namespace jtk
       hi = _mm_unpackhi_epi8(a, b);
       lo = _mm_unpacklo_epi8(a, b);
       }
-      
+
 #endif
     } // namespace image_details
 
@@ -749,17 +775,17 @@ namespace jtk
     {
     return image_details::fill_image(im, value);
     }
-    
+
   JTKIDEF void fill_image(image<uint16_t>& im, uint16_t value)
     {
     return image_details::fill_image(im, value);
     }
-    
+
   JTKIDEF void fill_image(image<uint32_t>& im, uint32_t value)
     {
     return image_details::fill_image(im, value);
     }
-    
+
   JTKIDEF void fill_image(image<float>& im, float value)
     {
     return image_details::fill_image(im, value);
@@ -805,7 +831,7 @@ namespace jtk
     if (max_val <= 255)
       return false;
     im = image<uint16_t>(width, height, false);
-    file.read((char *)im.data(), width * height * sizeof(uint16_t));
+    file.read((char*)im.data(), width * height * sizeof(uint16_t));
     file.close();
     return true;
     }
@@ -818,7 +844,7 @@ namespace jtk
       file << "P5\n" << im.width() << " " << im.height() << "\n" << "65535\n";
       for (uint32_t y = 0; y < im.height(); ++y)
         {
-        file.write((const char*)im.data() + im.stride()*y * sizeof(uint16_t), im.width() * sizeof(uint16_t));
+        file.write((const char*)im.data() + im.stride() * y * sizeof(uint16_t), im.width() * sizeof(uint16_t));
         }
       file.close();
       }
@@ -1002,7 +1028,7 @@ namespace jtk
     min = std::min<float>(single_min, horizontal_min_ps(current_min));
     max = std::max<float>(single_max, horizontal_max_ps(current_max));
     }
-    
+
 #else
 
   JTKIDEF void minmax(float& min, float& max, const image<float>& im, bool skip_infinity)
@@ -1054,11 +1080,11 @@ namespace jtk
       s = 255.f / (fmax - fmin);
     for (int y = 0; y < (int)im.height(); ++y)
       {
-      const float* p_f = im.data() + im.stride()*y;
+      const float* p_f = im.data() + im.stride() * y;
       uint8_t* p_g = out.data() + out.stride() * y;
       for (int x = 0; x < (int)im.width(); ++x, ++p_f, ++p_g)
         {
-        *p_g = uint8_t((*p_f - fmin)*s);
+        *p_g = uint8_t((*p_f - fmin) * s);
         }
       }
     return out;
@@ -1081,7 +1107,7 @@ namespace jtk
       h = (int)im.height() - y;
     for (int yy = 0; yy < h; ++yy)
       {
-      const uint8_t* p_val = im.data() + (y + yy)*im.stride() + x;
+      const uint8_t* p_val = im.data() + (y + yy) * im.stride() + x;
       for (int xx = 0; xx < w; ++xx, ++p_val)
         {
         ++hist[size_t(*p_val)];
@@ -1119,7 +1145,7 @@ namespace jtk
       sumB += i * histogram[i];
       double mB = double(sumB) / double(wB);
       double mF = double(sum1 - sumB) / double(wF);
-      double between = wB * wF*(mB - mF)*(mB - mF);
+      double between = wB * wF * (mB - mF) * (mB - mF);
       if (between >= maximum)
         {
         level = i;
@@ -1137,7 +1163,7 @@ namespace jtk
       h = (int)im.height() - y;
     for (int yy = 0; yy < h; ++yy)
       {
-      uint8_t* p_val = im.data() + (y + yy)*im.stride() + x;
+      uint8_t* p_val = im.data() + (y + yy) * im.stride() + x;
       for (int xx = 0; xx < w; ++xx, ++p_val)
         {
         if (*p_val > threshold)
@@ -1208,7 +1234,7 @@ namespace jtk
       const uint8_t* pr = r.row(y);
       const uint8_t* pg = g.row(y);
       const uint8_t* pb = b.row(y);
-     
+
       for (uint32_t x = 0; x < w; ++x, ++c, ++pr, ++pg, ++pb)
         {
         uint32_t clr = 0xff000000 | ((uint32_t)*pb << 16) | ((uint32_t)*pg << 8) | ((uint32_t)*pr);
@@ -1244,7 +1270,7 @@ namespace jtk
       const uint8_t* p_im = im.data() + s * y;
       for (int x = 4; x < w - 4; ++x, ++p_im)
         {
-        uint32_t* ct_pos = ct.data() + (y*cs) + x;
+        uint32_t* ct_pos = ct.data() + (y * cs) + x;
         uint8_t* descriptor_it = (uint8_t*)&descriptor1;
         uint8_t value = *p_im;
         const __m128i value128 = _mm_set1_epi8(value);
@@ -1299,9 +1325,9 @@ namespace jtk
       const uint32_t* p_im = im.data() + s * y;
       for (int x = 4; x < w - 4; ++x, ++p_im)
         {
-        uint32_t* ct_pos_red = census_red.data() + (y*cs) + x;
-        uint32_t* ct_pos_green = census_green.data() + (y*cs) + x;
-        uint32_t* ct_pos_blue = census_blue.data() + (y*cs) + x;
+        uint32_t* ct_pos_red = census_red.data() + (y * cs) + x;
+        uint32_t* ct_pos_green = census_green.data() + (y * cs) + x;
+        uint32_t* ct_pos_blue = census_blue.data() + (y * cs) + x;
         uint8_t* descriptor_red_it = (uint8_t*)&descriptor1_red;
         uint8_t* descriptor_green_it = (uint8_t*)&descriptor1_green;
         uint8_t* descriptor_blue_it = (uint8_t*)&descriptor1_blue;
@@ -1479,7 +1505,7 @@ namespace jtk
     ++i2; ++result;
     *result = (uint8_t)(*i2 >> 4);
     ++i2; ++result;
-    const int16_t* const end_input = im.data() + (im.stride() * im.height()-16);
+    const int16_t* const end_input = im.data() + (im.stride() * im.height() - 16);
     __m128i result_register_lo = _mm_setzero_si128();
     __m128i result_register_hi = _mm_setzero_si128();
     for (; i4 < end_input; i0 += 1, i1 += 8, i2 += 8, i3 += 8, i4 += 8, result += 16)
@@ -1590,7 +1616,7 @@ namespace jtk
     for (uint32_t y = 1; y < h; ++y)
       {
       f = 0;
-      uint32_t* intp_lower = integr.data() + (y) * integr.stride();
+      uint32_t* intp_lower = integr.data() + (y)*integr.stride();
       imp = im.data() + y * im.stride();
       intp = integr.data() + (y + 1) * integr.stride();
       *intp = 0;
@@ -1606,12 +1632,12 @@ namespace jtk
     {
     using namespace image_details;
     image<uint8_t> out(im.stride() >> 1, (im.height() + im.height() % 2) >> 1);
-    
+
     for (uint32_t y = 0; y < out.height(); ++y)
       {
       __m128i* result = (__m128i*)(out.row(y));
 
-      const uint8_t* i0 = im.row(2*y);
+      const uint8_t* i0 = im.row(2 * y);
       const uint8_t* i1 = i0 + 16;
       const uint8_t* const end_input = i0 + im.stride();
       for (; i0 < end_input; i0 += 32, i1 += 32, ++result)
@@ -1745,7 +1771,7 @@ namespace jtk
     convolve_row_14641_div_256(blue, temp);
     return three_gray_to_uint32_t(red, green, blue);
     }
-    
+
 #endif
 
   } // namespace jtk
