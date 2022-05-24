@@ -1201,11 +1201,11 @@ namespace jtk
     char buffer[80];
     fread(buffer, 1, 80, inputfile);
 
-    if (buffer[0] == 's' && buffer[1] == 'o' && buffer[2] == 'l' && buffer[3] == 'i' && buffer[4] == 'd')
-      {
-      fclose(inputfile);
-      return false;
-      }
+    //if (buffer[0] == 's' && buffer[1] == 'o' && buffer[2] == 'l' && buffer[3] == 'i' && buffer[4] == 'd')
+    //  {
+    //  fclose(inputfile);
+    //  return false;
+    //  }
 
     uint32_t nr_of_triangles;
     fread((void*)(&nr_of_triangles), sizeof(uint32_t), 1, inputfile);
@@ -1383,6 +1383,9 @@ namespace jtk
       }
 
     inputfile.close();
+
+    if (vert.empty())
+      return false;
 
     auto less_fie = [](const vec4<float>& left, const vec4<float>& right)
       {
