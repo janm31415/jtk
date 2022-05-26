@@ -45,9 +45,13 @@ namespace jtk
 
   JTKPLYDEF bool read_ply(const char* filename, std::vector<vec3<float>>& vertices, std::vector<vec3<float>>& normals, std::vector<uint32_t>& clrs, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv);
 
+  JTKPLYDEF bool read_ply(const wchar_t* filename, std::vector<vec3<float>>& vertices, std::vector<vec3<float>>& normals, std::vector<uint32_t>& clrs, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv);
+
   JTKPLYDEF bool read_ply_from_memory(const char* buffer, uint64_t buffer_size, std::vector<vec3<float>>& vertices, std::vector<vec3<float>>& normals, std::vector<uint32_t>& clrs, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv);
 
   JTKPLYDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& vertices, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs, const std::vector<vec3<uint32_t>>& triangles, const std::vector<vec3<vec2<float>>>& uv);
+
+  JTKPLYDEF bool write_ply(const wchar_t* filename, const std::vector<vec3<float>>& vertices, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs, const std::vector<vec3<uint32_t>>& triangles, const std::vector<vec3<vec2<float>>>& uv);
 
 
   /* ----------------------------------------------------------------------
@@ -103,6 +107,9 @@ namespace jtk
    * Returns 1 if successful, 0 otherwise
    * ---------------------------------------------------------------------- */
   JTKPLYDEF p_ply ply_open(const char* name, p_ply_error_cb error_cb, long idata,
+    void* pdata);
+
+  JTKPLYDEF p_ply ply_open(const wchar_t* name, p_ply_error_cb error_cb, long idata,
     void* pdata);
 
   /* ----------------------------------------------------------------------
@@ -565,7 +572,8 @@ namespace jtk
 
     }
 
-  JTKPLYDEF bool read_ply(const char* filename, std::vector<vec3<float>>& vertices, std::vector<vec3<float>>& normals, std::vector<uint32_t>& clrs, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv)
+  template <class TCHAR>
+  bool _read_ply(const TCHAR* filename, std::vector<vec3<float>>& vertices, std::vector<vec3<float>>& normals, std::vector<uint32_t>& clrs, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv)
     {
     vertices.clear();
     normals.clear();
@@ -797,11 +805,38 @@ namespace jtk
     return true;
     }
 
-  JTKPLYDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& vertices, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs, const std::vector<vec3<uint32_t>>& triangles, const std::vector<vec3<vec2<float>>>& uv)
+  namespace ply_details
     {
+    template <class TCHAR>
+    class file_opener
+      {
+      public:
+        FILE* operator()(const TCHAR* filename, const char* mode)
+          {
+          return fopen(filename, mode);
+          }
+      };
+
+    template <>
+    class file_opener<wchar_t>
+      {
+      public:
+        FILE* operator()(const wchar_t* filename, const char* mode)
+          {
+          std::string m(mode);
+          std::wstring wm(m.begin(), m.end());
+          return _wfopen(filename, wm.c_str());
+          }
+      };
+    }
+
+  template <class TCHAR>
+  bool _write_ply(const TCHAR* filename, const std::vector<vec3<float>>& vertices, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs, const std::vector<vec3<uint32_t>>& triangles, const std::vector<vec3<vec2<float>>>& uv)
+    {
+    ply_details::file_opener<TCHAR> fo;
     if (vertices.empty())
       return false;
-    FILE* fp = fopen(filename, "wb");
+    FILE* fp = fo(filename, "wb");
 
     if (!fp)
       return false;
@@ -1194,6 +1229,23 @@ namespace jtk
     if (error_cb == NULL) error_cb = ply_error_cb;
     assert(name);
     fp = fopen(name, "rb");
+    if (!fp) {
+      error_cb(NULL, "Unable to open file");
+      return NULL;
+      }
+    ply = ply_open_from_file(fp, error_cb, idata, pdata);
+    if (ply) ply->own_fp = 1;
+    else fclose(fp);
+    return ply;
+    }
+
+  JTKPLYDEF p_ply ply_open(const wchar_t* name, p_ply_error_cb error_cb,
+    long idata, void* pdata) {
+    FILE* fp;
+    p_ply ply;
+    if (error_cb == NULL) error_cb = ply_error_cb;
+    assert(name);
+    fp = _wfopen(name, L"rb");
     if (!fp) {
       error_cb(NULL, "Unable to open file");
       return NULL;
@@ -2694,6 +2746,26 @@ namespace jtk
         "reverse binary output"
       };
 
+    }
+
+  JTKPLYDEF bool read_ply(const char* filename, std::vector<vec3<float>>& vertices, std::vector<vec3<float>>& normals, std::vector<uint32_t>& clrs, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv)
+    {
+    return _read_ply<char>(filename, vertices, normals, clrs, triangles, uv);
+    }
+
+  JTKPLYDEF bool read_ply(const wchar_t* filename, std::vector<vec3<float>>& vertices, std::vector<vec3<float>>& normals, std::vector<uint32_t>& clrs, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv)
+    {
+    return _read_ply<wchar_t>(filename, vertices, normals, clrs, triangles, uv);
+    }
+
+  JTKPLYDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& vertices, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs, const std::vector<vec3<uint32_t>>& triangles, const std::vector<vec3<vec2<float>>>& uv)
+    {
+    return _write_ply<char>(filename, vertices, normals, clrs, triangles, uv);
+    }
+
+  JTKPLYDEF bool write_ply(const wchar_t* filename, const std::vector<vec3<float>>& vertices, const std::vector<vec3<float>>& normals, const std::vector<uint32_t>& clrs, const std::vector<vec3<uint32_t>>& triangles, const std::vector<vec3<vec2<float>>>& uv)
+    {
+    return _write_ply<wchar_t>(filename, vertices, normals, clrs, triangles, uv);
     }
 
   } // namespace jtk

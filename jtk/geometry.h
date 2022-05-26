@@ -58,6 +58,15 @@ namespace jtk
   JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles);
   JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles, const std::vector<jtk::vec3<jtk::vec2<float>>>& uv);
 
+  JTKGDEF bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename);
+  JTKGDEF bool read_stl_ascii(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename);
+  JTKGDEF bool write_stl(const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const vec3<float>* triangle_normals, const unsigned short* attributes, const wchar_t* filename);
+  JTKGDEF bool read_obj(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename);
+  JTKGDEF bool read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const wchar_t* filename);
+  JTKGDEF bool read_texture_filename_from_mtl(std::string& texture_file, const wchar_t* filename);
+  JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename);
+  JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const wchar_t* filename);
+
   class adjacency_list
     {
     public:
@@ -1189,11 +1198,36 @@ namespace jtk
 namespace jtk
   {
 
-  JTKGDEF bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+  namespace geometry_details
     {
-    FILE* inputfile;
+    template <class TCHAR>
+    class file_opener
+      {
+      public:
+        FILE* operator()(const TCHAR* filename, const char* mode)
+          {
+          return fopen(filename, mode);
+          }
+      };
 
-    inputfile = fopen(filename, "rb");
+    template <>
+    class file_opener<wchar_t>
+      {
+      public:
+        FILE* operator()(const wchar_t* filename, const char* mode)
+          {
+          std::string m(mode);
+          std::wstring wm(m.begin(), m.end());
+          return _wfopen(filename, wm.c_str());
+          }
+      };
+    }
+
+  template <class TCHAR>
+  bool _read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const TCHAR* filename)
+    {
+    geometry_details::file_opener<TCHAR> fo;
+    FILE* inputfile = fo(filename, "rb");
 
     if (!inputfile)
       return false;
@@ -1212,7 +1246,7 @@ namespace jtk
       if (inputfilecheck.eof())
         return false;
       if (!inputfilecheck.is_open())
-        return false;      
+        return false;
       std::string line1, line2;
       std::getline(inputfilecheck, line1);
       std::getline(inputfilecheck, line2);
@@ -1224,7 +1258,7 @@ namespace jtk
       if (w1 == std::string("facet") && w2 == std::string("normal")) // this is an ascii file
         return false;
       // binary stl starting with solid in header, so continue reading
-      inputfile = fopen(filename, "rb");
+      inputfile = fo(filename, "rb");
       if (!inputfile)
         return false;
       fread(buffer, 1, 80, inputfile);
@@ -1330,7 +1364,8 @@ namespace jtk
     return true;
     }
 
-  JTKGDEF bool read_stl_ascii(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+  template <class TCHAR>
+  bool _read_stl_ascii(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const TCHAR* filename)
     {
     std::ifstream inputfile;
     inputfile.open(filename);
@@ -1468,10 +1503,12 @@ namespace jtk
     return true;
     }
 
-  JTKGDEF bool write_stl(const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const vec3<float>* triangle_normals, const unsigned short* attributes, const char* filename)
+  template <class TCHAR>
+  bool _write_stl(const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const vec3<float>* triangle_normals, const unsigned short* attributes, const TCHAR* filename)
     {
+    geometry_details::file_opener<TCHAR> fo;
     FILE* outputfile;
-    outputfile = fopen(filename, "wb");
+    outputfile = fo(filename, "wb");
 
 
     if (!outputfile)
@@ -1527,13 +1564,15 @@ namespace jtk
     return true;
     }
 
-  JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+  template <class TCHAR>
+  bool _read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const TCHAR* filename)
     {
+    geometry_details::file_opener<TCHAR> fo;
     uint32_t nr_of_vertices = 0;
     uint32_t nr_of_triangles = 0;
     vertices.clear();
     triangles.clear();
-    FILE* inputfile = fopen(filename, "r");
+    FILE* inputfile = fo(filename, "r");
     if (!inputfile)
       return false;
     char str[80];
@@ -1587,9 +1626,11 @@ namespace jtk
     return true;
     }
 
-  JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename)
+  template <class TCHAR>
+  bool _write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const TCHAR* filename)
     {
-    FILE* outputfile = fopen(filename, "w");
+    geometry_details::file_opener<TCHAR> fo;
+    FILE* outputfile = fo(filename, "w");
     if (!outputfile)
       return false;
     fprintf(outputfile, "OFF\n");
@@ -1618,13 +1659,14 @@ namespace jtk
     return true;
     }
 
-  JTKGDEF bool read_obj(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+  template <class TCHAR>
+  bool _read_obj(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const TCHAR* filename)
     {
+    geometry_details::file_opener<TCHAR> fo;
     FILE* f = nullptr;
-    f = fopen(filename, "r");
+    f = fo(filename, "r");
     if (!f)
       return false;
-
 
     char buffer[256];
     while (fgets(buffer, 256, f) != nullptr)
@@ -1709,10 +1751,12 @@ namespace jtk
     return true;
     }
 
-  JTKGDEF bool read_texture_filename_from_mtl(std::string& texture_file, const char* filename)
+  template <class TCHAR>
+  bool _read_texture_filename_from_mtl(std::string& texture_file, const TCHAR* filename)
     {
+    geometry_details::file_opener<TCHAR> fo;
     FILE* f = nullptr;
-    f = fopen(filename, "r");
+    f = fo(filename, "r");
     if (!f)
       return false;
     char buffer[256];
@@ -1735,14 +1779,16 @@ namespace jtk
     return false;
     }
 
-  JTKGDEF bool read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const char* filename)
+  template <class TCHAR>
+  bool _read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const TCHAR* filename)
     {
+    geometry_details::file_opener<TCHAR> fo;
     mtl_filename = "";
     std::vector<vec3<float>>().swap(vertices);
     std::vector<vec3<uint32_t>>().swap(triangles);
     std::vector<vec3<vec2<float>>>().swap(uv);
     FILE* f = nullptr;
-    f = fopen(filename, "r");
+    f = fo(filename, "r");
     if (!f)
       return false;
 
@@ -3357,6 +3403,86 @@ namespace jtk
         tria[j] = new_indices[tria[j]];
 
     return did_change;
+    }
+
+  JTKGDEF bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+    {
+    return _read_stl<char>(vertices, triangles, filename);
+    }
+
+  JTKGDEF bool read_stl_ascii(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+    {
+    return _read_stl_ascii<char>(vertices, triangles, filename);
+    }
+
+  JTKGDEF bool write_stl(const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const vec3<float>* triangle_normals, const unsigned short* attributes, const char* filename)
+    {
+    return _write_stl<char>(vertices, nr_of_triangles, triangles, triangle_normals, attributes, filename);
+    }
+
+  JTKGDEF bool read_obj(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+    {
+    return _read_obj<char>(vertices, triangles, filename);
+    }
+
+  JTKGDEF bool read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const char* filename)
+    {
+    return _read_obj<char>(mtl_filename, vertices, triangles, uv, filename);
+    }
+
+  JTKGDEF bool read_texture_filename_from_mtl(std::string& texture_file, const char* filename)
+    {
+    return _read_texture_filename_from_mtl<char>(texture_file, filename);
+    }
+
+  JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
+    {
+    return _read_off<char>(vertices, triangles, filename);
+    }
+
+  JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename)
+    {
+    return _write_off<char>(nr_of_vertices, vertices, nr_of_triangles, triangles, filename);
+    }
+
+  JTKGDEF bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename)
+    {
+    return _read_stl<wchar_t>(vertices, triangles, filename);
+    }
+
+  JTKGDEF bool read_stl_ascii(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename)
+    {
+    return _read_stl_ascii<wchar_t>(vertices, triangles, filename);
+    }
+
+  JTKGDEF bool write_stl(const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const vec3<float>* triangle_normals, const unsigned short* attributes, const wchar_t* filename)
+    {
+    return _write_stl<wchar_t>(vertices, nr_of_triangles, triangles, triangle_normals, attributes, filename);
+    }
+
+  JTKGDEF bool read_obj(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename)
+    {
+    return _read_obj<wchar_t>(vertices, triangles, filename);
+    }
+
+  JTKGDEF bool read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const wchar_t* filename)
+    {
+    return _read_obj<wchar_t>(mtl_filename, vertices, triangles, uv, filename);
+    }
+
+  JTKGDEF bool read_texture_filename_from_mtl(std::string& texture_file, const wchar_t* filename)
+    {
+    return _read_texture_filename_from_mtl<wchar_t>(texture_file, filename);
+    }
+
+  JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename)
+    {
+    return _read_off<wchar_t>(vertices, triangles, filename);
+    }
+
+  JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const wchar_t* filename)
+    {
+    return _write_off<wchar_t>(nr_of_vertices, vertices, nr_of_triangles, triangles, filename);
     }
 
   } // namespace jtk
