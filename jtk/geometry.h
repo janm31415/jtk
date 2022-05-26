@@ -1201,11 +1201,34 @@ namespace jtk
     char buffer[80];
     fread(buffer, 1, 80, inputfile);
 
-    //if (buffer[0] == 's' && buffer[1] == 'o' && buffer[2] == 'l' && buffer[3] == 'i' && buffer[4] == 'd')
-    //  {
-    //  fclose(inputfile);
-    //  return false;
-    //  }
+    if (buffer[0] == 's' && buffer[1] == 'o' && buffer[2] == 'l' && buffer[3] == 'i' && buffer[4] == 'd')
+      {
+      // check whether it is an ascii file
+      fclose(inputfile);
+      std::ifstream inputfilecheck;
+      inputfilecheck.open(filename);
+      if (inputfilecheck.fail())
+        return false;
+      if (inputfilecheck.eof())
+        return false;
+      if (!inputfilecheck.is_open())
+        return false;      
+      std::string line1, line2;
+      std::getline(inputfilecheck, line1);
+      std::getline(inputfilecheck, line2);
+      inputfilecheck.close();
+      std::stringstream ss;
+      ss << line2;
+      std::string w1, w2;
+      ss >> w1 >> w2;
+      if (w1 == std::string("facet") && w2 == std::string("normal")) // this is an ascii file
+        return false;
+      // binary stl starting with solid in header, so continue reading
+      inputfile = fopen(filename, "rb");
+      if (!inputfile)
+        return false;
+      fread(buffer, 1, 80, inputfile);
+      }
 
     uint32_t nr_of_triangles;
     fread((void*)(&nr_of_triangles), sizeof(uint32_t), 1, inputfile);
