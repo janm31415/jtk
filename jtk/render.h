@@ -737,8 +737,8 @@ namespace jtk
       if (rd.obj.colors)
         {
         const uint32_t* p = rd.obj.colors + i;
-        const __m128i* tmp = (const __m128i*) p;
-        colors = tmp[0];
+        const __m128i* tmp2 = (const __m128i*) p;
+        colors = tmp2[0];
         }
 
       if (rd.obj.normals)
