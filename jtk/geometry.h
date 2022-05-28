@@ -58,6 +58,7 @@ namespace jtk
   JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles);
   JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles, const std::vector<jtk::vec3<jtk::vec2<float>>>& uv);
 
+#ifdef _WIN32
   JTKGDEF bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename);
   JTKGDEF bool read_stl_ascii(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename);
   JTKGDEF bool write_stl(const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const vec3<float>* triangle_normals, const unsigned short* attributes, const wchar_t* filename);
@@ -66,6 +67,7 @@ namespace jtk
   JTKGDEF bool read_texture_filename_from_mtl(std::string& texture_file, const wchar_t* filename);
   JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename);
   JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const wchar_t* filename);
+#endif
 
   class adjacency_list
     {
@@ -1229,8 +1231,10 @@ namespace jtk
           FILE* fp;
           if (0 != _wfopen_s(&fp, filename, wm.c_str()))
             fp = 0;
-#else
+#elif defined(_WIN32)
           FILE* fp = _wfopen(filename, wm.c_str());
+#else
+          FILE* fp = nullptr; // use utf8 char
 #endif
           return fp;
           }
@@ -3459,6 +3463,7 @@ namespace jtk
     return _write_off<char>(nr_of_vertices, vertices, nr_of_triangles, triangles, filename);
     }
 
+#ifdef _WIN32
   JTKGDEF bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename)
     {
     return _read_stl<wchar_t>(vertices, triangles, filename);
@@ -3498,6 +3503,7 @@ namespace jtk
     {
     return _write_off<wchar_t>(nr_of_vertices, vertices, nr_of_triangles, triangles, filename);
     }
+#endif
 
   } // namespace jtk
 
