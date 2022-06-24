@@ -23,6 +23,7 @@
 
 #include <array>
 #include <stdint.h>
+#include <cstddef>
 
 namespace jtk
 {
