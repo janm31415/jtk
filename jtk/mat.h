@@ -5353,7 +5353,7 @@ namespace jtk
     const double* ita = a.data();
     const double* itb = b.data();
     uint64_t len = (uint64_t)a.rows() * (uint64_t)a.cols();
-#ifdef _JTK_FOR_ARM
+#ifdef _JTK_MAT_NO_SIMD
     uint64_t len2 = 0;
     double totalsum = 0.0;
 #else
