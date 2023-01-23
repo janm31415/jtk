@@ -112,6 +112,12 @@ namespace jtk
         return _make_leaf(coord);
         }
 
+      void remove_leaf(const uint32_t* coord)
+        {
+        assert(in_bounds(coord, _max_depth));
+        return _remove_leaf(coord);
+        }
+
       uint8_t* get_leaf(const uint32_t* coord) const
         {
         assert(in_bounds(coord, _max_depth));
@@ -330,6 +336,60 @@ namespace jtk
         return new_node;
         }
 
+      //returns the parent node of the child, so the "new" version of input pointer node
+      uint8_t* _remove_child(uint8_t* node, const uint32_t* coord, uint32_t depth, int32_t child_index, uint8_t* parent, int32_t child_count)
+        {
+        assert(child_index >= 0 && child_index < 8);
+        assert(has_child(node, child_index));
+        uint8_t child_mask = node[0];
+        uint8_t* children[8] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+        int32_t nr_of_old_children = get_number_of_children(node);
+        for (int32_t i = 0; i < nr_of_old_children; ++i)
+          {
+          int32_t idx = _children_index_table[child_mask][i];
+          memcpy(&(children[idx]), node + internal_bytes + pointer_bytes * i, pointer_bytes);
+          }
+        auto lam = [&] {
+          int32_t cnt;
+          uint8_t* my_parent = find_parent(depth, coord, cnt);
+          return cnt == child_count && my_parent == parent;
+          };
+        assert(lam());
+        assert((parent == nullptr && node == _root) || (get_child(parent, child_count) == node));
+        uint8_t new_child_mask = child_mask & ~(1 << child_index);
+        assert(new_child_mask != child_mask);
+        uint8_t* child = children[child_index];
+        assert(child != nullptr);
+        if (depth == _max_depth - 1)
+          {
+          _remove_leaf(child);
+          }
+        else
+          {
+          assert(get_number_of_children(child) == 0);
+          _remove_internal(child, get_number_of_children(child));
+          }
+        children[child_index] = nullptr;
+        int nr_of_children = _number_of_children_table[new_child_mask];
+        uint8_t* new_node = _create_internal(nr_of_children);
+        new_node[0] = new_child_mask;
+        int32_t j = 0;
+        for (int32_t i = 0; i < 8; ++i)
+          {
+          if (children[i])
+            {
+            memcpy(new_node + internal_bytes + pointer_bytes * j, &(children[i]), pointer_bytes);
+            ++j;
+            }
+          }
+        _remove_internal(node, nr_of_old_children);
+        if (parent)
+          memcpy(parent + internal_bytes + pointer_bytes * child_count, &new_node, pointer_bytes);
+        else
+          _root = new_node;
+        return new_node;
+        }
+
       uint8_t* _make_leaf(const uint32_t* coord)
         {
         uint8_t* node = _root;
@@ -352,6 +412,44 @@ namespace jtk
           node = get_child(node, child_count);
           }
         return node;
+        }
+
+      void _remove_leaf(const uint32_t* coord)
+        {
+        uint8_t* node = _root;
+        uint8_t* parent = nullptr;
+        int32_t child_count = 0;
+        for (uint32_t i = 1; i < _max_depth; ++i)
+          {
+          const uint32_t x = (coord[0] >> (_max_depth - i)) & 1;
+          const uint32_t y = (coord[1] >> (_max_depth - i)) & 1;
+          const uint32_t z = (coord[2] >> (_max_depth - i)) & 1;
+          const uint32_t idx = (z << 2) | (y << 1) | x;
+          if (!has_child(node, idx))
+            return; // nothing to remove          
+          parent = node;
+          child_count = get_child_count(node, idx);
+          node = get_child(node, child_count);
+          }
+        const uint32_t x = coord[0] & 1;
+        const uint32_t y = coord[1] & 1;
+        const uint32_t z = coord[2] & 1;
+        const uint32_t idx = (z << 2) | (y << 1) | x;
+        if (!has_child(node, idx))
+          return; // nothing to remove  
+        uint32_t current_coord[3] = { coord[0] >> 1, coord[1] >> 1, coord[2] >> 1 };
+        node = _remove_child(node, current_coord, _max_depth-1, idx, parent, child_count);
+        uint32_t depth = _max_depth-1;
+        while (parent != nullptr && get_number_of_children(node) == 0) // remove parent nodes as long as they are empty
+          {
+          uint32_t cidx = get_child_index(parent, child_count);
+          node = parent;
+          uint32_t current_coord[3] = { coord[0] >> (_max_depth - depth + 1), coord[1] >> (_max_depth - depth + 1), coord[2] >> (_max_depth - depth + 1) };
+          parent = find_parent(depth-1, current_coord, child_count);
+          assert((parent == nullptr && node == _root) || get_child(parent, child_count) == node);
+          node = _remove_child(node, current_coord, depth - 1, cidx, parent, child_count);
+          --depth;
+          }
         }
 
       inline uint8_t* _create_leaf()

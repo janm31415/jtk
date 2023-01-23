@@ -35,6 +35,11 @@ namespace
 
     TEST_ASSERT(oct.in_bounds(crd(63, 63, 63), oct.max_depth()));
     TEST_ASSERT(!oct.in_bounds(crd(64, 63, 63), oct.max_depth()));
+
+    oct.remove_leaf(crd(63, 63, 63));
+    TEST_ASSERT(oct.tree_is_consistent());
+    TEST_ASSERT(oct.find_leaf(crd(63, 63, 63)) == nullptr);
+    TEST_ASSERT(oct.find_leaf(crd(1, 2, 3)) == child);
     }
   }
 
