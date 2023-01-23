@@ -456,6 +456,7 @@ namespace jtk
       inline uint8_t* _create_leaf()
         {
         uint8_t* node = _leaf_node.allocate();
+        memset(node, 0, sizeof(T));
         return node;
         }
 
