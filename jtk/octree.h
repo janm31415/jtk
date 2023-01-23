@@ -2,6 +2,7 @@
 #define JTK_OCTREE_H
 
 #include "containers.h"
+#include "vec.h"
 
 namespace jtk
   {
@@ -438,16 +439,16 @@ namespace jtk
         if (!has_child(node, idx))
           return; // nothing to remove  
         uint32_t current_coord[3] = { coord[0] >> 1, coord[1] >> 1, coord[2] >> 1 };
-        node = _remove_child(node, current_coord, _max_depth-1, idx, parent, child_count);
-        uint32_t depth = _max_depth-1;
+        node = _remove_child(node, current_coord, _max_depth - 1, idx, parent, child_count);
+        uint32_t depth = _max_depth - 1;
         while (parent != nullptr && get_number_of_children(node) == 0) // remove parent nodes as long as they are empty
           {
           uint32_t cidx = get_child_index(parent, child_count);
           node = parent;
-          uint32_t current_coord[3] = { coord[0] >> (_max_depth - depth + 1), coord[1] >> (_max_depth - depth + 1), coord[2] >> (_max_depth - depth + 1) };
-          parent = find_parent(depth-1, current_coord, child_count);
+          uint32_t cc[3] = { coord[0] >> (_max_depth - depth + 1), coord[1] >> (_max_depth - depth + 1), coord[2] >> (_max_depth - depth + 1) };
+          parent = find_parent(depth - 1, cc, child_count);
           assert((parent == nullptr && node == _root) || get_child(parent, child_count) == node);
-          node = _remove_child(node, current_coord, depth - 1, cidx, parent, child_count);
+          node = _remove_child(node, cc, depth - 1, cidx, parent, child_count);
           --depth;
           }
         }
@@ -536,6 +537,88 @@ namespace jtk
       int32_t _children_index_table[256][8];
     };
 
+
+  template <class T>
+  class octree
+    {
+    public:
+      octree(uint32_t max_depth) : _oct(max_depth)
+        {
+        _dim = 1 << max_depth;
+        }
+
+      size_t memory_used() const
+        {
+        return _oct.memory_used();
+        }
+
+      template <class T2>
+      uint8_t* add_leaf(const jtk::vec3<T2>& pt)
+        {
+        uint32_t coord[3];
+        get_coordinate(coord, pt);
+        return _oct.add_leaf(coord);
+        }
+
+      template <class T2>
+      void remove_leaf(const jtk::vec3<T2>& pt)
+        {
+        uint32_t coord[3];
+        get_coordinate(coord, pt);
+        _oct.remove_leaf(coord);
+        }
+
+      template <class T2>
+      uint8_t* get_leaf(const jtk::vec3<T2>& pt) const
+        {
+        uint32_t coord[3];
+        get_coordinate(coord, pt);
+        return _oct.get_leaf(coord);
+        }
+
+      template <class T2>
+      uint8_t* find_leaf(const jtk::vec3<T2>& pt) const
+        {
+        uint32_t coord[3];
+        get_coordinate(coord, pt);
+        return _oct.find_leaf(coord);
+        }
+
+      bool tree_is_consistent() const
+        {
+        return _oct.tree_is_consistent();
+        }
+
+      uint32_t max_depth() const
+        {
+        return _oct.max_depth();
+        }
+
+      T get_value(const uint8_t* leaf) const
+        {
+        T val;
+        memcpy(&val, leaf, sizeof(T));
+        return val;
+        }
+
+      void set_value(uint8_t* leaf, const T& value)
+        {
+        memcpy(leaf, &value, sizeof(T));
+        }
+
+    private:
+      template <class T2>
+      void get_coordinate(uint32_t* coord, const jtk::vec3<T2>& pt) const
+        {
+        coord[0] = static_cast<uint32_t>(std::trunc(pt[0] * static_cast<T2>(_dim)));
+        coord[1] = static_cast<uint32_t>(std::trunc(pt[1] * static_cast<T2>(_dim)));
+        coord[2] = static_cast<uint32_t>(std::trunc(pt[2] * static_cast<T2>(_dim)));
+        }
+
+    private:
+      indexed_octree<T> _oct;
+      uint32_t _dim;
+    };
   }
 
 #endif
