@@ -23,6 +23,7 @@ icp_tests.h
 image_tests.h
 log_tests.h
 mat_tests.h
+octree_tests.h
 ply_tests.h
 qbvh_tests.h
 rand_tests.h
@@ -40,6 +41,7 @@ icp_tests.cpp
 image_tests.cpp
 log_tests.cpp
 mat_tests.cpp
+octree_tests.cpp
 ply_tests.cpp
 qbvh_tests.cpp
 rand_tests.cpp
