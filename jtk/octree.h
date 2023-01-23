@@ -194,7 +194,7 @@ namespace jtk
         return previous;
         }
 
-      void for_each_leaf(const std::function< void(uint8_t*, uint8_t*, uint32_t*) >& action) const
+      void for_each_leaf(const std::function< void(uint8_t* /*node*/, uint8_t* /*parent*/, uint32_t* /*coord*/) >& action) const
         {
         uint32_t coord[3] = { 0, 0, 0 };
         _for_each_leaf(_root, nullptr, 0, coord, action);
@@ -538,6 +538,9 @@ namespace jtk
     };
 
 
+  /*
+  3d octree for points in the unit cube
+  */
   template <class T>
   class octree
     {
@@ -604,6 +607,18 @@ namespace jtk
       void set_value(uint8_t* leaf, const T& value)
         {
         memcpy(leaf, &value, sizeof(T));
+        }
+
+      void for_each_leaf(const std::function< void(uint8_t* /*leaf*/, const jtk::vec3<double>& /*leaf_center*/, double /*leaf_halfsize*/) >& action) const
+        {
+        const double leaf_halfsize = 0.5 / static_cast<double>(_dim);
+        const double dim_inv = 1.0 / static_cast<double>(_dim);
+        auto action2 = [&](uint8_t* node, uint8_t* /*parent*/, uint32_t* coord)
+          {
+          jtk::vec3<double> center(leaf_halfsize + static_cast<double>(coord[0]) * dim_inv, leaf_halfsize + static_cast<double>(coord[1]) * dim_inv, leaf_halfsize + static_cast<double>(coord[2]) * dim_inv);
+          action(node, center, leaf_halfsize);
+          };
+        _oct.for_each_leaf(action2);
         }
 
     private:

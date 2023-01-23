@@ -36,6 +36,14 @@ namespace
     TEST_ASSERT(oct.in_bounds(crd(63, 63, 63), oct.max_depth()));
     TEST_ASSERT(!oct.in_bounds(crd(64, 63, 63), oct.max_depth()));
 
+    oct.for_each_leaf([&](uint8_t* node, uint8_t* /*parent*/, uint32_t* /*coord*/)
+      {
+      oct.set_value(node, 5);
+      });
+
+    TEST_EQ(5, oct.get_value(child));
+    TEST_EQ(5, oct.get_value(child2));
+
     oct.remove_leaf(crd(63, 63, 63));
     TEST_ASSERT(oct.tree_is_consistent());
     TEST_ASSERT(oct.find_leaf(crd(63, 63, 63)) == nullptr);
@@ -48,7 +56,7 @@ namespace
     TEST_ASSERT(oct.tree_is_consistent());
 
     jtk::vec3<float> pt1(0.1f,0.02f,0.3f);
-    jtk::vec3<float> pt2(0.99f, 0.99f, 0.9f);
+    jtk::vec3<float> pt2(0.99f, 0.99f, 0.99f);
 
     TEST_ASSERT(oct.find_leaf(pt1) == nullptr);
     uint8_t* child = oct.add_leaf(pt1);
@@ -61,6 +69,21 @@ namespace
     TEST_ASSERT(oct.find_leaf(pt2) == child2);
     TEST_ASSERT(child != child2);
     TEST_ASSERT(oct.tree_is_consistent());
+
+    oct.for_each_leaf([&](uint8_t* leaf, const jtk::vec3<double>& center, double halfsize)
+      {
+      TEST_EQ(0.5/(double)(1<<oct.max_depth()), halfsize);
+      oct.set_value(leaf, 107);
+      if (leaf == child2)
+        {
+        TEST_EQ(1.0 - halfsize, center[0]);
+        TEST_EQ(1.0 - halfsize, center[1]);
+        TEST_EQ(1.0 - halfsize, center[2]);
+        }
+      });
+
+    TEST_EQ(107, oct.get_value(child));
+    TEST_EQ(107, oct.get_value(child2));
 
     oct.remove_leaf(pt2);
     TEST_ASSERT(oct.tree_is_consistent());
