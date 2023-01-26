@@ -7,13 +7,54 @@
 namespace jtk
   {
 
+  // single threaded octree
   template <class T>
+  struct octree_traits
+    {
+    static const int32_t internal_bytes = sizeof(uint8_t);
+    static const int32_t leaf_bytes = sizeof(T);
+    static const int32_t pointer_bytes = sizeof(void*);
+
+    typedef memory_pool<internal_bytes + 0 * pointer_bytes> _internal_node_with_0_children_pool;
+    typedef memory_pool<internal_bytes + 1 * pointer_bytes> _internal_node_with_1_children_pool;
+    typedef memory_pool<internal_bytes + 2 * pointer_bytes> _internal_node_with_2_children_pool;
+    typedef memory_pool<internal_bytes + 3 * pointer_bytes> _internal_node_with_3_children_pool;
+    typedef memory_pool<internal_bytes + 4 * pointer_bytes> _internal_node_with_4_children_pool;
+    typedef memory_pool<internal_bytes + 5 * pointer_bytes> _internal_node_with_5_children_pool;
+    typedef memory_pool<internal_bytes + 6 * pointer_bytes> _internal_node_with_6_children_pool;
+    typedef memory_pool<internal_bytes + 7 * pointer_bytes> _internal_node_with_7_children_pool;
+    typedef memory_pool<internal_bytes + 8 * pointer_bytes> _internal_node_with_8_children_pool;
+    typedef memory_pool<leaf_bytes> _leaf_nodes_pool;
+    };
+
+
+  // use these traits for a concurrent octree
+  template <class T>
+  struct concurrent_octree_traits
+    {
+    static const int32_t internal_bytes = sizeof(uint8_t);
+    static const int32_t leaf_bytes = sizeof(T);
+    static const int32_t pointer_bytes = sizeof(void*);
+
+    typedef concurrent_memory_pool<internal_bytes + 0 * pointer_bytes> _internal_node_with_0_children_pool;
+    typedef concurrent_memory_pool<internal_bytes + 1 * pointer_bytes> _internal_node_with_1_children_pool;
+    typedef concurrent_memory_pool<internal_bytes + 2 * pointer_bytes> _internal_node_with_2_children_pool;
+    typedef concurrent_memory_pool<internal_bytes + 3 * pointer_bytes> _internal_node_with_3_children_pool;
+    typedef concurrent_memory_pool<internal_bytes + 4 * pointer_bytes> _internal_node_with_4_children_pool;
+    typedef concurrent_memory_pool<internal_bytes + 5 * pointer_bytes> _internal_node_with_5_children_pool;
+    typedef concurrent_memory_pool<internal_bytes + 6 * pointer_bytes> _internal_node_with_6_children_pool;
+    typedef concurrent_memory_pool<internal_bytes + 7 * pointer_bytes> _internal_node_with_7_children_pool;
+    typedef concurrent_memory_pool<internal_bytes + 8 * pointer_bytes> _internal_node_with_8_children_pool;
+    typedef concurrent_memory_pool<leaf_bytes> _leaf_nodes_pool;
+    };
+
+  template <class T, class Traits = octree_traits<T>>
   class indexed_octree
     {
     public:
-      static const int32_t internal_bytes = sizeof(uint8_t);
-      static const int32_t leaf_bytes = sizeof(T);
-      static const int32_t pointer_bytes = sizeof(void*);
+      static const int32_t internal_bytes = Traits::internal_bytes;
+      static const int32_t leaf_bytes = Traits::leaf_bytes;
+      static const int32_t pointer_bytes = Traits::pointer_bytes;
 
       indexed_octree(uint32_t max_depth) : _max_depth(max_depth)
         {
@@ -518,17 +559,17 @@ namespace jtk
           }
         }
     private:
-      concurrent_memory_pool<internal_bytes + 0 * pointer_bytes> _internal_0;
-      concurrent_memory_pool<internal_bytes + 1 * pointer_bytes> _internal_1;
-      concurrent_memory_pool<internal_bytes + 2 * pointer_bytes> _internal_2;
-      concurrent_memory_pool<internal_bytes + 3 * pointer_bytes> _internal_3;
-      concurrent_memory_pool<internal_bytes + 4 * pointer_bytes> _internal_4;
-      concurrent_memory_pool<internal_bytes + 5 * pointer_bytes> _internal_5;
-      concurrent_memory_pool<internal_bytes + 6 * pointer_bytes> _internal_6;
-      concurrent_memory_pool<internal_bytes + 7 * pointer_bytes> _internal_7;
-      concurrent_memory_pool<internal_bytes + 8 * pointer_bytes> _internal_8;
+      typename Traits::_internal_node_with_0_children_pool _internal_0;
+      typename Traits::_internal_node_with_1_children_pool _internal_1;
+      typename Traits::_internal_node_with_2_children_pool _internal_2;
+      typename Traits::_internal_node_with_3_children_pool _internal_3;
+      typename Traits::_internal_node_with_4_children_pool _internal_4;
+      typename Traits::_internal_node_with_5_children_pool _internal_5;
+      typename Traits::_internal_node_with_6_children_pool _internal_6;
+      typename Traits::_internal_node_with_7_children_pool _internal_7;
+      typename Traits::_internal_node_with_8_children_pool _internal_8;
 
-      concurrent_memory_pool<leaf_bytes> _leaf_node;
+      typename Traits::_leaf_nodes_pool _leaf_node;
 
       uint8_t* _root;
       uint32_t _max_depth;
@@ -542,7 +583,7 @@ namespace jtk
   /*
   3d octree for points in the unit cube
   */
-  template <class T>
+  template <class T, class Traits = octree_traits<T>>
   class octree
     {
     public:
@@ -632,7 +673,7 @@ namespace jtk
         }
 
     private:
-      indexed_octree<T> _oct;
+      indexed_octree<T, Traits> _oct;
       uint32_t _dim;
     };
   }
