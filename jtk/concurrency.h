@@ -837,7 +837,6 @@ namespace jtk
             _job();
             lock.lock();
             --_busy;
-            std::unique_lock<std::mutex> lock(_completed_all_jobs_mutex);
             _completed_all_jobs_cv.notify_one();
             }
           }
@@ -888,7 +887,7 @@ namespace jtk
 
       void wait_until_all_jobs_finished()
         {
-        std::unique_lock<std::mutex> lock(_completed_all_jobs_mutex);
+        std::unique_lock<std::mutex> lock(_queue_mutex);
         _completed_all_jobs_cv.wait(lock, [this]() { return _queue.empty() && (_busy == 0); });
         }
 
@@ -896,7 +895,6 @@ namespace jtk
       std::vector<std::thread> _pool;
       std::mutex _queue_mutex;
       std::mutex _threadpool_mutex;
-      std::mutex _completed_all_jobs_mutex;
       std::condition_variable _query_cv;
       std::condition_variable _completed_all_jobs_cv;
       std::queue<t_job_type> _queue;
