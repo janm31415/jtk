@@ -48,7 +48,9 @@ namespace jtk
   JTKGDEF bool read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const char* filename);
   JTKGDEF bool read_texture_filename_from_mtl(std::string& texture_file, const char* filename);
   JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename);
+  JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<uint32_t>& colors, const char* filename);
   JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename);
+  JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, const uint32_t* vertexcolors, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename);
 
   JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts);
   JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<float>>& normals);
@@ -66,7 +68,9 @@ namespace jtk
   JTKGDEF bool read_obj(std::string& mtl_filename, std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<vec3<vec2<float>>>& uv, const wchar_t* filename);
   JTKGDEF bool read_texture_filename_from_mtl(std::string& texture_file, const wchar_t* filename);
   JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename);
+  JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<uint32_t>& colors, const wchar_t* filename);
   JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const wchar_t* filename);
+  JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, const uint32_t* vertexcolors, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const wchar_t* filename);
 #endif
 
   class adjacency_list
@@ -1583,85 +1587,168 @@ namespace jtk
     }
 
   template <class TCHAR>
-  bool _read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const TCHAR* filename)
+  bool _read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<uint32_t>& colors, const TCHAR* filename)
     {
     geometry_details::file_opener<TCHAR> fo;
     uint32_t nr_of_vertices = 0;
     uint32_t nr_of_triangles = 0;
     vertices.clear();
     triangles.clear();
+    colors.clear();
     FILE* inputfile = fo(filename, "r");
     if (!inputfile)
       return false;
-    char str[80];
-    fscanf(inputfile, "%s\n", str);
-    if (std::string(str) != "OFF" && std::string(str) != "COFF")
+    char buffer[256];
+    int32_t stage = 0;
+    bool color = false;
+    while (fgets(buffer, 256, inputfile) != nullptr)
       {
-      fclose(inputfile);
-      return false;
-      }
-    bool color = std::string(str) == "COFF";
-    uint32_t numedges = 0;
-    fscanf(inputfile, "%d %d %d\n", &nr_of_vertices, &nr_of_triangles, &numedges);
-    vertices.resize(nr_of_vertices);
-    triangles.resize(nr_of_triangles);
-    for (auto& v : vertices)
-      {
-      float x = 0.0;
-      float y = 0.0;
-      float z = 0.0;
-      int r = 0;
-      int g = 0;
-      int b = 0;
-      int a = 0;
-      if (color)
-        fscanf(inputfile, "%f %f %f %d %d %d %d\n", &x, &y, &z, &r, &g, &b, &a);
-      else
-        fscanf(inputfile, "%f %f %f\n", &x, &y, &z);
-      v[0] = x;
-      v[1] = y;
-      v[2] = z;
-      }
-    for (auto& tria : triangles)
-      {
-      uint32_t polysize = 0;
-      uint32_t t0, t1, t2;
-      fscanf(inputfile, "%d %d %d %d\n", &polysize, &t0, &t1, &t2);
-      if (polysize != 3)
+      int32_t first_non_whitespace_index = 0;
+      while (first_non_whitespace_index < 250 && (buffer[first_non_whitespace_index] == ' ' || buffer[first_non_whitespace_index] == '\t'))
+        ++first_non_whitespace_index;
+      if (buffer[first_non_whitespace_index] == '#')
+        continue;
+      if (stage == 0) // optional stage: optionally read OFF or COFF or NOFF
         {
-        vertices.clear();
-        triangles.clear();
-        nr_of_vertices = 0;
-        nr_of_triangles = 0;
-        fclose(inputfile);
-        return false;
+        ++stage;
+        char str[256];
+        sscanf(buffer + first_non_whitespace_index, "%s\n", str);
+        std::string header = std::string(str);
+        if (header == std::string("OFF"))
+          continue;
+        if (header == std::string("COFF") || header == std::string("NOFF"))
+          {
+          color = true;
+          continue;
+          }
         }
-      tria[0] = t0;
-      tria[1] = t1;
-      tria[2] = t2;
+      switch (stage)
+        {
+        case 1: // read NVERTICES  NFACES  NEDGES
+        {
+        uint32_t numedges = 0;
+        auto scan_err = sscanf(buffer + first_non_whitespace_index, "%d %d %d\n", &nr_of_vertices, &nr_of_triangles, &numedges);
+        if (scan_err != 3)
+          {
+          fclose(inputfile);
+          return false;
+          }
+        ++stage;
+        vertices.reserve(nr_of_vertices);
+        triangles.reserve(nr_of_triangles);
+        if (color)
+          colors.reserve(nr_of_triangles);
+        break;
+        }
+        case 2: // x y z r g b a
+        {
+        float x = 0.0;
+        float y = 0.0;
+        float z = 0.0;
+        int32_t r = 0;
+        int32_t g = 0;
+        int32_t b = 0;
+        int32_t a = 0xff;
+        auto scan_err = sscanf(buffer + first_non_whitespace_index, "%f %f %f %d %d %d %d\n", &x, &y, &z, &r, &g, &b, &a);
+        if (scan_err != 3 && scan_err != 6 && scan_err != 7)
+          {
+          fclose(inputfile);
+          return false;
+          }
+        vertices.emplace_back(x, y, z);
+        uint32_t clr = 0xffffffff;
+        if (scan_err == 6 || scan_err == 7)
+          {
+          clr = ((uint32_t)a << 24) | ((uint32_t)b << 16) | ((uint32_t)g << 8) | (uint32_t)r;
+          }
+        if (color)
+          colors.push_back(clr);
+        if (vertices.size() == nr_of_vertices) // done reading vertices
+          ++stage;
+        break;
+        }
+        case 3: // polysize v0 v1 ... vn
+        {
+        uint32_t polysize = 0;
+        uint32_t t0, t1, t2, t3, t4, t5;
+        auto scan_err = sscanf(buffer + first_non_whitespace_index, "%d %d %d %d %d %d %d\n", &polysize, &t0, &t1, &t2, &t3, &t4, &t5);
+        if (scan_err < 4)
+          {
+          float polysizef, t0f, t1f, t2f, t3f, t4f, t5f;
+          scan_err = sscanf(buffer + first_non_whitespace_index, "%f %f %f %f %f %f %f\n", &polysizef, &t0f, &t1f, &t2f, &t3f, &t4f, &t5f);
+          if (scan_err < 4)
+            {
+            fclose(inputfile);
+            return false;
+            }
+          polysize = (uint32_t)polysizef;
+          t0 = (uint32_t)t0f;
+          t1 = (uint32_t)t1f;
+          t2 = (uint32_t)t2f;
+          t3 = (uint32_t)t3f;
+          t4 = (uint32_t)t4f;
+          t5 = (uint32_t)t5f;
+          }
+        if (polysize < 2 || polysize > 6)
+          {
+          fclose(inputfile);
+          return false;
+          }
+        switch (polysize)
+          {
+          case 6:
+            triangles.emplace_back(t0, t4, t5);
+          case 5:
+            triangles.emplace_back(t0, t3, t4);
+          case 4:
+            triangles.emplace_back(t0, t2, t3);
+          case 3:
+            triangles.emplace_back(t0, t1, t2);
+            break;
+          default:
+            break;
+          }
+        break;
+        }
+        }
       }
     fclose(inputfile);
     return true;
     }
 
   template <class TCHAR>
-  bool _write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const TCHAR* filename)
+  bool _write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, const uint32_t* vertexcolors, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const TCHAR* filename)
     {
     geometry_details::file_opener<TCHAR> fo;
     FILE* outputfile = fo(filename, "w");
     if (!outputfile)
       return false;
-    fprintf(outputfile, "OFF\n");
+    if (vertexcolors == nullptr)
+      fprintf(outputfile, "OFF\n");
+    else
+      fprintf(outputfile, "COFF\n");
     fprintf(outputfile, "%d %d 0\n", nr_of_vertices, nr_of_triangles);
     // vertex data
     const vec3<float>* p_vert = vertices;
+    const uint32_t* p_vert_color = vertexcolors;
     for (uint32_t i = 0; i < nr_of_vertices; ++i)
       {
       float x = (*p_vert)[0];
       float y = (*p_vert)[1];
       float z = (*p_vert)[2];
       ++p_vert;
-      fprintf(outputfile, "%f %f %f\n", x, y, z);
+      if (vertexcolors != nullptr)
+        {
+        uint32_t clr = *p_vert_color;
+        uint32_t r = clr & 0xff;
+        uint32_t g = (clr >> 8) & 0xff;
+        uint32_t b = (clr >> 16) & 0xff;
+        uint32_t a = (clr >> 24) & 0xff;
+        fprintf(outputfile, "%f %f %f %d %d %d %d\n", x, y, z, r, g, b, a);
+        ++p_vert_color;
+        }
+      else
+        fprintf(outputfile, "%f %f %f\n", x, y, z);
       }
     // face data
     const vec3<uint32_t>* p_tria = triangles;
@@ -3455,13 +3542,25 @@ namespace jtk
 
   JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const char* filename)
     {
-    return _read_off<char>(vertices, triangles, filename);
+    std::vector<uint32_t> colors;
+    return _read_off<char>(vertices, triangles, colors, filename);
+    }
+
+  JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<uint32_t>& colors, const char* filename)
+    {
+    return _read_off<char>(vertices, triangles, colors, filename);
     }
 
   JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename)
     {
-    return _write_off<char>(nr_of_vertices, vertices, nr_of_triangles, triangles, filename);
+    return _write_off<char>(nr_of_vertices, vertices, nullptr, nr_of_triangles, triangles, filename);
     }
+
+  JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, const uint32_t* vertexcolors, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const char* filename)
+    {
+    return _write_off<char>(nr_of_vertices, vertices, vertexcolors, nr_of_triangles, triangles, filename);
+    }
+
 
 #ifdef _WIN32
   JTKGDEF bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename)
@@ -3496,13 +3595,25 @@ namespace jtk
 
   JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename)
     {
-    return _read_off<wchar_t>(vertices, triangles, filename);
+    std::vector<uint32_t> colors;
+    return _read_off<wchar_t>(vertices, triangles, colors, filename);
+    }
+
+  JTKGDEF bool read_off(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, std::vector<uint32_t>& colors, const wchar_t* filename)
+    {
+    return _read_off<wchar_t>(vertices, triangles, colors, filename);
     }
 
   JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const wchar_t* filename)
     {
-    return _write_off<wchar_t>(nr_of_vertices, vertices, nr_of_triangles, triangles, filename);
+    return _write_off<wchar_t>(nr_of_vertices, vertices, nullptr, nr_of_triangles, triangles, filename);
     }
+
+  JTKGDEF bool write_off(uint32_t nr_of_vertices, const vec3<float>* vertices, const uint32_t* vertexcolors, uint32_t nr_of_triangles, const vec3<uint32_t>* triangles, const wchar_t* filename)
+    {
+    return _write_off<wchar_t>(nr_of_vertices, vertices, vertexcolors, nr_of_triangles, triangles, filename);
+    }
+
 #endif
 
   } // namespace jtk
