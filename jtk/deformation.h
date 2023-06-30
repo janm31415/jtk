@@ -68,12 +68,6 @@ namespace jtk
     public:
       distance_field();
       distance_field(
-        uint32_t i_x,
-        uint32_t i_y,
-        uint32_t i_z,
-        float i_offset_x,
-        float i_offset_y,
-        float i_offset_z,
         const std::vector<vec3<float>>& vertices,
         const std::vector<vec3<uint32_t>>& triangles,
         bool signed_distance);
@@ -81,39 +75,18 @@ namespace jtk
       distance_field& operator = (const distance_field&) = delete;
 
       void init(
-        uint32_t i_x,
-        uint32_t i_y,
-        uint32_t i_z,
-        float i_offset_x,
-        float i_offset_y,
-        float i_offset_z,
         const std::vector<vec3<float>>& vertices,
         const std::vector<vec3<uint32_t>>& triangles,
         bool signed_distance);
       void refresh_distance_field();
-      void reset_offset(float i_offset_x, float i_offset_y, float i_offset_z);
-      const uint32_t size_x() const;
-      const uint32_t size_y() const;
-      const uint32_t size_z() const;
-      float offset_x() const;
-      float offset_y() const;
-      float offset_z() const;
       float distance_from_point_to_surface(const vec3<float>& i_point) const;
       boundingbox3d<float> bounding_box() const;
 
     private:
-      uint32_t m_x;
-      uint32_t m_y;
-      uint32_t m_z;
-      float m_offset_x;
-      float m_offset_y;
-      float m_offset_z;
-      float m_step_x;
-      float m_step_y;
-      float m_step_z;
       std::vector<vec3<float>> m_vertices;
       std::vector<vec3<uint32_t>> m_triangles;
       std::vector<vec3<float>> triangle_normals;
+      std::vector<vec3<float>> vertex_normals;
       std::unique_ptr<qbvh> mp_qbvh;
       boundingbox3d<float> m_bounding_box;
       bool m_signed_distance;
@@ -122,7 +95,7 @@ namespace jtk
   class warping_tool
     {
     public:
-      warping_tool(const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, int distance_field_discretization, float decay_factor, bool signed_distance);
+      warping_tool(const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, float decay_factor, bool signed_distance);
       ~warping_tool();
 
       void transform(vec3<float>& pt);
@@ -203,27 +176,17 @@ namespace jtk
     {
     }
 
-  distance_field::distance_field(uint32_t i_x, uint32_t i_y, uint32_t i_z, float i_offset_x, float i_offset_y, float i_offset_z,
+  distance_field::distance_field(
     const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, bool signed_distance)
     {
-    init(i_x, i_y, i_z, i_offset_x, i_offset_y, i_offset_z, vertices, triangles, signed_distance);
+    init(vertices, triangles, signed_distance);
     }
 
-  void distance_field::init(uint32_t i_x, uint32_t i_y, uint32_t i_z, float i_offset_x, float i_offset_y, float i_offset_z,
-    const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, bool signed_distance)
+  void distance_field::init(const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, bool signed_distance)
     {
-    m_x = i_x;
-    m_y = i_y;
-    m_z = i_z;
-    m_offset_x = i_offset_x;
-    m_offset_y = i_offset_y;
-    m_offset_z = i_offset_z;
     m_vertices = vertices;
     m_triangles = triangles;
     m_signed_distance = signed_distance;
-    assert(m_x > 2);
-    assert(m_y > 2);
-    assert(m_z > 2);
     refresh_distance_field();
     }
 
@@ -232,57 +195,9 @@ namespace jtk
     if (m_vertices.empty() || m_triangles.empty())
       return;
     compute_triangle_normals(triangle_normals, m_vertices.data(), m_triangles.data(), (uint32_t)m_triangles.size());
+    compute_vertex_normals(vertex_normals, triangle_normals.data(), m_vertices.data(), (uint32_t)m_vertices.size(), m_triangles.data(), (uint32_t)m_triangles.size());
     m_bounding_box = bounding_volume_3d<float>(m_vertices.begin(), m_vertices.end());
-    m_bounding_box.min[0] -= m_offset_x;
-    m_bounding_box.min[1] -= m_offset_y;
-    m_bounding_box.min[2] -= m_offset_z;
-    m_bounding_box.max[0] += m_offset_x;
-    m_bounding_box.max[1] += m_offset_y;
-    m_bounding_box.max[2] += m_offset_z;
-
-    m_step_x = (m_bounding_box.max[0] - m_bounding_box.min[0]) / (static_cast<float>(m_x) - float(1.0));
-    m_step_y = (m_bounding_box.max[1] - m_bounding_box.min[1]) / (static_cast<float>(m_y) - float(1.0));
-    m_step_z = (m_bounding_box.max[2] - m_bounding_box.min[2]) / (static_cast<float>(m_z) - float(1.0));
-
     mp_qbvh.reset(new qbvh(m_triangles, m_vertices.data()));
-    }
-
-  void distance_field::reset_offset(float i_offset_x, float i_offset_y, float i_offset_z)
-    {
-    m_offset_x = i_offset_x;
-    m_offset_y = i_offset_y;
-    m_offset_z = i_offset_z;
-    refresh_distance_field();
-    }
-
-  const uint32_t distance_field::size_x() const
-    {
-    return m_x;
-    }
-
-  const uint32_t distance_field::size_y() const
-    {
-    return m_y;
-    }
-
-  const uint32_t distance_field::size_z() const
-    {
-    return m_z;
-    }
-
-  float distance_field::offset_x() const
-    {
-    return m_offset_x;
-    }
-
-  float distance_field::offset_y() const
-    {
-    return m_offset_y;
-    }
-
-  float distance_field::offset_z() const
-    {
-    return m_offset_z;
     }
 
   float distance_field::distance_from_point_to_surface(const vec3<float>& i_point) const
@@ -291,11 +206,15 @@ namespace jtk
     auto h = mp_qbvh->find_closest_triangle(triangle_id, i_point, m_triangles.data(), m_vertices.data());
     if (m_signed_distance)
       {
-      auto n = triangle_normals[triangle_id];
+      //auto n = triangle_normals[triangle_id];
       const vec3<float> V0 = (m_vertices)[(m_triangles)[triangle_id][0]];
       const vec3<float> V1 = (m_vertices)[(m_triangles)[triangle_id][1]];
       const vec3<float> V2 = (m_vertices)[(m_triangles)[triangle_id][2]];
+      const vec3<float> N0 = (vertex_normals)[(m_triangles)[triangle_id][0]];
+      const vec3<float> N1 = (vertex_normals)[(m_triangles)[triangle_id][1]];
+      const vec3<float> N2 = (vertex_normals)[(m_triangles)[triangle_id][2]];
       const auto pos = V0 * (1.f - h.u - h.v) + h.u * V1 + h.v * V2;
+      const auto n = N0 * (1.f - h.u - h.v) + h.u * N1 + h.v * N2;
       auto v = (i_point - pos);
       float sgn = dot(v, n);
       float dist = h.distance;
@@ -390,10 +309,10 @@ namespace jtk
       }
     }
 
-  warping_tool::warping_tool(const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, int distance_field_discretization, float i_decay_factor, bool i_signed_distance) :
-    rotation_angle(0.0), decay_factor(i_decay_factor), weight_type(0), signed_distance(i_signed_distance)
+  warping_tool::warping_tool(const std::vector<vec3<float>>& vertices, const std::vector<vec3<uint32_t>>& triangles, float i_decay_factor, bool i_signed_distance) :
+    decay_factor(i_decay_factor), rotation_angle(0.0), weight_type(0), signed_distance(i_signed_distance)
     {
-    df = std::make_shared<distance_field>(distance_field_discretization, distance_field_discretization, distance_field_discretization, decay_factor * 1.2f, decay_factor * 1.2f, decay_factor * 1.2f, vertices, triangles, signed_distance);
+    df = std::make_shared<distance_field>(vertices, triangles, signed_distance);
     rotation_center = vec3<float>(0, 0, 0);
     translation = vec3<float>(0, 0, 0);
     coordinate_system = get_identity();
@@ -441,8 +360,6 @@ namespace jtk
   void warping_tool::set_decay_factor(float decay)
     {
     decay_factor = decay;
-    if (decay * 1.2 > df->offset_x())
-      df->reset_offset(decay * 1.2f, decay * 1.2f, decay * 1.2f);
     _compute_boundingbox();
     }
 
