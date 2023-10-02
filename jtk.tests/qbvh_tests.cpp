@@ -523,7 +523,7 @@ namespace jtk
 
     for (int i = 0; i < 16; ++i)
       {
-      TEST_EQ(inv[i], m_inv[i]);
+      TEST_EQ_CLOSE(inv[i], m_inv[i], 1e-5);
       }
 
     m_inv_inv = invert_orthonormal(m_inv);

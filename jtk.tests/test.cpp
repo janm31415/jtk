@@ -29,7 +29,7 @@ int main(int /*argc*/, const char* /*argv*/[])
   run_all_mat_tests();
   run_all_octree_tests();
   run_all_qbvh_tests();
-  run_all_vec_tests();  
+  run_all_vec_tests();
   run_all_log_tests();
   run_all_ply_tests();
   run_all_icp_tests();
