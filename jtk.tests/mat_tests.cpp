@@ -4983,7 +4983,29 @@ namespace jtk
         matrix<std::complex<double>> prod = (jtk::transpose(A)*B);
         TEST_EQ_CLOSE(0, prod(0,0).real(), 1e-5);
         TEST_EQ_CLOSE(-1, prod(0,0).imag(), 1e-5);
-        }       
+        }    
+        {
+        matrix<std::complex<double>> A(3, 3);
+        A << std::complex<double>(0, 0), 
+          std::complex<double>(1, 0),
+          std::complex<double>(2, 0),
+          std::complex<double>(3, 0),
+          std::complex<double>(4, 0),
+          std::complex<double>(5, 0),
+          std::complex<double>(6, 0),
+          std::complex<double>(7, 0),
+          std::complex<double>(8, 0);
+        matrix<std::complex<double>> V, W;
+        auto m = A.rows();
+        auto n = A.cols();
+        W.resize(n, 1);
+        V.resize(n, n);
+        matrix<std::complex<double>> rv1(n);
+        //bool res = jtk::svd_details::_svd<double>(m, n, A, W, V, rv1);
+        //TEST_ASSERT(res);
+        //jtk::svd_details::_svd_sorted<std::complex<double>>((int)m, (int)n, A, W, V, rv1);
+        //jtk::svd(A, W, V);
+        }
         
       }
     }

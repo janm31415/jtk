@@ -44,6 +44,7 @@ V1.6: 02 December 2021
 #include <iomanip>
 #include <limits>
 #include <cmath>
+#include <complex>
 
 #ifndef _JTK_MAT_NO_SIMD
 #ifdef  _JTK_NO_SIMD
@@ -6051,6 +6052,253 @@ namespace jtk
               }
             }
           rv1(l) = (T)0;
+          rv1(k) = f;
+          w(k) = x;
+          }
+        }
+      return true;
+      }
+
+    template <class T>
+    T pythag(std::complex<T> a, std::complex<T> b)
+      /* compute (a2 + b2)^1/2 without destructive underflow or overflow */
+      {
+      T absa, absb;
+      absa = std::abs(a);
+      absb = std::abs(b);
+      if (absa > absb) return absa * std::sqrt((T)1 + (absb / absa) * (absb / absa));
+      else return (absb == (T)0 ? (T)0 : absb * std::sqrt((T)1 + (absa / absb) * (absa / absb)));
+      }
+
+    template <class T>
+    std::complex<T> sign(std::complex<T> a, std::complex<T> b)
+      {
+      if (b != std::complex<T>(0,0))
+        return a*b/std::abs(b);
+      else
+        return a;
+      }
+
+    template <class T>
+    bool _svd(int m, int n, matrix<std::complex<T>>& a, matrix<std::complex<T>>& w, matrix<std::complex<T>>& v, matrix<std::complex<T>>& rv1)
+      {
+      int flag, i, its, j, jj, k, l = 0, nm = 0;
+      std::complex<T> c, f, g, h, s, x, y, z;
+      T Z;
+      g = (std::complex<T>)0; /* Householder reduction to bidiagonal form */
+      T anorm = (T)0;
+      T scale = (T)0;
+      for (i = 0; i < n; ++i)
+        {
+        l = i + 1;
+        rv1(i) = scale * g;
+        g = s = (std::complex<T>)0;
+        scale = (T)0;
+        if (i < m)
+          {
+          for (k = i; k < m; ++k)
+            scale += std::abs(a[k][i]);
+          if (scale)
+            {
+            for (k = i; k < m; ++k)
+              {
+              a[k][i] /= scale;
+              s += a[k][i] * a[k][i];
+              }
+            f = a[i][i];
+            g = -sign(std::sqrt(s), f);
+            h = f * g - s;
+            a[i][i] = f - g;
+            for (j = l; j < n; ++j)
+              {
+              for (s = (std::complex<T>)0, k = i; k < m; ++k)
+                s += a[k][i] * a[k][j];
+              f = s / h;
+              for (k = i; k < m; ++k)
+                a[k][j] += f * a[k][i];
+              }
+            for (k = i; k < m; ++k)
+              a[k][i] *= scale;
+            }
+          }
+        w(i) = scale * g;
+        g = s = std::complex<T>(0);
+        scale = (T)0;
+        if (i < m && i != n - 1) {
+          for (k = l; k < n; ++k)
+            scale += std::abs(a[i][k]);
+          if (scale)
+            {
+            for (k = l; k < n; ++k)
+              {
+              a[i][k] /= scale;
+              s += a[i][k] * a[i][k];
+              }
+            f = a[i][l];
+            g = -sign(std::sqrt(s), f);
+            h = f * g - s;
+            a[i][l] = f - g;
+            for (k = l; k < n; ++k)
+              rv1(k) = a[i][k] / h;
+            for (j = l; j < m; ++j)
+              {
+              for (s = (T)0, k = l; k < n; ++k)
+                s += a[j][k] * a[i][k];
+              for (k = l; k < n; ++k)
+                a[j][k] += s * rv1(k);
+              }
+            for (k = l; k < n; ++k)
+              a[i][k] *= scale;
+            }
+          }
+        anorm = std::max<T>(anorm, (std::abs(w(i)) + std::abs(rv1(i))));
+        }
+      for (i = n - 1; i >= 0; --i) { /* Accumulation of right-hand transformations. */
+        if (i < n - 1)
+          {
+          if (g != std::complex<T>(0))
+            {
+            for (j = l; j < n; ++j) /* Double division to avoid possible underflow. */
+              v[j][i] = (a[i][j] / a[i][l]) / g;
+            for (j = l; j < n; ++j)
+              {
+              for (s = (T)0, k = l; k < n; ++k)
+                s += a[i][k] * v[k][j];
+              for (k = l; k < n; ++k)
+                v[k][j] += s * v[k][i];
+              }
+            }
+          for (j = l; j < n; ++j)
+            v[i][j] = v[j][i] = (std::complex<T>)0;
+          }
+        v[i][i] = (std::complex<T>)1;
+        g = rv1(i);
+        l = i;
+        }
+      for (i = std::min<int>(m - 1, n - 1); i >= 0; --i)
+        { /* Accumulation of left-hand transformations. */
+        l = i + 1;
+        g = w(i);
+        for (j = l; j < n; ++j)
+          a[i][j] = (std::complex<T>)0;
+        if (g != std::complex<T>(0))
+          {
+          g = (T)1 / g;
+          for (j = l; j < n; ++j)
+            {
+            for (s = (T)0, k = l; k < m; ++k)
+              s += a[k][i] * a[k][j];
+            f = (s / a[i][i]) * g;
+            for (k = i; k < m; ++k)
+              a[k][j] += f * a[k][i];
+            }
+          for (j = i; j < m; ++j)
+            a[j][i] *= g;
+          }
+        else for (j = i; j < m; ++j)
+          a[j][i] = std::complex<T>(0);
+        a[i][i] += 1;
+        }
+      for (k = n - 1; k >= 0; --k) { /* Diagonalization of the bidiagonal form. */
+        for (its = 0; its < 30; ++its)
+          {
+          flag = 1;
+          for (l = k; l >= 0; --l)
+            { /* Test for splitting. */
+            nm = l - 1; /* Note that rv1(0] is always zero. */
+            if ((T)(std::abs(rv1(l)) + anorm) == anorm)
+              {
+              flag = 0;
+              break;
+              }
+            if ((T)(std::abs(w(nm)) + anorm) == anorm) break;
+            }
+          if (flag) {
+            c = (T)0; /* Cancellation of rv1(l), if l > 0. */
+            s = (T)1;
+            for (i = l; i <= k; ++i)
+              {
+              f = s * rv1(i);
+              rv1(i) = c * rv1(i);
+              if ((T)(std::abs(f) + anorm) == anorm) break;
+              g = w(i);
+              h = pythag(f, g);
+              w(i) = h;
+              h = (T)1 / h;
+              c = g * h;
+              s = -f * h;
+              for (j = 0; j < m; ++j)
+                {
+                y = a[j][nm];
+                z = a[j][i];
+                a[j][nm] = y * c + z * s;
+                a[j][i] = z * c - y * s;
+                }
+              }
+            }
+          Z = w(k).real();
+          if (l == k)
+            { /* Convergence. */
+            if (Z < (T)0)
+              { /* Singular value is made nonnegative. */
+              w(k) = -Z;
+              for (j = 0; j < n; ++j) v[j][k] = -v[j][k];
+              }
+            break;
+            }
+          if (its >= 30)
+            {
+            return false;
+            }
+          x = w(l); /* Shift from bottom 2-by-2 minor. */
+          nm = k - 1;
+          y = w(nm);
+          g = rv1(nm);
+          h = rv1(k);
+          f = ((y - Z) * (y + Z) + (g - h) * (g + h)) / ((T)2 * h * y);
+          g = pythag(f, (std::complex<T>)1);
+          f = ((x - Z) * (x + Z) + h * ((y / (f + sign(g, f))) - h)) / x;
+          c = s = (T)1; /* Next QR transformation: */
+          for (j = l; j <= nm; ++j)
+            {
+            i = j + 1;
+            g = rv1(i);
+            y = w(i);
+            h = s * g;
+            g = c * g;
+            z = pythag(f, h);
+            rv1(j) = Z;
+            c = f / Z;
+            s = h / Z;
+            f = x * c + g * s;
+            g = g * c - x * s;
+            h = y * s;
+            y *= c;
+            for (jj = 0; jj < n; ++jj)
+              {
+              x = v[jj][j];
+              z = v[jj][i];
+              v[jj][j] = x * c + z * s;
+              v[jj][i] = z * c - x * s;
+              }
+            Z = pythag(f, h);
+            w(j) = Z; /* Rotation can be arbitrary if z = 0. */
+            if (Z) {
+              Z = (T)1 / Z;
+              c = f * Z;
+              s = h * Z;
+              }
+            f = c * g + s * y;
+            x = c * y - s * g;
+            for (jj = 0; jj < m; ++jj)
+              {
+              y = a[jj][j];
+              z = a[jj][i];
+              a[jj][j] = y * c + z * s;
+              a[jj][i] = z * c - y * s;
+              }
+            }
+          rv1(l) = (std::complex<T>)0;
           rv1(k) = f;
           w(k) = x;
           }
