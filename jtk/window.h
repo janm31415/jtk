@@ -44,8 +44,14 @@ namespace jtk
   struct WindowHandleData;
   typedef WindowHandleData* WindowHandle;
 
-  JTKWINDOWDEF WindowHandle create_window(const std::string& title, int w, int h);
-  JTKWINDOWDEF WindowHandle create_window(const std::string& title, int x, int y, int w, int h);
+#ifdef _UNICODE
+  typedef std::wstring string_type;
+#else
+  typedef string_type string_type;
+#endif
+
+  JTKWINDOWDEF WindowHandle create_window(const string_type& title, int w, int h);
+  JTKWINDOWDEF WindowHandle create_window(const string_type& title, int x, int y, int w, int h);
 
   JTKWINDOWDEF void close_window(WindowHandle& h_wnd);
 
@@ -288,11 +294,16 @@ namespace jtk
       return 0;
       }
 
-    JTKWINDOWDEF HWND _create_window(const std::string& title, int x, int y, int w, int h)
+    JTKWINDOWDEF HWND _create_window(const string_type& title, int x, int y, int w, int h)
       {
+#ifdef _UNICODE
+      std::wstringstream class_name_ss;
+      class_name_ss << L"jam_window_" << window_id++;
+#else
       std::stringstream class_name_ss;
       class_name_ss << "jam_window_" << window_id++;
-      std::string class_name = class_name_ss.str();
+#endif
+      string_type class_name = class_name_ss.str();
 
       HINSTANCE hInstance = GetModuleHandle(0);
 
@@ -338,7 +349,7 @@ namespace jtk
       return hwnd;
       }
 
-    JTKWINDOWDEF void _create_window_with_message_loop(HWND* h_wnd, WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
+    JTKWINDOWDEF void _create_window_with_message_loop(HWND* h_wnd, WindowHandle user_data, const string_type& title, int x, int y, int w, int h)
       {
       user_data->mt.lock();
       *h_wnd = _create_window(title, x, y, w, h);
@@ -355,7 +366,7 @@ namespace jtk
         }
       }
 
-    JTKWINDOWDEF std::unique_ptr<std::thread> _create_threaded_window(HWND* h_wnd, WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
+    JTKWINDOWDEF std::unique_ptr<std::thread> _create_threaded_window(HWND* h_wnd, WindowHandle user_data, const string_type& title, int x, int y, int w, int h)
       {
       user_data->initialised = false;
       std::unique_ptr<std::thread> res(new std::thread(_create_window_with_message_loop, h_wnd, user_data, title, x, y, w, h));
@@ -464,7 +475,7 @@ namespace jtk
       return gc;
       }
 
-    JTKWINDOWDEF void _create_window_with_message_loop(WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
+    JTKWINDOWDEF void _create_window_with_message_loop(WindowHandle user_data, const string_type& title, int x, int y, int w, int h)
       {
       user_data->mt.lock();
       user_data->display = XOpenDisplay(0);
@@ -590,7 +601,7 @@ namespace jtk
         }
       }
 
-    JTKWINDOWDEF std::unique_ptr<std::thread> _create_threaded_window(WindowHandle user_data, const std::string& title, int x, int y, int w, int h)
+    JTKWINDOWDEF std::unique_ptr<std::thread> _create_threaded_window(WindowHandle user_data, const string_type& title, int x, int y, int w, int h)
       {
       user_data->initialised = false;
       std::unique_ptr<std::thread> res(new std::thread(_create_window_with_message_loop, user_data, title, x, y, w, h));
@@ -627,7 +638,7 @@ namespace jtk
       }
     }
 
-  JTKWINDOWDEF WindowHandle create_window(const std::string& title, int x, int y, int w, int h)
+  JTKWINDOWDEF WindowHandle create_window(const string_type& title, int x, int y, int w, int h)
     {
 #ifdef _WIN32
     WindowHandle handle = new WindowHandleData();
@@ -661,7 +672,7 @@ namespace jtk
     return handle;
     }
 
-  JTKWINDOWDEF WindowHandle create_window(const std::string& title, int w, int h)
+  JTKWINDOWDEF WindowHandle create_window(const string_type& title, int w, int h)
     {
 #ifdef _WIN32
     return create_window(title, CW_USEDEFAULT, CW_USEDEFAULT, w, h);
