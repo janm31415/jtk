@@ -47,7 +47,7 @@ namespace jtk
 #ifdef _UNICODE
   typedef std::wstring string_type;
 #else
-  typedef string_type string_type;
+  typedef std::string string_type;
 #endif
 
   JTKWINDOWDEF WindowHandle create_window(const string_type& title, int w, int h);
