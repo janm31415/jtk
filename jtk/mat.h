@@ -4,8 +4,8 @@
 // matrices are stored row major
 //
 // Author    :  Jan Maes                                            
-// Version   :  1.6
-// Date      :  02 December 2021
+// Version   :  1.7
+// Date      :  14 March 2024
 // License   :  MIT License
 //
 ///////////////////////////////////////////////////////////////////////////////
