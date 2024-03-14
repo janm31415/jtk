@@ -2,7 +2,7 @@ set(JTK_THREADING "std" CACHE STRING  "Choose your threading library: tbb is Int
  
 set_property(CACHE JTK_THREADING PROPERTY STRINGS tbb ppl std none)
 
-option(JTK_MAT_PARALLEL "Certain matrix operations (e.g. conjugate gradients) run in parallel" ON)
+option(JTK_MAT_PARALLEL "Certain matrix operations (e.g. conjugate gradients) run in parallel" OFF)
 
 option(JTK_NO_SIMD "No SIMD instructions" OFF)
 
