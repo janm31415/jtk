@@ -6,6 +6,8 @@ option(JTK_MAT_PARALLEL "Certain matrix operations (e.g. conjugate gradients) ru
 
 option(JTK_NO_SIMD "No SIMD instructions" OFF)
 
+option(JTK_MAT_SIMD "Run matrix operations with SIMD" OFF)
+
 set(JTK_TARGET "x64" CACHE STRING  "Choose your target platform: x64 compatible pc or arm.")
 set_property(CACHE JTK_TARGET PROPERTY STRINGS x64 arm)
 
