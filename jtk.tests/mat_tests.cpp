@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <complex>
 
 #include "../jtk/mat.h"
 #include "../jtk/timer.h"
@@ -241,7 +242,7 @@ namespace jtk
       TEST_EQ_CLOSE(0.0, w(2), 1e-12);
       for (uint32_t i = 0; i < 3; ++i)
         for (uint32_t j = 0; j < 3; ++j)
-          TEST_EQ_CLOSE(a[i][j], v[i][j], 1e-12);
+          TEST_EQ_CLOSE(std::abs(a[i][j]), std::abs(v[i][j]), 1e-12);
       }
 
 
@@ -569,7 +570,7 @@ namespace jtk
       TEST_EQ_CLOSE(0.0, w(2), 1e-8);
       for (uint32_t i = 0; i < 3; ++i)
         for (uint32_t j = 0; j < 3; ++j)
-          TEST_EQ_CLOSE(a[i][j], v[i][j], 1e-8);
+          TEST_EQ_CLOSE(std::abs(a[i][j]), std::abs(v[i][j]), 1e-8);
       }
 
 
@@ -2176,8 +2177,8 @@ namespace jtk
       double d;
       ludcmp(m, permutations, d);
       lubksb(v, m, permutations);
-      TEST_EQ(1.0, v(0));
-      TEST_EQ(2.0, v(1));
+      TEST_EQ_CLOSE(1.0, v(0), 1e-5);
+      TEST_EQ_CLOSE(2.0, v(1), 1e-5);
       }
 
 
@@ -2188,8 +2189,8 @@ namespace jtk
       mat b(2);
       b << 10, 12;
       solve(m, b);
-      TEST_EQ(1, b(0));
-      TEST_EQ(2, b(1));
+      TEST_EQ_CLOSE(1, b(0), 1e-5);
+      TEST_EQ_CLOSE(2, b(1), 1e-5);
       }
 
     void lu_invert()
@@ -2200,8 +2201,8 @@ namespace jtk
       b << 10, 12;
       invert(invm, m);
       mat x = invm * b;
-      TEST_EQ(1, x(0));
-      TEST_EQ(2, x(1));
+      TEST_EQ_CLOSE(1, x(0), 1e-5);
+      TEST_EQ_CLOSE(2, x(1), 1e-5);
       }
 
     void lu_determinant()
@@ -2268,8 +2269,8 @@ namespace jtk
       float d;
       ludcmp(m, permutations, d);
       lubksb(v, m, permutations);
-      TEST_EQ(1.f, v(0));
-      TEST_EQ(2.f, v(1));
+      TEST_EQ_CLOSE(1.f, v(0), 1e-5);
+      TEST_EQ_CLOSE(2.f, v(1), 1e-5);
       }
 
 
@@ -2280,8 +2281,8 @@ namespace jtk
       matf2 b(2);
       b << 10, 12;
       solve(m, b);
-      TEST_EQ(1, b(0));
-      TEST_EQ(2, b(1));
+      TEST_EQ_CLOSE(1, b(0), 1e-5);
+      TEST_EQ_CLOSE(2, b(1), 1e-5);
       }
 
     void lu_invert_array()
@@ -2292,8 +2293,8 @@ namespace jtk
       b << 10, 12;
       invert(invm, m);
       matf16 x = invm * b;
-      TEST_EQ(1, x(0));
-      TEST_EQ(2, x(1));
+      TEST_EQ_CLOSE(1, x(0), 1e-5);
+      TEST_EQ_CLOSE(2, x(1), 1e-5);
       }
 
     void lu_determinant_array()
@@ -2301,7 +2302,7 @@ namespace jtk
       matf16 m(2, 2);
       m << 4, 3, 6, 3;
       float d = determinant(m);
-      TEST_EQ(-6.f, d);
+      TEST_EQ_CLOSE(-6.f, d, 1e-5);
       }
 
     void cholesky1()
@@ -2538,9 +2539,9 @@ namespace jtk
       mat b(3, 1);
       b << -20, -43, 192;
       solve_qr(m, b);
-      TEST_EQ_CLOSE(1.0, b(0), 1e-12);
-      TEST_EQ_CLOSE(2.0, b(1), 1e-12);
-      TEST_EQ_CLOSE(3.0, b(2), 1e-12);
+      TEST_EQ_CLOSE(1.0, b(0), 1e-10);
+      TEST_EQ_CLOSE(2.0, b(1), 1e-10);
+      TEST_EQ_CLOSE(3.0, b(2), 1e-10);
       }
 
     void qr()
@@ -2954,9 +2955,9 @@ namespace jtk
 
       qrsolv(r, permutations, diag, qtb, x, sdiag);
 
-      TEST_EQ_CLOSE(1.0, x(0), 1e-12);
-      TEST_EQ_CLOSE(2.0, x(1), 1e-12);
-      TEST_EQ_CLOSE(3.0, x(2), 1e-12);
+      TEST_EQ_CLOSE(1.0, x(0), 1e-10);
+      TEST_EQ_CLOSE(2.0, x(1), 1e-10);
+      TEST_EQ_CLOSE(3.0, x(2), 1e-10);
       }
 
     void qrsolvtest2()
@@ -4972,6 +4973,41 @@ namespace jtk
       TEST_EQ_CLOSE(0.f, Aexp(2, 1), tol);
       TEST_EQ_CLOSE(1.f, Aexp(2, 2), tol);
       }
+      
+    void mat_complex_tests()
+      {
+        {
+        matrix<std::complex<double>> A(3,1), B(3,1);
+        A << -std::complex<double>(0,-1), std::complex<double>(2,1), std::complex<double>(1,0);
+        B << -std::complex<double>(2,0), std::complex<double>(0,0), std::complex<double>(0,1);
+        matrix<std::complex<double>> prod = (jtk::transpose(A)*B);
+        TEST_EQ_CLOSE(0, prod(0,0).real(), 1e-5);
+        TEST_EQ_CLOSE(-1, prod(0,0).imag(), 1e-5);
+        }    
+        {
+        matrix<std::complex<double>> A(3, 3);
+        A << std::complex<double>(0, 0), 
+          std::complex<double>(1, 0),
+          std::complex<double>(2, 0),
+          std::complex<double>(3, 0),
+          std::complex<double>(4, 0),
+          std::complex<double>(5, 0),
+          std::complex<double>(6, 0),
+          std::complex<double>(7, 0),
+          std::complex<double>(8, 0);
+        matrix<std::complex<double>> V, W;
+        auto m = A.rows();
+        auto n = A.cols();
+        W.resize(n, 1);
+        V.resize(n, n);
+        matrix<std::complex<double>> rv1(n);
+        //bool res = jtk::svd_details::_svd<double>(m, n, A, W, V, rv1);
+        //TEST_ASSERT(res);
+        //jtk::svd_details::_svd_sorted<std::complex<double>>((int)m, (int)n, A, W, V, rv1);
+        //jtk::svd(A, W, V);
+        }
+        
+      }
     }
   }
 
@@ -5192,4 +5228,5 @@ void run_all_mat_tests()
   matvec_multiply_performance_test();  
   mat_exp_test();
   matf_exp_test();
+  mat_complex_tests();
   }

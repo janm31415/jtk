@@ -881,7 +881,7 @@ namespace jtk
       void push(t_job_type&& job)
         {
         std::unique_lock<std::mutex> lock(_queue_mutex);
-        _queue.push(job);
+        _queue.push(job);        
         _query_cv.notify_one();
         }
 
@@ -895,7 +895,6 @@ namespace jtk
       std::vector<std::thread> _pool;
       std::mutex _queue_mutex;
       std::mutex _threadpool_mutex;
-      std::mutex _completed_all_jobs_mutex;
       std::condition_variable _query_cv;
       std::condition_variable _completed_all_jobs_cv;
       std::queue<t_job_type> _queue;

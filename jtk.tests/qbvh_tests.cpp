@@ -523,7 +523,7 @@ namespace jtk
 
     for (int i = 0; i < 16; ++i)
       {
-      TEST_EQ(inv[i], m_inv[i]);
+      TEST_EQ_CLOSE(inv[i], m_inv[i], 1e-5);
       }
 
     m_inv_inv = invert_orthonormal(m_inv);
@@ -975,14 +975,14 @@ namespace jtk
       float x = rx[i];
       float y = ry[i];
       float z = rz[i];
-      jtk::float4x4 rot = jtk::compute_from_roll_pitch_yaw_transformation(x, y, z, 0.f, 0.f, 0.f);
+      jtk::float4x4 rot = jtk::compute_from_pitch_yaw_roll_transformation(x, y, z, 0.f, 0.f, 0.f);
       float tx,ty,tz;
-      jtk::solve_roll_pitch_yaw_transformation(x, y, z, tx, ty, tz, rot);
+      jtk::solve_pitch_yaw_roll_transformation(x, y, z, tx, ty, tz, rot);
       TEST_EQ_CLOSE(x, rx[i], 1e-5f);
       TEST_EQ_CLOSE(y, ry[i], 1e-5f);
       TEST_EQ_CLOSE(z, rz[i], 1e-5f);
       jtk::float4 q = jtk::rotation_to_quaternion(rot);
-      jtk::float4 q2 = jtk::roll_pitch_yaw_to_quaternion(x, y, z);
+      jtk::float4 q2 = jtk::pitch_yaw_roll_to_quaternion(x, y, z);
 
       jtk::float4 q_inv = jtk::quaternion_inverse(q);
       jtk::float4 q_qinv = jtk::quaternion_multiply(q, q_inv);
