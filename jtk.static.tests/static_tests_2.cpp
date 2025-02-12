@@ -37,9 +37,11 @@
 #define JTK_QBVH_STATIC
 #include "../jtk/qbvh.h"
 
+#ifdef _WIN32
 #define JTK_WINDOW_IMPLEMENTATION
 #define JTK_WINDOW_STATIC
 #include "../jtk/window.h"
+#endif
 
 #define JTK_HALFFLOAT_IMPLEMENTATION
 #define JTK_HALFFLOAT_STATIC

@@ -60,6 +60,8 @@ namespace jtk
   JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles);
   JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles);
   JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<vec3<uint32_t>>& triangles, const std::vector<jtk::vec3<jtk::vec2<float>>>& uv);
+  
+  JTKGDEF bool write_ply(const char* filename, const float* pts, const uint32_t* pts_colors, uint32_t nr_vertices, const uint32_t* triangles, uint32_t nr_triangles);
 
 #ifdef _WIN32
   JTKGDEF bool read_stl(std::vector<vec3<float>>& vertices, std::vector<vec3<uint32_t>>& triangles, const wchar_t* filename);
@@ -2172,6 +2174,43 @@ namespace jtk
     return true;
     }
 
+  JTKGDEF bool write_ply(const char* filename, const float* pts, const uint32_t* pts_colors, uint32_t nr_vertices, const uint32_t* triangles, uint32_t nr_triangles)
+    {
+    FILE* fp = fopen(filename, "wb");
+    if (!fp)
+      return false;
+    fprintf(fp, "ply\n");
+    int n = 1;
+    if (*(char*)&n == 1)
+      fprintf(fp, "format binary_little_endian 1.0\n");
+    else
+      fprintf(fp, "format binary_big_endian 1.0\n");
+    fprintf(fp, "element vertex %d\n", (int)nr_vertices);
+    fprintf(fp, "property float x\n");
+    fprintf(fp, "property float y\n");
+    fprintf(fp, "property float z\n");
+    fprintf(fp, "property uchar red\n");
+    fprintf(fp, "property uchar green\n");
+    fprintf(fp, "property uchar blue\n");
+    fprintf(fp, "element face %d\n", (int)nr_triangles);
+    fprintf(fp, "property list uchar int vertex_indices\n");
+    fprintf(fp, "end_header\n");
+    for (int i = 0; i < nr_vertices; ++i)
+      {
+      fwrite(pts + i*3, sizeof(float), 3, fp);
+      uint32_t clr = *(pts_colors + i);
+      unsigned char* rgb = reinterpret_cast<unsigned char*>(&clr);
+      fwrite(rgb, 1, 3, fp);
+      }
+    unsigned char tria_size = 3;
+    for (int i = 0; i < nr_triangles; ++i)
+      {
+      fwrite(&tria_size, 1, 1, fp);
+      fwrite(triangles + i*3, sizeof(uint32_t), 3, fp);
+      }
+    fclose(fp);
+    return true;
+    }
 
   JTKGDEF bool write_ply(const char* filename, const std::vector<vec3<float>>& pts, const std::vector<uint32_t>& pts_colors, const std::vector<vec3<uint32_t>>& triangles)
     {

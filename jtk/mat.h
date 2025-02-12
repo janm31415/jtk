@@ -4,8 +4,8 @@
 // matrices are stored row major
 //
 // Author    :  Jan Maes                                            
-// Version   :  1.6
-// Date      :  02 December 2021
+// Version   :  1.7
+// Date      :  14 March 2024
 // License   :  MIT License
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -29,6 +29,8 @@ V1.5: 08 September 2020
   - iterative solvers (conjugate gradient and bicgstab + preconditioned versions)
 V1.6: 02 December 2021
   - adding computation of exponential of a matrix using Pade approximation.
+V1.7: 14 March 2024
+  - change default behaviour to: no simd
 */
 
 
@@ -46,13 +48,7 @@ V1.6: 02 December 2021
 #include <cmath>
 #include <complex>
 
-#ifndef _JTK_MAT_NO_SIMD
-#ifdef  _JTK_NO_SIMD
-#define _JTK_MAT_NO_SIMD
-#endif
-#endif
-
-#ifndef _JTK_MAT_NO_SIMD
+#ifdef _JTK_MAT_SIMD
 #  ifdef _JTK_FOR_ARM
 #    include "sse2neon.h"
 #  else
@@ -5326,7 +5322,7 @@ namespace jtk
     const float* itb = b.data();
     double sum = 0.0;
     const uint64_t len = (uint64_t)a.rows() * (uint64_t)a.cols();
-#ifdef _JTK_MAT_NO_SIMD
+#ifndef _JTK_MAT_SIMD
     const uint64_t len4 = 0;
 #else
     const uint64_t len4 = len / 4;
@@ -5354,7 +5350,7 @@ namespace jtk
     const double* ita = a.data();
     const double* itb = b.data();
     uint64_t len = (uint64_t)a.rows() * (uint64_t)a.cols();
-#ifdef _JTK_MAT_NO_SIMD
+#ifndef _JTK_MAT_SIMD
     uint64_t len2 = 0;
     double totalsum = 0.0;
 #else
@@ -5591,7 +5587,7 @@ namespace jtk
     const float* ita = a.data();
     const uint64_t len = (uint64_t)a.rows() * (uint64_t)a.cols();
     double sum = 0.0;
-#ifdef _JTK_MAT_NO_SIMD
+#ifndef _JTK_MAT_SIMD
     const uint64_t len4 = 0;
 #else
     const uint64_t len4 = len / 4;
@@ -5616,7 +5612,7 @@ namespace jtk
     {
     const double* ita = a.data();
     uint64_t len = (uint64_t)a.rows() * (uint64_t)a.cols();
-#if defined(_JTK_FOR_ARM) || defined(_JTK_MAT_NO_SIMD)
+#if defined(_JTK_FOR_ARM) || !defined(_JTK_MAT_SIMD)
     const uint64_t len2 = 0;
     double totalsum = 0.0;
 #else

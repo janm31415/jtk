@@ -96,27 +96,6 @@ source_group("Source Files" FILES ${srcs})
 #   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:libskiwi.tests>/data")
 #endif (UNIX)
 
-if (UNIX)
-
-set(XLIBINCLUDE "")
-set(XLIBLIBRARY "X11.so")
-
-if (APPLE)
-set(XLIBINCLUDE "/usr/X11/include/")
-set(XLIBLIBRARY "/usr/X11/lib/libX11.dylib")
-endif (APPLE)
-
-target_include_directories(jtk.tests
-   PRIVATE
-   ${XLIBINCLUDE}
-   )
-   
-target_link_libraries(jtk.tests
-    PRIVATE
-    ${XLIBLIBRARY}
-    )
-endif (UNIX)
-
 if (${JTK_THREADING} STREQUAL "tbb")
   target_include_directories(jtk.tests
       PRIVATE

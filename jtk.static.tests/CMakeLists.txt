@@ -51,7 +51,10 @@ endif (APPLE)
 # general build definitions
 add_definitions(-D_SCL_SECURE_NO_WARNINGS)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-
+if (WIN32)
+add_definitions(-D_UNICODE)
+add_definitions(-DUNICODE)
+endif (WIN32)
 include ("../jtk/jtk.cmake")
 
 add_definitions(-DMEMORY_LEAK_TRACKING)
