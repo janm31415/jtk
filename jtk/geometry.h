@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <stdint.h>
 
 #ifndef JTKGDEF
 #ifdef JTK_GEOMETRY_STATIC

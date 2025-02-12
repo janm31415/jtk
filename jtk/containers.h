@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include <cassert>
+#include <stdexcept>
 
 #include "concurrency.h"
 

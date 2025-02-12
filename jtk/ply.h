@@ -31,6 +31,7 @@
 
 #include "vec.h"
 #include <vector>
+#include <stdint.h>
 
 #ifndef JTKPLYDEF
 #ifdef JTK_PLY_STATIC
