@@ -556,19 +556,30 @@ namespace jtk
     int outpipefd[2];
     if (pipe(inpipefd) != 0)
       {
+      perror("pipe");
       throw std::runtime_error("failed to pipe");
       }
     if (pipe(outpipefd) != 0)
       {
+      perror("pipe");
       throw std::runtime_error("failed to pipe");
       }
     pid = fork();
-    if (pid < 0)
+    if (pid < 0) {
+      perror("fork");
       throw std::runtime_error("failed to fork");
+      }
     if (pid == 0)
       {
-      dup2(outpipefd[0], STDIN_FILENO);
-      dup2(inpipefd[1], STDOUT_FILENO);
+      // Child process
+      if (dup2(outpipefd[0], STDIN_FILENO) == -1) {
+        perror("dup2");
+        _exit(1);
+      }
+      if (dup2(inpipefd[1], STDOUT_FILENO) == -1) {
+        perror("dup2");
+        _exit(1);
+      }
 
       close(inpipefd[0]);
       close(inpipefd[1]);
@@ -577,11 +588,11 @@ namespace jtk
 #if defined(unix) || defined(__unix) || defined(__unix__) || defined(UNIX)
       prctl(PR_SET_PDEATHSIG, SIGTERM);
 #endif
-
-      execv(path, argv);
-      //if (execv(path, argv) == -1)
-      //  throw std::runtime_error("failed to pipe (execl failed)"); // remove throwing because it causes error messages on the os when a pipe fails
-      exit(1);
+      
+      if (execv(path, argv) == -1) {
+        perror("execv");        
+        _exit(1); // use _exit instead of exit: Using _exit ensures that the child process exits gracefully without affecting the parent process's connection to the X server.
+        }            
       }
 
     close(outpipefd[0]);
@@ -590,12 +601,26 @@ namespace jtk
     pipefd[1] = inpipefd[0];
 
     auto flags = fcntl(pipefd[0], F_GETFL, 0);
+    if (flags == -1) {
+      perror("fcntl");
+      throw std::runtime_error("fcntl failed");
+    }
     flags |= O_NONBLOCK;
-    fcntl(pipefd[0], F_SETFL, flags);
+    if (fcntl(pipefd[0], F_SETFL, flags) == -1) {    
+      perror("fcntl");
+      throw std::runtime_error("fcntl failed");    
+    }
 
     flags = fcntl(pipefd[1], F_GETFL, 0);
+    if (flags == -1) {
+      perror("fcntl");
+      throw std::runtime_error("fcntl failed");
+    }
     flags |= O_NONBLOCK;
-    fcntl(pipefd[1], F_SETFL, flags);
+    if (fcntl(pipefd[1], F_SETFL, flags) == -1) {
+      perror("fcntl");
+      throw std::runtime_error("fcntl failed");    
+    }
 
     pipefd[2] = pid;
 
