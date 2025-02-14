@@ -580,6 +580,11 @@ namespace jtk
         perror("dup2");
         _exit(1);
       }
+      if (dup2(inpipefd[1], STDERR_FILENO) == -1) {
+        perror("dup2");
+        _exit(1);
+      }
+      
 
       close(inpipefd[0]);
       close(inpipefd[1]);
